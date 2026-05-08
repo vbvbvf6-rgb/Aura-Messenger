@@ -20,7 +20,7 @@ import Login from "@/pages/Login";
 import Register from "@/pages/Register";
 import NotFound from "@/pages/not-found";
 
-const queryClient = new QueryClient();
+let queryClient = new QueryClient();
 
 function MainApp({ onLogout }: { onLogout: () => void }) {
   return (
@@ -63,12 +63,14 @@ function App() {
   });
 
   const handleLogin = (id: number) => {
+    queryClient.clear();
     setUserId(id);
   };
 
   const handleLogout = () => {
     localStorage.removeItem("pulse-user-id");
     localStorage.removeItem("pulse-user");
+    queryClient.clear();
     setUserId(null);
   };
 
