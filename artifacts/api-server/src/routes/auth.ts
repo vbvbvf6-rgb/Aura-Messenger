@@ -77,7 +77,10 @@ router.post("/auth/register", async (req, res) => {
 
     try {
       await db.execute(
-        sql`INSERT INTO chat_members (chat_id, user_id, role, last_read_at) VALUES (2, ${newUser.id}, 'member', NOW()) ON CONFLICT DO NOTHING`
+        sql`INSERT INTO chat_members (chat_id, user_id, role, last_read_at)
+            SELECT id, ${newUser.id}, 'member', NOW()
+            FROM chats WHERE type IN ('group', 'channel') AND id IN (2, 3)
+            ON CONFLICT DO NOTHING`
       );
     } catch {
     }

@@ -1,12 +1,12 @@
 import React, { useState } from "react";
 import { useGetChats, Chat } from "@workspace/api-client-react";
 import { formatDistanceToNow } from "date-fns";
-import { Search, Pin, VolumeX, PenSquare } from "lucide-react";
+import { ru } from "date-fns/locale";
+import { Search, Pin, VolumeX, Users, Radio, Bot } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAppContext } from "@/contexts/AppContext";
 import { StoriesBar } from "@/components/stories/StoriesBar";
-import { useLocation } from "wouter";
 
 function VerifiedBadge() {
   return (
@@ -17,21 +17,79 @@ function VerifiedBadge() {
   );
 }
 
+function ChatAvatar({ chat, displayName }: { chat: Chat; displayName: string }) {
+  const avatarColor =
+    chat.type === "direct"
+      ? ((chat.otherUser as any)?.avatarColor || chat.avatarColor || "#333")
+      : (chat.avatarColor || "#3B82F6");
+
+  const avatarUrl =
+    chat.type === "direct"
+      ? (chat.otherUser as any)?.avatarUrl
+      : (chat as any).avatarUrl;
+
+  const letter = displayName[0]?.toUpperCase() || "?";
+
+  return (
+    <div
+      className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg overflow-hidden shrink-0"
+      style={{ backgroundColor: avatarColor }}
+    >
+      {avatarUrl ? (
+        <img src={avatarUrl} alt={displayName} className="w-full h-full object-cover" />
+      ) : chat.type === "channel" ? (
+        <Radio size={20} className="text-white" />
+      ) : chat.type === "group" ? (
+        <Users size={20} className="text-white" />
+      ) : (chat.otherUser as any)?.isBot ? (
+        <Bot size={20} className="text-white" />
+      ) : (
+        letter
+      )}
+    </div>
+  );
+}
+
+function formatTime(dateStr: string): string {
+  try {
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+    if (diffDays === 0) {
+      return date.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
+    }
+    if (diffDays === 1) return "вчера";
+    if (diffDays < 7) {
+      return date.toLocaleDateString("ru-RU", { weekday: "short" });
+    }
+    return date.toLocaleDateString("ru-RU", { day: "numeric", month: "short" });
+  } catch {
+    return "";
+  }
+}
+
 export function ChatList() {
   const { selectedChatId, setSelectedChatId } = useAppContext();
   const { data: chats, isLoading } = useGetChats();
   const [search, setSearch] = useState("");
 
-  const handleChatSelect = (chatId: number) => {
-    setSelectedChatId(chatId);
-  };
-
   const filtered = chats?.filter((chat: Chat) => {
     if (!search) return true;
-    const name = chat.type === "direct"
-      ? (chat.otherUser?.displayName || chat.name || "")
-      : (chat.name || "");
+    const name =
+      chat.type === "direct"
+        ? ((chat.otherUser as any)?.displayName || chat.name || "")
+        : (chat.name || "");
     return name.toLowerCase().includes(search.toLowerCase());
+  });
+
+  const sorted = filtered?.slice().sort((a: Chat, b: Chat) => {
+    if (a.isPinned && !b.isPinned) return -1;
+    if (!a.isPinned && b.isPinned) return 1;
+    const aTime = a.lastMessage?.createdAt || (a as any).createdAt || "";
+    const bTime = b.lastMessage?.createdAt || (b as any).createdAt || "";
+    return new Date(bTime).getTime() - new Date(aTime).getTime();
   });
 
   return (
@@ -39,15 +97,15 @@ export function ChatList() {
       <div className="p-4 border-b border-border">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground w-4 h-4" />
-          <Input 
-            placeholder="Search chats..." 
+          <Input
+            placeholder="Поиск чатов..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-9 bg-background border-none focus-visible:ring-primary"
           />
         </div>
       </div>
-      
+
       <div className="border-b border-border">
         <StoriesBar />
       </div>
@@ -65,41 +123,42 @@ export function ChatList() {
               </div>
             ))}
           </div>
-        ) : filtered?.length === 0 ? (
-          <div className="p-4 text-center text-muted-foreground text-sm">
-            {search ? "No chats found" : "No chats yet"}
+        ) : sorted?.length === 0 ? (
+          <div className="p-8 text-center text-muted-foreground text-sm">
+            {search ? "Чаты не найдены" : "Нет чатов"}
           </div>
         ) : (
-          filtered?.map((chat: Chat) => {
+          sorted?.map((chat: Chat) => {
             const isSelected = selectedChatId === chat.id;
             const lastMessage = chat.lastMessage;
-            const displayName = chat.type === "direct"
-              ? (chat.otherUser?.displayName || chat.name || "Unknown")
-              : (chat.name || "Group");
-            const avatarColor = chat.type === "direct"
-              ? (chat.otherUser?.avatarColor || chat.avatarColor || "#333")
-              : (chat.avatarColor || "#333");
+            const isBot = (chat.otherUser as any)?.isBot;
             const isVerified = chat.type === "direct" && (chat.otherUser as any)?.isVerified;
-            
+
+            const displayName =
+              chat.type === "direct"
+                ? ((chat.otherUser as any)?.displayName || chat.name || "Неизвестный")
+                : (chat.name || (chat.type === "channel" ? "Канал" : "Группа"));
+
+            const lastMsgText = lastMessage
+              ? lastMessage.type === "text"
+                ? lastMessage.text || ""
+                : lastMessage.type === "image"
+                ? "📷 Фото"
+                : lastMessage.type === "gift"
+                ? "🎁 Подарок"
+                : `[${lastMessage.type}]`
+              : "Нет сообщений";
+
             return (
               <button
                 key={chat.id}
-                onClick={() => handleChatSelect(chat.id)}
-                className={`w-full flex items-center gap-3 p-3 transition-colors text-left hover:bg-secondary ${
+                onClick={() => setSelectedChatId(chat.id)}
+                className={`w-full flex items-center gap-3 px-4 py-3 transition-colors text-left hover:bg-secondary ${
                   isSelected ? "bg-secondary" : ""
                 }`}
               >
                 <div className="relative shrink-0">
-                  <div 
-                    className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg overflow-hidden"
-                    style={{ backgroundColor: avatarColor }}
-                  >
-                    {chat.avatarUrl ? (
-                      <img src={chat.avatarUrl} alt={displayName} className="w-full h-full object-cover" />
-                    ) : (
-                      displayName[0].toUpperCase()
-                    )}
-                  </div>
+                  <ChatAvatar chat={chat} displayName={displayName} />
                   {chat.isPinned && (
                     <div className="absolute -bottom-1 -right-1 bg-background rounded-full p-0.5">
                       <div className="bg-primary p-0.5 rounded-full">
@@ -108,33 +167,42 @@ export function ChatList() {
                     </div>
                   )}
                 </div>
-                
+
                 <div className="flex-1 min-w-0">
                   <div className="flex justify-between items-baseline mb-0.5">
                     <div className="flex items-center gap-1 min-w-0">
-                      <h3 className="font-semibold truncate text-sm">{displayName}</h3>
+                      <h3 className="font-semibold truncate text-sm text-foreground">{displayName}</h3>
                       {isVerified && <VerifiedBadge />}
+                      {isBot && !isVerified && (
+                        <span className="text-[9px] font-bold text-primary bg-primary/10 px-1 rounded shrink-0">BOT</span>
+                      )}
+                      {chat.type === "channel" && (
+                        <Radio size={11} className="text-muted-foreground shrink-0" />
+                      )}
                     </div>
                     {lastMessage && (
-                      <span className="text-xs text-muted-foreground shrink-0 ml-1">
-                        {formatDistanceToNow(new Date(lastMessage.createdAt), { addSuffix: false }).replace("about ", "")}
+                      <span className="text-xs text-muted-foreground shrink-0 ml-2">
+                        {formatTime(lastMessage.createdAt)}
                       </span>
                     )}
                   </div>
+
                   <div className="flex justify-between items-center gap-2">
                     <p className={`text-xs truncate ${chat.unreadCount > 0 ? "text-foreground font-medium" : "text-muted-foreground"}`}>
-                      {lastMessage ? (
-                        lastMessage.type === "text" ? lastMessage.text :
-                        lastMessage.type === "image" ? "📷 Photo" :
-                        lastMessage.type === "gift" ? "🎁 Gift" :
-                        `[${lastMessage.type}]`
-                      ) : "No messages"}
+                      {chat.type !== "direct" && lastMessage?.sender ? (
+                        <span>
+                          <span className="text-primary font-medium">
+                            {(lastMessage.sender as any)?.displayName?.split(" ")[0]}:
+                          </span>{" "}
+                          {lastMsgText}
+                        </span>
+                      ) : lastMsgText}
                     </p>
                     <div className="flex items-center gap-1 shrink-0">
                       {chat.isMuted && <VolumeX size={12} className="text-muted-foreground" />}
                       {chat.unreadCount > 0 && (
                         <div className="bg-primary text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center">
-                          {chat.unreadCount}
+                          {chat.unreadCount > 99 ? "99+" : chat.unreadCount}
                         </div>
                       )}
                     </div>
