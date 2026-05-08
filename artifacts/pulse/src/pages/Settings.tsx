@@ -3,7 +3,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Settings as SettingsIcon, Bell, Moon, Lock, Shield, Smartphone, Save, Sun, Palette, MessageSquare, Database, Edit3, CheckCircle, LogOut } from "lucide-react";
+import { Settings as SettingsIcon, Bell, Moon, Lock, Shield, Smartphone, Save, Sun, Palette, Database, Edit3, CheckCircle, LogOut } from "lucide-react";
 import { useGetMe, useUpdateMe } from "@workspace/api-client-react";
 import { useAppContext } from "@/contexts/AppContext";
 import { useQueryClient } from "@tanstack/react-query";
@@ -20,9 +20,9 @@ import {
 } from "@/components/ui/alert-dialog";
 
 const AVATAR_COLORS = [
-  "#3B82F6", "#EC4899", "#10B981", "#F59E0B", "#8B5CF6",
-  "#06B6D4", "#EF4444", "#F97316", "#14B8A6", "#84CC16",
-  "#6366F1", "#A855F7", "#E11D48", "#059669", "#D97706",
+  "#3B82F6","#EC4899","#10B981","#F59E0B","#8B5CF6",
+  "#06B6D4","#EF4444","#F97316","#14B8A6","#84CC16",
+  "#6366F1","#A855F7","#E11D48","#059669","#D97706",
 ];
 
 const STATUS_PRESETS = [
@@ -37,7 +37,7 @@ const STATUS_PRESETS = [
 ];
 
 export default function Settings() {
-  const { isDark, toggleTheme } = useAppContext();
+  const { isDark, toggleTheme, logout } = useAppContext();
   const { data: user } = useGetMe();
   const updateMe = useUpdateMe();
   const queryClient = useQueryClient();
@@ -79,19 +79,13 @@ export default function Settings() {
           setHasChanges(false);
           setSaved(true);
           setTimeout(() => setSaved(false), 2000);
-          toast({ title: "Profile saved", description: "Your changes have been saved." });
+          toast({ title: "Сохранено", description: "Изменения сохранены." });
         },
         onError: () => {
-          toast({ title: "Error", description: "Failed to save changes.", variant: "destructive" });
+          toast({ title: "Ошибка", description: "Не удалось сохранить изменения.", variant: "destructive" });
         },
       }
     );
-  };
-
-  const handleLogout = () => {
-    localStorage.clear();
-    sessionStorage.clear();
-    window.location.href = "/";
   };
 
   return (
@@ -107,17 +101,15 @@ export default function Settings() {
             className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-xl text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
           >
             {saved ? <CheckCircle size={16} /> : <Save size={16} />}
-            {saved ? "Saved!" : "Save changes"}
+            {saved ? "Сохранено!" : "Сохранить"}
           </button>
         )}
       </header>
 
       <div className="flex-1 overflow-y-auto p-4 md:p-6 max-w-2xl w-full mx-auto scrollbar-thin space-y-6">
-
-        {/* Profile Section */}
         <section>
           <h2 className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-3 px-2 flex items-center gap-2">
-            <Edit3 size={14} /> My Profile
+            <Edit3 size={14} /> Мой профиль
           </h2>
           <div className="bg-card border border-border rounded-2xl overflow-hidden divide-y divide-border">
             <div className="p-4">
@@ -129,12 +121,12 @@ export default function Settings() {
                   {displayName[0]?.toUpperCase() || "?"}
                 </div>
                 <div>
-                  <p className="font-semibold">{displayName || "Your name"}</p>
+                  <p className="font-semibold">{displayName || "Ваше имя"}</p>
                   {statusText && <p className="text-sm text-muted-foreground">{statusText}</p>}
                 </div>
               </div>
               <div>
-                <Label className="text-xs text-muted-foreground mb-2 block">Avatar Color</Label>
+                <Label className="text-xs text-muted-foreground mb-2 block">Цвет аватара</Label>
                 <div className="flex flex-wrap gap-2">
                   {AVATAR_COLORS.map((color) => (
                     <button
@@ -150,36 +142,18 @@ export default function Settings() {
 
             <div className="p-4 space-y-3">
               <div>
-                <Label htmlFor="displayName" className="text-sm font-medium mb-1 block">Display Name</Label>
-                <Input
-                  id="displayName"
-                  value={displayName}
-                  onChange={(e) => setDisplayName(e.target.value)}
-                  placeholder="Your display name"
-                  className="bg-background"
-                />
+                <Label htmlFor="displayName" className="text-sm font-medium mb-1 block">Имя</Label>
+                <Input id="displayName" value={displayName} onChange={(e) => setDisplayName(e.target.value)} placeholder="Ваше имя" className="bg-background" />
               </div>
               <div>
-                <Label htmlFor="bio" className="text-sm font-medium mb-1 block">Bio</Label>
-                <Textarea
-                  id="bio"
-                  value={bio}
-                  onChange={(e) => setBio(e.target.value)}
-                  placeholder="Write something about yourself..."
-                  rows={3}
-                  className="bg-background resize-none"
-                />
+                <Label htmlFor="bio" className="text-sm font-medium mb-1 block">О себе</Label>
+                <Textarea id="bio" value={bio} onChange={(e) => setBio(e.target.value)} placeholder="Расскажите о себе..." rows={3} className="bg-background resize-none" />
               </div>
             </div>
 
             <div className="p-4">
-              <Label className="text-sm font-medium mb-2 block">Status</Label>
-              <Input
-                value={statusText}
-                onChange={(e) => setStatusText(e.target.value)}
-                placeholder="What's on your mind?"
-                className="bg-background mb-3"
-              />
+              <Label className="text-sm font-medium mb-2 block">Статус</Label>
+              <Input value={statusText} onChange={(e) => setStatusText(e.target.value)} placeholder="Что происходит?" className="bg-background mb-3" />
               <div className="flex flex-wrap gap-2">
                 {STATUS_PRESETS.map((preset) => (
                   <button
@@ -195,10 +169,9 @@ export default function Settings() {
           </div>
         </section>
 
-        {/* Appearance */}
         <section>
           <h2 className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-3 px-2 flex items-center gap-2">
-            <Palette size={14} /> Appearance
+            <Palette size={14} /> Оформление
           </h2>
           <div className="bg-card border border-border rounded-2xl overflow-hidden divide-y divide-border">
             <div className="p-4 flex items-center justify-between">
@@ -208,24 +181,21 @@ export default function Settings() {
                 </div>
                 <div>
                   <Label className="text-base font-medium cursor-pointer" onClick={toggleTheme}>
-                    {isDark ? "Dark Mode" : "Light Mode"}
+                    {isDark ? "Тёмная тема" : "Светлая тема"}
                   </Label>
-                  <p className="text-sm text-muted-foreground">
-                    {isDark ? "Currently using dark theme" : "Currently using light theme"}
-                  </p>
+                  <p className="text-sm text-muted-foreground">{isDark ? "Тёмное оформление" : "Светлое оформление"}</p>
                 </div>
               </div>
               <Switch checked={isDark} onCheckedChange={toggleTheme} />
             </div>
-
             <div className="p-4 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-green-500/10 text-green-500 rounded-lg">
                   <Smartphone size={20} />
                 </div>
                 <div>
-                  <Label className="text-base font-medium">Reduce Animations</Label>
-                  <p className="text-sm text-muted-foreground">Disable complex visual effects</p>
+                  <Label className="text-base font-medium">Уменьшить анимации</Label>
+                  <p className="text-sm text-muted-foreground">Отключить сложные эффекты</p>
                 </div>
               </div>
               <Switch checked={false} />
@@ -233,33 +203,27 @@ export default function Settings() {
           </div>
         </section>
 
-        {/* Notifications */}
         <section>
           <h2 className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-3 px-2 flex items-center gap-2">
-            <Bell size={14} /> Notifications
+            <Bell size={14} /> Уведомления
           </h2>
           <div className="bg-card border border-border rounded-2xl overflow-hidden divide-y divide-border">
             <div className="p-4 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-blue-500/10 text-blue-500 rounded-lg">
-                  <Bell size={20} />
-                </div>
+                <div className="p-2 bg-blue-500/10 text-blue-500 rounded-lg"><Bell size={20} /></div>
                 <div>
-                  <Label className="text-base font-medium">Push Notifications</Label>
-                  <p className="text-sm text-muted-foreground">Receive messages when app is closed</p>
+                  <Label className="text-base font-medium">Push-уведомления</Label>
+                  <p className="text-sm text-muted-foreground">Получать сообщения в фоне</p>
                 </div>
               </div>
               <Switch defaultChecked />
             </div>
-
             <div className="p-4 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-orange-500/10 text-orange-500 rounded-lg">
-                  <Bell size={20} />
-                </div>
+                <div className="p-2 bg-orange-500/10 text-orange-500 rounded-lg"><Bell size={20} /></div>
                 <div>
-                  <Label className="text-base font-medium">Sound Effects</Label>
-                  <p className="text-sm text-muted-foreground">Play sounds for incoming messages</p>
+                  <Label className="text-base font-medium">Звуки</Label>
+                  <p className="text-sm text-muted-foreground">Звук при получении сообщений</p>
                 </div>
               </div>
               <Switch defaultChecked />
@@ -267,33 +231,27 @@ export default function Settings() {
           </div>
         </section>
 
-        {/* Privacy */}
         <section>
           <h2 className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-3 px-2 flex items-center gap-2">
-            <Lock size={14} /> Privacy & Security
+            <Lock size={14} /> Конфиденциальность
           </h2>
           <div className="bg-card border border-border rounded-2xl overflow-hidden divide-y divide-border">
             <div className="p-4 flex items-center justify-between cursor-pointer hover:bg-secondary transition-colors">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-purple-500/10 text-purple-500 rounded-lg">
-                  <Lock size={20} />
-                </div>
+                <div className="p-2 bg-purple-500/10 text-purple-500 rounded-lg"><Lock size={20} /></div>
                 <div>
-                  <h3 className="text-base font-medium">Privacy Settings</h3>
-                  <p className="text-sm text-muted-foreground">Control who can see your activity</p>
+                  <h3 className="text-base font-medium">Настройки приватности</h3>
+                  <p className="text-sm text-muted-foreground">Кто видит вашу активность</p>
                 </div>
               </div>
               <span className="text-muted-foreground">›</span>
             </div>
-
             <div className="p-4 flex items-center justify-between cursor-pointer hover:bg-secondary transition-colors">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-red-500/10 text-red-500 rounded-lg">
-                  <Shield size={20} />
-                </div>
+                <div className="p-2 bg-red-500/10 text-red-500 rounded-lg"><Shield size={20} /></div>
                 <div>
-                  <h3 className="text-base font-medium">Blocked Users</h3>
-                  <p className="text-sm text-muted-foreground">Manage your blocked contacts</p>
+                  <h3 className="text-base font-medium">Заблокированные</h3>
+                  <p className="text-sm text-muted-foreground">Управление блокировками</p>
                 </div>
               </div>
               <span className="text-muted-foreground">›</span>
@@ -301,25 +259,21 @@ export default function Settings() {
           </div>
         </section>
 
-        {/* Storage */}
         <section>
           <h2 className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-3 px-2 flex items-center gap-2">
-            <Database size={14} /> Storage
+            <Database size={14} /> Хранилище
           </h2>
           <div className="bg-card border border-border rounded-2xl overflow-hidden">
             <div className="p-4 flex items-center justify-between cursor-pointer hover:bg-secondary transition-colors">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-orange-500/10 text-orange-500 rounded-lg">
-                  <Database size={20} />
-                </div>
+                <div className="p-2 bg-orange-500/10 text-orange-500 rounded-lg"><Database size={20} /></div>
                 <div>
-                  <h3 className="text-base font-medium">Storage Usage</h3>
-                  <p className="text-sm text-muted-foreground">Manage cached data and media</p>
+                  <h3 className="text-base font-medium">Использование памяти</h3>
+                  <p className="text-sm text-muted-foreground">Кэш и медиафайлы</p>
                 </div>
               </div>
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <span>124 MB</span>
-                <span>›</span>
+                <span>124 МБ</span><span>›</span>
               </div>
             </div>
           </div>
@@ -330,7 +284,7 @@ export default function Settings() {
             onClick={() => setShowLogoutDialog(true)}
             className="flex items-center gap-2 text-destructive hover:bg-destructive/10 px-6 py-3 rounded-xl font-bold transition-colors"
           >
-            <LogOut size={18} /> Log Out
+            <LogOut size={18} /> Выйти из аккаунта
           </button>
         </div>
       </div>
@@ -338,18 +292,13 @@ export default function Settings() {
       <AlertDialog open={showLogoutDialog} onOpenChange={setShowLogoutDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Log Out</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to log out of Pulse?
-            </AlertDialogDescription>
+            <AlertDialogTitle>Выход из аккаунта</AlertDialogTitle>
+            <AlertDialogDescription>Вы уверены, что хотите выйти из Pulse?</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleLogout}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              Log Out
+            <AlertDialogCancel>Отмена</AlertDialogCancel>
+            <AlertDialogAction onClick={logout} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Выйти
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -9,17 +9,25 @@ interface AppState {
   setActiveCall: (call: Call | null) => void;
   isDark: boolean;
   toggleTheme: () => void;
+  logout: () => void;
 }
 
 const AppContext = createContext<AppState | undefined>(undefined);
 
-export function AppProvider({ children }: { children: ReactNode }) {
+interface AppProviderProps {
+  children: ReactNode;
+  onLogout: () => void;
+}
+
+export function AppProvider({ children, onLogout }: AppProviderProps) {
   const [selectedChatId, setSelectedChatId] = useState<number | null>(null);
   const [activeCall, setActiveCall] = useState<Call | null>(null);
   const [isDark, setIsDark] = useState(() => {
     const stored = localStorage.getItem("pulse-theme");
     return stored !== "light";
   });
+
+  const currentUserId = Number(localStorage.getItem("pulse-user-id") || "1");
 
   useEffect(() => {
     if (isDark) {
@@ -34,14 +42,21 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const toggleTheme = () => setIsDark(prev => !prev);
 
+  const logout = () => {
+    localStorage.removeItem("pulse-user-id");
+    localStorage.removeItem("pulse-user");
+    onLogout();
+  };
+
   const state: AppState = {
-    currentUserId: 1,
+    currentUserId,
     selectedChatId,
     setSelectedChatId,
     activeCall,
     setActiveCall,
     isDark,
     toggleTheme,
+    logout,
   };
 
   return <AppContext.Provider value={state}>{children}</AppContext.Provider>;

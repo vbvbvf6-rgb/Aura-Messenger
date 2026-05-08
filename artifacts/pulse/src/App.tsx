@@ -1,8 +1,8 @@
+import { useState } from "react";
 import { Switch, Route, Router as WouterRouter } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import NotFound from "@/pages/not-found";
 import { AppProvider } from "@/contexts/AppContext";
 import { AppLayout } from "@/components/layout/AppLayout";
 
@@ -16,40 +16,71 @@ import Settings from "@/pages/Settings";
 import UserProfile from "@/pages/UserProfile";
 import Feed from "@/pages/Feed";
 import Wallet from "@/pages/Wallet";
+import Login from "@/pages/Login";
+import Register from "@/pages/Register";
+import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient();
 
-function Router() {
+function MainApp({ onLogout }: { onLogout: () => void }) {
   return (
-    <AppLayout>
-      <Switch>
-        <Route path="/" component={Home} />
-        <Route path="/calls" component={Calls} />
-        <Route path="/feed" component={Feed} />
-        <Route path="/contacts" component={Contacts} />
-        <Route path="/gifts" component={Gifts} />
-        <Route path="/stories" component={Stories} />
-        <Route path="/wallet" component={Wallet} />
-        <Route path="/profile" component={Profile} />
-        <Route path="/settings" component={Settings} />
-        <Route path="/user/:userId" component={UserProfile} />
-        <Route component={NotFound} />
-      </Switch>
-    </AppLayout>
+    <AppProvider onLogout={onLogout}>
+      <TooltipProvider>
+        <AppLayout>
+          <Switch>
+            <Route path="/" component={Home} />
+            <Route path="/calls" component={Calls} />
+            <Route path="/feed" component={Feed} />
+            <Route path="/contacts" component={Contacts} />
+            <Route path="/gifts" component={Gifts} />
+            <Route path="/stories" component={Stories} />
+            <Route path="/wallet" component={Wallet} />
+            <Route path="/profile" component={Profile} />
+            <Route path="/settings" component={Settings} />
+            <Route path="/user/:userId" component={UserProfile} />
+            <Route component={NotFound} />
+          </Switch>
+        </AppLayout>
+        <Toaster />
+      </TooltipProvider>
+    </AppProvider>
+  );
+}
+
+function AuthPages({ onLogin }: { onLogin: (userId: number) => void }) {
+  return (
+    <Switch>
+      <Route path="/register" component={() => <Register onLogin={onLogin} />} />
+      <Route component={() => <Login onLogin={onLogin} />} />
+    </Switch>
   );
 }
 
 function App() {
+  const [userId, setUserId] = useState<number | null>(() => {
+    const stored = localStorage.getItem("pulse-user-id");
+    return stored ? Number(stored) : null;
+  });
+
+  const handleLogin = (id: number) => {
+    setUserId(id);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("pulse-user-id");
+    localStorage.removeItem("pulse-user");
+    setUserId(null);
+  };
+
   return (
     <QueryClientProvider client={queryClient}>
-      <AppProvider>
-        <TooltipProvider>
-          <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-            <Router />
-          </WouterRouter>
-          <Toaster />
-        </TooltipProvider>
-      </AppProvider>
+      <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+        {userId ? (
+          <MainApp onLogout={handleLogout} />
+        ) : (
+          <AuthPages onLogin={handleLogin} />
+        )}
+      </WouterRouter>
     </QueryClientProvider>
   );
 }

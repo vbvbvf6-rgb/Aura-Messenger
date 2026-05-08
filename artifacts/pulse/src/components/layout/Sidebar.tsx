@@ -10,8 +10,19 @@ import {
   Settings,
   Rss,
   Wallet,
+  MoreHorizontal,
+  LogOut,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useAppContext } from "@/contexts/AppContext";
+import { useGetMe } from "@workspace/api-client-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const NAV_ITEMS = [
   { href: "/", icon: MessageCircle, label: "Chats" },
@@ -27,6 +38,10 @@ const NAV_ITEMS = [
 
 export function Sidebar() {
   const [location] = useLocation();
+  const { logout } = useAppContext();
+  const { data: me } = useGetMe();
+
+  const initial = me?.displayName?.[0]?.toUpperCase() || "U";
 
   return (
     <div className="hidden md:flex w-16 lg:w-64 h-screen bg-card border-r border-border flex-col items-center lg:items-stretch py-4 flex-shrink-0">
@@ -63,6 +78,52 @@ export function Sidebar() {
           );
         })}
       </nav>
+
+      <div className="w-full px-2 lg:px-4 pt-3 mt-auto border-t border-border">
+        <div className="flex items-center gap-2.5 p-2 rounded-xl hover:bg-secondary transition-colors">
+          <div
+            className="w-9 h-9 rounded-full flex items-center justify-center text-white font-bold text-sm shrink-0 overflow-hidden"
+            style={{ backgroundColor: me?.avatarColor || "#3B82F6" }}
+          >
+            {me?.avatarUrl ? (
+              <img src={me.avatarUrl} alt="" className="w-full h-full object-cover" />
+            ) : (
+              initial
+            )}
+          </div>
+
+          <div className="hidden lg:block flex-1 min-w-0">
+            <p className="text-sm font-semibold truncate text-foreground">{me?.displayName || "..."}</p>
+            <p className="text-xs text-muted-foreground truncate">@{me?.username || "..."}</p>
+          </div>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors shrink-0">
+                <MoreHorizontal size={16} />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent side="right" align="end" className="w-44">
+              <DropdownMenuItem onClick={() => {}}>
+                <UserCircle size={15} className="mr-2 text-primary" />
+                <Link href="/profile">My Profile</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => {}}>
+                <Settings size={15} className="mr-2 text-muted-foreground" />
+                <Link href="/settings">Settings</Link>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={logout}
+                className="text-destructive focus:text-destructive"
+              >
+                <LogOut size={15} className="mr-2" />
+                Log Out
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </div>
     </div>
   );
 }

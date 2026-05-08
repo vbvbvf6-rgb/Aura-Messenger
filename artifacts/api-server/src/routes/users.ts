@@ -9,8 +9,9 @@ router.get("/users/me", async (req, res) => {
   try {
     const user = await db.query.usersTable.findFirst({ where: eq(usersTable.id, 1) });
     if (!user) return res.status(404).json({ error: "User not found" });
-    const [balRow] = await db.execute(sql`SELECT balance FROM users WHERE id = 1`);
-    res.json({ ...user, balance: Number((balRow as any)?.balance ?? 0) });
+    const rows = await db.execute(sql`SELECT balance FROM users WHERE id = 1`);
+    const balance = rows.rows[0] ? Number((rows.rows[0] as any).balance) : 0;
+    res.json({ ...user, balance });
   } catch (err) {
     req.log.error(err);
     res.status(500).json({ error: "Internal server error" });
@@ -21,8 +22,9 @@ router.put("/users/me", async (req, res) => {
   try {
     const body = UpdateMeBody.parse(req.body);
     const [updated] = await db.update(usersTable).set(body).where(eq(usersTable.id, 1)).returning();
-    const [balRow] = await db.execute(sql`SELECT balance FROM users WHERE id = 1`);
-    res.json({ ...updated, balance: Number((balRow as any)?.balance ?? 0) });
+    const rows = await db.execute(sql`SELECT balance FROM users WHERE id = 1`);
+    const balance = rows.rows[0] ? Number((rows.rows[0] as any).balance) : 0;
+    res.json({ ...updated, balance });
   } catch (err) {
     req.log.error(err);
     res.status(500).json({ error: "Internal server error" });
@@ -77,6 +79,25 @@ router.post("/wallet/earn", async (req, res) => {
     const rows = await db.execute(sql`SELECT balance FROM users WHERE id = 1`);
     const balance = Number((rows.rows[0] as any).balance);
     res.json({ balance });
+  } catch (err) {
+    req.log.error(err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.post("/wallet/spend", async (req, res) => {
+  try {
+    const amount = Number(req.body.amount);
+    if (!amount || amount <= 0) return res.status(400).json({ error: "Invalid amount" });
+    const rows = await db.execute(sql`SELECT balance FROM users WHERE id = 1`);
+    const balance = Number((rows.rows[0] as any).balance);
+    if (balance < amount) {
+      return res.status(400).json({ error: "Недостаточно средств", balance });
+    }
+    await db.execute(sql`UPDATE users SET balance = balance - ${amount} WHERE id = 1`);
+    const result = await db.execute(sql`SELECT balance FROM users WHERE id = 1`);
+    const newBalance = Number((result.rows[0] as any).balance);
+    res.json({ balance: newBalance });
   } catch (err) {
     req.log.error(err);
     res.status(500).json({ error: "Internal server error" });
