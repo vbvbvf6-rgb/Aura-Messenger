@@ -44,9 +44,14 @@ export default function Wallet() {
   const [earningTask, setEarningTask] = useState<string | null>(null);
   const [txHistory, setTxHistory] = useState<{ id: string; type: string; amount: number; label: string; time: Date }[]>([]);
 
+  const getUserIdHeader = () => {
+    const uid = localStorage.getItem("pulse-user-id");
+    return uid ? { "x-user-id": uid } : {};
+  };
+
   const fetchWallet = useCallback(async () => {
     try {
-      const res = await fetch("/api/wallet");
+      const res = await fetch("/api/wallet", { headers: getUserIdHeader() });
       if (res.ok) {
         const data = await res.json();
         setBalance(data.balance);
@@ -82,7 +87,7 @@ export default function Wallet() {
     try {
       const res = await fetch("/api/wallet/earn", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...getUserIdHeader() },
         body: JSON.stringify({ amount: reward }),
       });
       if (res.ok) {
@@ -113,7 +118,7 @@ export default function Wallet() {
     try {
       const res = await fetch("/api/wallet/earn", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...getUserIdHeader() },
         body: JSON.stringify({ amount }),
       });
       if (res.ok) {

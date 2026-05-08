@@ -7,9 +7,10 @@ const router = Router();
 
 router.get("/users/me", async (req, res) => {
   try {
-    const user = await db.query.usersTable.findFirst({ where: eq(usersTable.id, 1) });
+    const uid = req.currentUserId;
+    const user = await db.query.usersTable.findFirst({ where: eq(usersTable.id, uid) });
     if (!user) return res.status(404).json({ error: "User not found" });
-    const rows = await db.execute(sql`SELECT balance FROM users WHERE id = 1`);
+    const rows = await db.execute(sql`SELECT balance FROM users WHERE id = ${uid}`);
     const balance = rows.rows[0] ? Number((rows.rows[0] as any).balance) : 0;
     res.json({ ...user, balance });
   } catch (err) {
@@ -20,9 +21,10 @@ router.get("/users/me", async (req, res) => {
 
 router.put("/users/me", async (req, res) => {
   try {
+    const uid = req.currentUserId;
     const body = UpdateMeBody.parse(req.body);
-    const [updated] = await db.update(usersTable).set(body).where(eq(usersTable.id, 1)).returning();
-    const rows = await db.execute(sql`SELECT balance FROM users WHERE id = 1`);
+    const [updated] = await db.update(usersTable).set(body).where(eq(usersTable.id, uid)).returning();
+    const rows = await db.execute(sql`SELECT balance FROM users WHERE id = ${uid}`);
     const balance = rows.rows[0] ? Number((rows.rows[0] as any).balance) : 0;
     res.json({ ...updated, balance });
   } catch (err) {
@@ -61,9 +63,10 @@ router.get("/users/:userId", async (req, res) => {
 
 router.get("/wallet", async (req, res) => {
   try {
-    const rows = await db.execute(sql`SELECT balance FROM users WHERE id = 1`);
+    const uid = req.currentUserId;
+    const rows = await db.execute(sql`SELECT balance FROM users WHERE id = ${uid}`);
     const balance = rows.rows[0] ? Number((rows.rows[0] as any).balance) : 0;
-    const address = `PLS${String(1000000001)}SPARK`;
+    const address = `PLS${String(1000000000 + uid)}SPARK`;
     res.json({ balance, address, currency: "SPARK", symbol: "⚡" });
   } catch (err) {
     req.log.error(err);
@@ -73,10 +76,11 @@ router.get("/wallet", async (req, res) => {
 
 router.post("/wallet/earn", async (req, res) => {
   try {
+    const uid = req.currentUserId;
     const amount = Number(req.body.amount);
     if (!amount || amount <= 0) return res.status(400).json({ error: "Invalid amount" });
-    await db.execute(sql`UPDATE users SET balance = balance + ${amount} WHERE id = 1`);
-    const rows = await db.execute(sql`SELECT balance FROM users WHERE id = 1`);
+    await db.execute(sql`UPDATE users SET balance = balance + ${amount} WHERE id = ${uid}`);
+    const rows = await db.execute(sql`SELECT balance FROM users WHERE id = ${uid}`);
     const balance = Number((rows.rows[0] as any).balance);
     res.json({ balance });
   } catch (err) {
@@ -87,15 +91,16 @@ router.post("/wallet/earn", async (req, res) => {
 
 router.post("/wallet/spend", async (req, res) => {
   try {
+    const uid = req.currentUserId;
     const amount = Number(req.body.amount);
     if (!amount || amount <= 0) return res.status(400).json({ error: "Invalid amount" });
-    const rows = await db.execute(sql`SELECT balance FROM users WHERE id = 1`);
+    const rows = await db.execute(sql`SELECT balance FROM users WHERE id = ${uid}`);
     const balance = Number((rows.rows[0] as any).balance);
     if (balance < amount) {
       return res.status(400).json({ error: "Недостаточно средств", balance });
     }
-    await db.execute(sql`UPDATE users SET balance = balance - ${amount} WHERE id = 1`);
-    const result = await db.execute(sql`SELECT balance FROM users WHERE id = 1`);
+    await db.execute(sql`UPDATE users SET balance = balance - ${amount} WHERE id = ${uid}`);
+    const result = await db.execute(sql`SELECT balance FROM users WHERE id = ${uid}`);
     const newBalance = Number((result.rows[0] as any).balance);
     res.json({ balance: newBalance });
   } catch (err) {
@@ -106,16 +111,17 @@ router.post("/wallet/spend", async (req, res) => {
 
 router.get("/stats/me", async (req, res) => {
   try {
+    const uid = req.currentUserId;
     const { messagesTable, callsTable, giftsTable, chatMembersTable, contactsTable } = await import("@workspace/db");
     const { count, sum } = await import("drizzle-orm");
 
-    const [msgCount] = await db.select({ count: count() }).from(messagesTable).where(eq(messagesTable.senderId, 1));
-    const [callCount] = await db.select({ count: count() }).from(callsTable).where(eq(callsTable.callerId, 1));
-    const [callDuration] = await db.select({ total: sum(callsTable.durationSeconds) }).from(callsTable).where(eq(callsTable.callerId, 1));
-    const [giftsSent] = await db.select({ count: count() }).from(giftsTable).where(eq(giftsTable.senderId, 1));
-    const [giftsReceived] = await db.select({ count: count() }).from(giftsTable).where(eq(giftsTable.receiverId, 1));
-    const [chatsCount] = await db.select({ count: count() }).from(chatMembersTable).where(eq(chatMembersTable.userId, 1));
-    const [contactsCount] = await db.select({ count: count() }).from(contactsTable).where(eq(contactsTable.userId, 1));
+    const [msgCount] = await db.select({ count: count() }).from(messagesTable).where(eq(messagesTable.senderId, uid));
+    const [callCount] = await db.select({ count: count() }).from(callsTable).where(eq(callsTable.callerId, uid));
+    const [callDuration] = await db.select({ total: sum(callsTable.durationSeconds) }).from(callsTable).where(eq(callsTable.callerId, uid));
+    const [giftsSent] = await db.select({ count: count() }).from(giftsTable).where(eq(giftsTable.senderId, uid));
+    const [giftsReceived] = await db.select({ count: count() }).from(giftsTable).where(eq(giftsTable.receiverId, uid));
+    const [chatsCount] = await db.select({ count: count() }).from(chatMembersTable).where(eq(chatMembersTable.userId, uid));
+    const [contactsCount] = await db.select({ count: count() }).from(contactsTable).where(eq(contactsTable.userId, uid));
 
     res.json({
       messagesSent: Number(msgCount?.count ?? 0),

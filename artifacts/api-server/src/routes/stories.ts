@@ -4,17 +4,17 @@ import { eq, and, gt, inArray, desc } from "drizzle-orm";
 import { CreateStoryBody } from "@workspace/api-zod";
 
 const router = Router();
-const CURRENT_USER_ID = 1;
 
 router.get("/stories", async (req, res) => {
   try {
+    const uid = req.currentUserId;
     const now = new Date();
     const contacts = await db
       .select({ contactId: contactsTable.contactId })
       .from(contactsTable)
-      .where(eq(contactsTable.userId, CURRENT_USER_ID));
+      .where(eq(contactsTable.userId, uid));
 
-    const contactIds = [CURRENT_USER_ID, ...contacts.map(c => c.contactId)];
+    const contactIds = [uid, ...contacts.map(c => c.contactId)];
 
     const stories = await db.select().from(storiesTable)
       .where(and(
@@ -25,7 +25,7 @@ router.get("/stories", async (req, res) => {
 
     const viewedRows = await db.select({ storyId: storyViewsTable.storyId })
       .from(storyViewsTable)
-      .where(eq(storyViewsTable.viewerId, CURRENT_USER_ID));
+      .where(eq(storyViewsTable.viewerId, uid));
     const viewedIds = new Set(viewedRows.map(v => v.storyId));
 
     const userMap = new Map<number, typeof usersTable.$inferSelect>();
@@ -56,17 +56,18 @@ router.get("/stories", async (req, res) => {
 
 router.post("/stories", async (req, res) => {
   try {
+    const uid = req.currentUserId;
     const body = CreateStoryBody.parse(req.body);
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
     const [story] = await db.insert(storiesTable).values({
-      userId: CURRENT_USER_ID,
+      userId: uid,
       mediaUrl: body.mediaUrl,
       type: body.type,
       text: body.text,
       backgroundColor: body.backgroundColor,
       expiresAt,
     }).returning();
-    const user = await db.query.usersTable.findFirst({ where: eq(usersTable.id, CURRENT_USER_ID) });
+    const user = await db.query.usersTable.findFirst({ where: eq(usersTable.id, uid) });
     res.status(201).json({ ...story, isViewed: false, user });
   } catch (err) {
     req.log.error(err);

@@ -3,7 +3,6 @@ import { db, postsTable, postLikesTable, postCommentsTable, usersTable } from "@
 import { eq, desc, and } from "drizzle-orm";
 
 const router = Router();
-const CURRENT_USER_ID = 1;
 
 async function buildPost(postId: number, currentUserId: number) {
   const post = await db.query.postsTable.findFirst({ where: eq(postsTable.id, postId) });
@@ -17,8 +16,9 @@ async function buildPost(postId: number, currentUserId: number) {
 
 router.get("/posts", async (req, res) => {
   try {
+    const uid = req.currentUserId;
     const posts = await db.select().from(postsTable).orderBy(desc(postsTable.createdAt)).limit(50);
-    const built = await Promise.all(posts.map(p => buildPost(p.id, CURRENT_USER_ID)));
+    const built = await Promise.all(posts.map(p => buildPost(p.id, uid)));
     res.json(built.filter(Boolean));
   } catch (err) {
     req.log.error(err);
@@ -28,10 +28,11 @@ router.get("/posts", async (req, res) => {
 
 router.post("/posts", async (req, res) => {
   try {
+    const uid = req.currentUserId;
     const { text, imageUrl } = req.body;
     if (!text) return res.status(400).json({ error: "text required" });
-    const [post] = await db.insert(postsTable).values({ userId: CURRENT_USER_ID, text, imageUrl }).returning();
-    const built = await buildPost(post.id, CURRENT_USER_ID);
+    const [post] = await db.insert(postsTable).values({ userId: uid, text, imageUrl }).returning();
+    const built = await buildPost(post.id, uid);
     res.status(201).json(built);
   } catch (err) {
     req.log.error(err);
@@ -54,19 +55,20 @@ router.delete("/posts/:postId", async (req, res) => {
 
 router.post("/posts/:postId/like", async (req, res) => {
   try {
+    const uid = req.currentUserId;
     const postId = Number(req.params.postId);
     const existing = await db.query.postLikesTable.findFirst({
-      where: and(eq(postLikesTable.postId, postId), eq(postLikesTable.userId, CURRENT_USER_ID))
+      where: and(eq(postLikesTable.postId, postId), eq(postLikesTable.userId, uid))
     });
     if (existing) {
       await db.delete(postLikesTable).where(eq(postLikesTable.id, existing.id));
       await db.update(postsTable).set({ likesCount: Math.max(0, (await db.query.postsTable.findFirst({ where: eq(postsTable.id, postId) }))!.likesCount - 1) }).where(eq(postsTable.id, postId));
     } else {
-      await db.insert(postLikesTable).values({ postId, userId: CURRENT_USER_ID });
+      await db.insert(postLikesTable).values({ postId, userId: uid });
       const post = await db.query.postsTable.findFirst({ where: eq(postsTable.id, postId) });
       await db.update(postsTable).set({ likesCount: (post?.likesCount ?? 0) + 1 }).where(eq(postsTable.id, postId));
     }
-    const built = await buildPost(postId, CURRENT_USER_ID);
+    const built = await buildPost(postId, uid);
     res.json(built);
   } catch (err) {
     req.log.error(err);
@@ -91,13 +93,14 @@ router.get("/posts/:postId/comments", async (req, res) => {
 
 router.post("/posts/:postId/comments", async (req, res) => {
   try {
+    const uid = req.currentUserId;
     const postId = Number(req.params.postId);
     const { text } = req.body;
     if (!text) return res.status(400).json({ error: "text required" });
-    const [comment] = await db.insert(postCommentsTable).values({ postId, userId: CURRENT_USER_ID, text }).returning();
+    const [comment] = await db.insert(postCommentsTable).values({ postId, userId: uid, text }).returning();
     const post = await db.query.postsTable.findFirst({ where: eq(postsTable.id, postId) });
     await db.update(postsTable).set({ commentsCount: (post?.commentsCount ?? 0) + 1 }).where(eq(postsTable.id, postId));
-    const author = await db.query.usersTable.findFirst({ where: eq(usersTable.id, CURRENT_USER_ID) });
+    const author = await db.query.usersTable.findFirst({ where: eq(usersTable.id, uid) });
     res.status(201).json({ ...comment, author: author ?? null });
   } catch (err) {
     req.log.error(err);

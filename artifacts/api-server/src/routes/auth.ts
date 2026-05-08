@@ -75,10 +75,14 @@ router.post("/auth/register", async (req, res) => {
     );
     const newUser = result.rows[0] as any;
 
-    // Add to Pulse Official channel (id=6)
-    await db.execute(
-      sql`INSERT INTO chat_members (chat_id, user_id, role) VALUES (6, ${newUser.id}, 'member') ON CONFLICT DO NOTHING`
-    );
+    // Try to add to Pulse Official channel (id=6) if it exists
+    try {
+      await db.execute(
+        sql`INSERT INTO chat_members (chat_id, user_id, role) VALUES (6, ${newUser.id}, 'member') ON CONFLICT DO NOTHING`
+      );
+    } catch {
+      // Channel may not exist, that's fine
+    }
 
     res.status(201).json({
       userId: newUser.id,

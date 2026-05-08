@@ -4,7 +4,6 @@ import { eq, desc } from "drizzle-orm";
 import { SendGiftBody } from "@workspace/api-zod";
 
 const router = Router();
-const CURRENT_USER_ID = 1;
 
 async function buildGift(gift: typeof giftsTable.$inferSelect) {
   const giftItem = await db.query.giftItemsTable.findFirst({ where: eq(giftItemsTable.id, gift.giftItemId) });
@@ -25,8 +24,9 @@ router.get("/gifts", async (req, res) => {
 
 router.get("/gifts/sent", async (req, res) => {
   try {
+    const uid = req.currentUserId;
     const gifts = await db.select().from(giftsTable)
-      .where(eq(giftsTable.senderId, CURRENT_USER_ID))
+      .where(eq(giftsTable.senderId, uid))
       .orderBy(desc(giftsTable.createdAt));
     const built = await Promise.all(gifts.map(buildGift));
     res.json(built);
@@ -38,8 +38,9 @@ router.get("/gifts/sent", async (req, res) => {
 
 router.get("/gifts/received", async (req, res) => {
   try {
+    const uid = req.currentUserId;
     const gifts = await db.select().from(giftsTable)
-      .where(eq(giftsTable.receiverId, CURRENT_USER_ID))
+      .where(eq(giftsTable.receiverId, uid))
       .orderBy(desc(giftsTable.createdAt));
     const built = await Promise.all(gifts.map(buildGift));
     res.json(built);
@@ -51,10 +52,11 @@ router.get("/gifts/received", async (req, res) => {
 
 router.post("/gifts/send", async (req, res) => {
   try {
+    const uid = req.currentUserId;
     const body = SendGiftBody.parse(req.body);
     const [gift] = await db.insert(giftsTable).values({
       giftItemId: body.giftItemId,
-      senderId: CURRENT_USER_ID,
+      senderId: uid,
       receiverId: body.receiverId,
       message: body.message,
       isAnonymous: body.isAnonymous ?? false,

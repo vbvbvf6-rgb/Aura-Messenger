@@ -4,7 +4,6 @@ import { eq, or, desc } from "drizzle-orm";
 import { InitiateCallBody, UpdateCallStatusBody } from "@workspace/api-zod";
 
 const router = Router();
-const CURRENT_USER_ID = 1;
 
 async function buildCall(call: typeof callsTable.$inferSelect) {
   const caller = call.callerId ? await db.query.usersTable.findFirst({ where: eq(usersTable.id, call.callerId) }) : null;
@@ -14,8 +13,9 @@ async function buildCall(call: typeof callsTable.$inferSelect) {
 
 router.get("/calls", async (req, res) => {
   try {
+    const uid = req.currentUserId;
     const calls = await db.select().from(callsTable)
-      .where(or(eq(callsTable.callerId, CURRENT_USER_ID), eq(callsTable.calleeId, CURRENT_USER_ID)))
+      .where(or(eq(callsTable.callerId, uid), eq(callsTable.calleeId, uid)))
       .orderBy(desc(callsTable.createdAt))
       .limit(50);
     const built = await Promise.all(calls.map(buildCall));
@@ -28,9 +28,10 @@ router.get("/calls", async (req, res) => {
 
 router.post("/calls", async (req, res) => {
   try {
+    const uid = req.currentUserId;
     const body = InitiateCallBody.parse(req.body);
     const [call] = await db.insert(callsTable).values({
-      callerId: CURRENT_USER_ID,
+      callerId: uid,
       calleeId: body.calleeId,
       chatId: body.chatId,
       type: body.type,

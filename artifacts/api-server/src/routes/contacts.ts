@@ -5,15 +5,14 @@ import { AddContactBody } from "@workspace/api-zod";
 
 const router = Router();
 
-const CURRENT_USER_ID = 1;
-
 router.get("/contacts", async (req, res) => {
   try {
+    const uid = req.currentUserId;
     const contacts = await db
       .select({ user: usersTable })
       .from(contactsTable)
       .innerJoin(usersTable, eq(contactsTable.contactId, usersTable.id))
-      .where(eq(contactsTable.userId, CURRENT_USER_ID));
+      .where(eq(contactsTable.userId, uid));
     res.json(contacts.map(c => c.user));
   } catch (err) {
     req.log.error(err);
@@ -23,8 +22,9 @@ router.get("/contacts", async (req, res) => {
 
 router.post("/contacts", async (req, res) => {
   try {
+    const uid = req.currentUserId;
     const body = AddContactBody.parse(req.body);
-    await db.insert(contactsTable).values({ userId: CURRENT_USER_ID, contactId: body.userId }).onConflictDoNothing();
+    await db.insert(contactsTable).values({ userId: uid, contactId: body.userId }).onConflictDoNothing();
     const user = await db.query.usersTable.findFirst({ where: eq(usersTable.id, body.userId) });
     if (!user) return res.status(404).json({ error: "User not found" });
     res.status(201).json(user);
@@ -36,9 +36,10 @@ router.post("/contacts", async (req, res) => {
 
 router.delete("/contacts/:contactId", async (req, res) => {
   try {
+    const uid = req.currentUserId;
     const contactId = Number(req.params.contactId);
     await db.delete(contactsTable).where(
-      and(eq(contactsTable.userId, CURRENT_USER_ID), eq(contactsTable.contactId, contactId))
+      and(eq(contactsTable.userId, uid), eq(contactsTable.contactId, contactId))
     );
     res.status(204).send();
   } catch (err) {

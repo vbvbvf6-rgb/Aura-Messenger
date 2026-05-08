@@ -189,9 +189,14 @@ export default function Gifts() {
   const [balance, setBalance] = useState<number>(0);
   const [isSending, setIsSending] = useState(false);
 
+  const getUserIdHeader = () => {
+    const uid = localStorage.getItem("pulse-user-id");
+    return uid ? { "x-user-id": uid } : {};
+  };
+
   const fetchBalance = useCallback(async () => {
     try {
-      const res = await fetch("/api/wallet");
+      const res = await fetch("/api/wallet", { headers: getUserIdHeader() });
       if (res.ok) {
         const data = await res.json();
         setBalance(data.balance);
@@ -224,7 +229,7 @@ export default function Gifts() {
     try {
       const res = await fetch("/api/wallet/spend", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...getUserIdHeader() },
         body: JSON.stringify({ amount: cost }),
       });
       if (!res.ok) {

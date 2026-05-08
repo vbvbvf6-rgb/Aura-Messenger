@@ -4,7 +4,6 @@ import { eq, and, lt, desc } from "drizzle-orm";
 import { SendMessageBody, EditMessageBody, AddReactionBody } from "@workspace/api-zod";
 
 const router = Router();
-const CURRENT_USER_ID = 1;
 
 async function buildMessage(msg: typeof messagesTable.$inferSelect) {
   const sender = await db.query.usersTable.findFirst({ where: eq(usersTable.id, msg.senderId) });
@@ -57,10 +56,11 @@ router.get("/messages", async (req, res) => {
 
 router.post("/messages", async (req, res) => {
   try {
+    const uid = req.currentUserId;
     const body = SendMessageBody.parse(req.body);
     const [msg] = await db.insert(messagesTable).values({
       chatId: body.chatId,
-      senderId: CURRENT_USER_ID,
+      senderId: uid,
       text: body.text,
       type: body.type ?? "text",
       mediaUrl: body.mediaUrl,
@@ -104,14 +104,15 @@ router.delete("/messages/:messageId", async (req, res) => {
 
 router.post("/messages/:messageId/reactions", async (req, res) => {
   try {
+    const uid = req.currentUserId;
     const messageId = Number(req.params.messageId);
     const body = AddReactionBody.parse(req.body);
     const [reaction] = await db.insert(reactionsTable).values({
       messageId,
-      userId: CURRENT_USER_ID,
+      userId: uid,
       emoji: body.emoji,
     }).returning();
-    const user = await db.query.usersTable.findFirst({ where: eq(usersTable.id, CURRENT_USER_ID) });
+    const user = await db.query.usersTable.findFirst({ where: eq(usersTable.id, uid) });
     res.status(201).json({ ...reaction, user });
   } catch (err) {
     req.log.error(err);
@@ -121,12 +122,13 @@ router.post("/messages/:messageId/reactions", async (req, res) => {
 
 router.delete("/messages/:messageId/reactions", async (req, res) => {
   try {
+    const uid = req.currentUserId;
     const messageId = Number(req.params.messageId);
     const body = AddReactionBody.parse(req.body);
     await db.delete(reactionsTable).where(
       and(
         eq(reactionsTable.messageId, messageId),
-        eq(reactionsTable.userId, CURRENT_USER_ID),
+        eq(reactionsTable.userId, uid),
         eq(reactionsTable.emoji, body.emoji)
       )
     );

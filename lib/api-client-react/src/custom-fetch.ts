@@ -358,6 +358,14 @@ export async function customFetch<T = unknown>(
     }
   }
 
+  // Attach current user ID header for server-side auth
+  if (!headers.has("x-user-id")) {
+    const userId = typeof localStorage !== "undefined" ? localStorage.getItem("pulse-user-id") : null;
+    if (userId) {
+      headers.set("x-user-id", userId);
+    }
+  }
+
   const requestInfo = { method, url: resolveUrl(input) };
 
   const response = await fetch(input, { ...init, method, headers });
