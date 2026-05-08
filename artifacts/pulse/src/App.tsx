@@ -16,6 +16,7 @@ import Settings from "@/pages/Settings";
 import UserProfile from "@/pages/UserProfile";
 import Feed from "@/pages/Feed";
 import Wallet from "@/pages/Wallet";
+import Admin from "@/pages/Admin";
 import Login from "@/pages/Login";
 import Register from "@/pages/Register";
 import NotFound from "@/pages/not-found";
@@ -35,6 +36,7 @@ function MainApp({ onLogout }: { onLogout: () => void }) {
             <Route path="/gifts" component={Gifts} />
             <Route path="/stories" component={Stories} />
             <Route path="/wallet" component={Wallet} />
+            <Route path="/admin" component={Admin} />
             <Route path="/profile" component={Profile} />
             <Route path="/settings" component={Settings} />
             <Route path="/user/:userId" component={UserProfile} />

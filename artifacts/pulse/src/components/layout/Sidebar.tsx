@@ -12,6 +12,7 @@ import {
   Wallet,
   MoreHorizontal,
   LogOut,
+  Shield,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAppContext } from "@/contexts/AppContext";
@@ -24,16 +25,18 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
+const ADMIN_USER_IDS = [4];
+
 const NAV_ITEMS = [
-  { href: "/", icon: MessageCircle, label: "Chats" },
-  { href: "/calls", icon: Phone, label: "Calls" },
-  { href: "/feed", icon: Rss, label: "Feed" },
-  { href: "/contacts", icon: Users, label: "Contacts" },
-  { href: "/gifts", icon: Gift, label: "Gifts" },
-  { href: "/stories", icon: History, label: "Stories" },
-  { href: "/wallet", icon: Wallet, label: "Wallet" },
-  { href: "/profile", icon: UserCircle, label: "Profile" },
-  { href: "/settings", icon: Settings, label: "Settings" },
+  { href: "/", icon: MessageCircle, label: "Чаты" },
+  { href: "/calls", icon: Phone, label: "Звонки" },
+  { href: "/feed", icon: Rss, label: "Лента" },
+  { href: "/contacts", icon: Users, label: "Контакты" },
+  { href: "/gifts", icon: Gift, label: "Подарки" },
+  { href: "/stories", icon: History, label: "Истории" },
+  { href: "/wallet", icon: Wallet, label: "Кошелёк" },
+  { href: "/profile", icon: UserCircle, label: "Профиль" },
+  { href: "/settings", icon: Settings, label: "Настройки" },
 ];
 
 export function Sidebar() {
@@ -103,22 +106,37 @@ export function Sidebar() {
                 <MoreHorizontal size={16} />
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent side="right" align="end" className="w-44">
-              <DropdownMenuItem onClick={() => {}}>
-                <UserCircle size={15} className="mr-2 text-primary" />
-                <Link href="/profile">My Profile</Link>
+            <DropdownMenuContent side="right" align="end" className="w-48">
+              <DropdownMenuItem asChild>
+                <Link href="/profile" className="flex items-center w-full cursor-pointer">
+                  <UserCircle size={15} className="mr-2 text-primary" />
+                  Мой профиль
+                </Link>
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => {}}>
-                <Settings size={15} className="mr-2 text-muted-foreground" />
-                <Link href="/settings">Settings</Link>
+              <DropdownMenuItem asChild>
+                <Link href="/settings" className="flex items-center w-full cursor-pointer">
+                  <Settings size={15} className="mr-2 text-muted-foreground" />
+                  Настройки
+                </Link>
               </DropdownMenuItem>
+              {ADMIN_USER_IDS.includes(me?.id ?? -1) && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
+                    <Link href="/admin" className="flex items-center w-full cursor-pointer text-purple-400 focus:text-purple-400">
+                      <Shield size={15} className="mr-2" />
+                      Администратор
+                    </Link>
+                  </DropdownMenuItem>
+                </>
+              )}
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 onClick={logout}
                 className="text-destructive focus:text-destructive"
               >
                 <LogOut size={15} className="mr-2" />
-                Log Out
+                Выйти
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

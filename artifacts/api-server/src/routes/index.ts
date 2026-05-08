@@ -9,6 +9,7 @@ import callsRouter from "./calls";
 import giftsRouter from "./gifts";
 import storiesRouter from "./stories";
 import postsRouter from "./posts";
+import adminRouter from "./admin";
 
 const router: IRouter = Router();
 
@@ -22,5 +23,6 @@ router.use(callsRouter);
 router.use(giftsRouter);
 router.use(storiesRouter);
 router.use(postsRouter);
+router.use(adminRouter);
 
 export default router;
