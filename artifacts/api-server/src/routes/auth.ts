@@ -70,18 +70,18 @@ router.post("/auth/register", async (req, res) => {
 
     const result = await db.execute(
       sql`INSERT INTO users (username, display_name, avatar_color, status, password_hash, balance)
-          VALUES (${String(username)}, ${String(displayName)}, ${color}, 'online', ${hash(String(password))}, 5)
+          VALUES (${String(username)}, ${String(displayName)}, ${color}, 'online', ${hash(String(password))}, 0)
           RETURNING id, username, display_name, avatar_color, status, created_at, balance`
     );
     const newUser = result.rows[0] as any;
 
-    // Try to add to Pulse Official channel (id=6) if it exists
+    // Auto-join Pulse Official channel (id=2), set lastReadAt so no false unread count
     try {
       await db.execute(
-        sql`INSERT INTO chat_members (chat_id, user_id, role) VALUES (6, ${newUser.id}, 'member') ON CONFLICT DO NOTHING`
+        sql`INSERT INTO chat_members (chat_id, user_id, role, last_read_at) VALUES (2, ${newUser.id}, 'member', NOW()) ON CONFLICT DO NOTHING`
       );
     } catch {
-      // Channel may not exist, that's fine
+      // Channel may not exist
     }
 
     res.status(201).json({
@@ -92,7 +92,7 @@ router.post("/auth/register", async (req, res) => {
         displayName: newUser.display_name,
         avatarColor: newUser.avatar_color,
         status: newUser.status,
-        balance: Number(newUser.balance ?? 5),
+        balance: Number(newUser.balance ?? 0),
         createdAt: newUser.created_at,
       },
     });

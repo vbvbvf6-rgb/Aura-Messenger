@@ -36,10 +36,11 @@ export default function Contacts() {
   };
 
   const handleMessage = async (userId: number) => {
+    const uid = localStorage.getItem("pulse-user-id");
     try {
       const res = await fetch("/api/chats/direct", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...(uid ? { "x-user-id": uid } : {}) },
         body: JSON.stringify({ userId }),
       });
       if (res.ok) {
@@ -59,14 +60,14 @@ export default function Contacts() {
   return (
     <div className="flex-1 flex flex-col h-full bg-background overflow-hidden relative">
       <header className="h-16 border-b border-border flex items-center px-6 justify-between bg-card/80 backdrop-blur-md z-10 shrink-0">
-        <h1 className="text-xl font-bold">Contacts</h1>
+        <h1 className="text-xl font-bold">Контакты</h1>
       </header>
 
       <div className="p-4 border-b border-border bg-background z-10 shrink-0">
         <div className="relative max-w-3xl mx-auto w-full">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground w-4 h-4" />
           <Input
-            placeholder="Search contacts or users..."
+            placeholder="Поиск контактов и пользователей..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-9 bg-card border-border focus-visible:ring-primary h-12 rounded-xl"
@@ -93,9 +94,9 @@ export default function Contacts() {
               <Search size={32} className="text-muted-foreground/50" />
             </div>
             <h2 className="text-lg font-semibold text-foreground mb-1">
-              {searchQuery ? "No users found" : "No contacts yet"}
+              {searchQuery ? "Пользователи не найдены" : "Контакты отсутствуют"}
             </h2>
-            <p>{searchQuery ? "Try a different search term" : "Search for users to add them to your contacts"}</p>
+            <p>{searchQuery ? "Попробуйте другой запрос" : "Введите имя или ник чтобы найти пользователей"}</p>
           </div>
         ) : (
           <div className="space-y-3">

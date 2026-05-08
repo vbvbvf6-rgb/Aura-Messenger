@@ -105,10 +105,11 @@ export default function UserProfile() {
 
   const handleMessage = async () => {
     setIsStartingChat(true);
+    const uid = localStorage.getItem("pulse-user-id");
     try {
       const res = await fetch("/api/chats/direct", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...(uid ? { "x-user-id": uid } : {}) },
         body: JSON.stringify({ userId }),
       });
       if (res.ok) {
@@ -152,9 +153,9 @@ export default function UserProfile() {
     return (
       <div className="flex-1 flex flex-col items-center justify-center gap-4 text-muted-foreground">
         <User size={48} className="opacity-20" />
-        <p className="font-medium">User not found</p>
+        <p className="font-medium">Пользователь не найден</p>
         <button onClick={() => window.history.back()} className="text-primary text-sm hover:underline">
-          Go back
+          Назад
         </button>
       </div>
     );
@@ -179,7 +180,7 @@ export default function UserProfile() {
               </svg>
             )}
           </div>
-          <p className="text-xs text-muted-foreground">{isMe ? "your profile" : statusCfg.label}</p>
+          <p className="text-xs text-muted-foreground">{isMe ? "мой профиль" : statusCfg.label}</p>
         </div>
         {!isMe && (
           <DropdownMenu>
@@ -191,11 +192,11 @@ export default function UserProfile() {
             <DropdownMenuContent align="end" className="w-48">
               {isContact ? (
                 <DropdownMenuItem onClick={handleRemoveContact} className="text-destructive focus:text-destructive">
-                  <UserMinus size={15} className="mr-2" /> Remove contact
+                  <UserMinus size={15} className="mr-2" /> Удалить из контактов
                 </DropdownMenuItem>
               ) : (
                 <DropdownMenuItem onClick={handleAddContact}>
-                  <UserPlus size={15} className="mr-2" /> Add to contacts
+                  <UserPlus size={15} className="mr-2" /> Добавить в контакты
                 </DropdownMenuItem>
               )}
             </DropdownMenuContent>
@@ -298,10 +299,10 @@ export default function UserProfile() {
                     </svg>
                   )}
                   {isContact && (
-                    <span className="text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-primary/15 text-primary border border-primary/30">Contact</span>
+                    <span className="text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-primary/15 text-primary border border-primary/30">Контакт</span>
                   )}
                   {isMe && (
-                    <span className="text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-green-500/15 text-green-400 border border-green-500/30">You</span>
+                    <span className="text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-green-500/15 text-green-400 border border-green-500/30">Вы</span>
                   )}
                 </div>
                 <p className="text-muted-foreground text-sm mt-0.5">@{user.username}</p>
@@ -317,11 +318,11 @@ export default function UserProfile() {
             className="rounded-3xl bg-card border border-border overflow-hidden"
           >
             <div className="px-5 pt-4 pb-1">
-              <h3 className="text-xs font-black uppercase tracking-widest text-muted-foreground">Info</h3>
+              <h3 className="text-xs font-black uppercase tracking-widest text-muted-foreground">Информация</h3>
             </div>
-            <InfoRow label="Username" value={`@${user.username}`} />
-            {user.phoneNumber && <InfoRow label="Phone" value={user.phoneNumber} />}
-            {!isMe && <InfoRow label="Status" value={statusCfg.label} />}
+            <InfoRow label="Никнейм" value={`@${user.username}`} />
+            {user.phoneNumber && <InfoRow label="Телефон" value={user.phoneNumber} />}
+            {!isMe && <InfoRow label="Статус" value={statusCfg.label} />}
           </motion.div>
 
           {!isMe && (commonChats.length > 0 || giftsToUser.length > 0 || giftsFromUser.length > 0) && (
@@ -331,11 +332,11 @@ export default function UserProfile() {
               transition={{ delay: 0.1 }}
               className="rounded-3xl bg-card border border-border p-4"
             >
-              <h3 className="text-xs font-black uppercase tracking-widest text-muted-foreground mb-3 px-1">With you</h3>
+              <h3 className="text-xs font-black uppercase tracking-widest text-muted-foreground mb-3 px-1">С вами</h3>
               <div className="flex gap-3">
-                {commonChats.length > 0 && <StatCard value={commonChats.length} label="Common chats" icon={<MessageSquare size={18} />} />}
-                {giftsToUser.length > 0 && <StatCard value={giftsToUser.length} label="Gifts sent" icon={<Gift size={18} />} />}
-                {giftsFromUser.length > 0 && <StatCard value={giftsFromUser.length} label="Gifts received" icon={<Gift size={18} />} />}
+                {commonChats.length > 0 && <StatCard value={commonChats.length} label="Общих чатов" icon={<MessageSquare size={18} />} />}
+                {giftsToUser.length > 0 && <StatCard value={giftsToUser.length} label="Подарков отдано" icon={<Gift size={18} />} />}
+                {giftsFromUser.length > 0 && <StatCard value={giftsFromUser.length} label="Подарков получено" icon={<Gift size={18} />} />}
               </div>
             </motion.div>
           )}
@@ -349,7 +350,7 @@ export default function UserProfile() {
             >
               <div className="px-5 pt-4 pb-1">
                 <h3 className="text-xs font-black uppercase tracking-widest text-muted-foreground">
-                  {commonChats.length} common chat{commonChats.length !== 1 ? "s" : ""}
+                  {commonChats.length} общих чата
                 </h3>
               </div>
               <div className="p-3 space-y-1">
@@ -384,7 +385,7 @@ export default function UserProfile() {
               className="rounded-3xl bg-card border border-border overflow-hidden"
             >
               <div className="px-5 pt-4 pb-2">
-                <h3 className="text-xs font-black uppercase tracking-widest text-muted-foreground">Gifts exchanged</h3>
+                <h3 className="text-xs font-black uppercase tracking-widest text-muted-foreground">Обмен подарками</h3>
               </div>
               <div className="px-4 pb-4 flex flex-wrap gap-2">
                 {[...giftsToUser, ...giftsFromUser].slice(0, 12).map((gift) => (

@@ -164,8 +164,8 @@ export function ChatInput({ chatId }: { chatId: number }) {
               handleSend();
             }
           }}
-          placeholder={imagePreview ? "Add a caption..." : "Type a message..."}
-          className="flex-1 bg-transparent border-none resize-none max-h-32 min-h-[40px] py-1.5 px-1 focus:outline-none text-sm placeholder:text-muted-foreground leading-relaxed align-middle"
+          placeholder={imagePreview ? "Добавить подпись..." : "Сообщение..."}
+          className="flex-1 bg-transparent border-none resize-none max-h-32 min-h-[40px] py-2 px-1 focus:outline-none text-sm placeholder:text-muted-foreground leading-normal align-middle"
           rows={1}
           style={{ height: "40px" }}
         />

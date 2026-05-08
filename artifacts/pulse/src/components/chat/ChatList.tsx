@@ -1,11 +1,12 @@
 import React, { useState } from "react";
 import { useGetChats, Chat } from "@workspace/api-client-react";
 import { formatDistanceToNow } from "date-fns";
-import { Search, Pin, VolumeX } from "lucide-react";
+import { Search, Pin, VolumeX, PenSquare } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAppContext } from "@/contexts/AppContext";
 import { StoriesBar } from "@/components/stories/StoriesBar";
+import { useLocation } from "wouter";
 
 function VerifiedBadge() {
   return (

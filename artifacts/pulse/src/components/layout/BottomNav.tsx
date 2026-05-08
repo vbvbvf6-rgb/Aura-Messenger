@@ -4,11 +4,11 @@ import { MessageCircle, Phone, Rss, Gift, Wallet } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
-  { href: "/", icon: MessageCircle, label: "Chats" },
-  { href: "/calls", icon: Phone, label: "Calls" },
-  { href: "/feed", icon: Rss, label: "Feed" },
-  { href: "/gifts", icon: Gift, label: "Gifts" },
-  { href: "/wallet", icon: Wallet, label: "Wallet" },
+  { href: "/", icon: MessageCircle, label: "Чаты" },
+  { href: "/calls", icon: Phone, label: "Звонки" },
+  { href: "/feed", icon: Rss, label: "Лента" },
+  { href: "/gifts", icon: Gift, label: "Подарки" },
+  { href: "/wallet", icon: Wallet, label: "Кошелёк" },
 ];
 
 export function BottomNav() {

@@ -160,9 +160,9 @@ export function ChatWindow({ chatId }: ChatWindowProps) {
             <p className="text-xs text-muted-foreground truncate">
               {chat.type === "direct" && chat.otherUser ? (
                 <span className={chat.otherUser.status === "online" ? "text-green-500" : ""}>
-                  {chat.otherUser.status === "online" ? "online" : (chat.otherUser as any).statusText || chat.otherUser.status}
+                  {chat.otherUser.status === "online" ? "в сети" : (chat.otherUser as any).statusText || "не в сети"}
                 </span>
-              ) : `${chat.members?.length || 0} members`}
+              ) : `${chat.members?.length || 0} участников`}
             </p>
           </button>
         </div>
@@ -199,26 +199,26 @@ export function ChatWindow({ chatId }: ChatWindowProps) {
               {chat.type === "direct" && chat.otherUser?.id && (
                 <DropdownMenuItem onClick={openProfile}>
                   <User size={16} className="mr-2 text-primary" />
-                  View Profile
+                  Открыть профиль
                 </DropdownMenuItem>
               )}
               <DropdownMenuItem onClick={() => { setShowSearch(v => !v); }}>
                 <Search size={16} className="mr-2 text-muted-foreground" />
-                Search Messages
+                Поиск сообщений
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={handleToggleMute}>
                 {chat.isMuted ? (
-                  <><Bell size={16} className="mr-2 text-green-500" />Unmute Notifications</>
+                  <><Bell size={16} className="mr-2 text-green-500" />Включить уведомления</>
                 ) : (
-                  <><BellOff size={16} className="mr-2 text-orange-500" />Mute Notifications</>
+                  <><BellOff size={16} className="mr-2 text-orange-500" />Выключить уведомления</>
                 )}
               </DropdownMenuItem>
               <DropdownMenuItem onClick={handleTogglePin}>
                 {chat.isPinned ? (
-                  <><PinOff size={16} className="mr-2 text-muted-foreground" />Unpin</>
+                  <><PinOff size={16} className="mr-2 text-muted-foreground" />Открепить</>
                 ) : (
-                  <><Pin size={16} className="mr-2 text-blue-500" />Pin Chat</>
+                  <><Pin size={16} className="mr-2 text-blue-500" />Закрепить чат</>
                 )}
               </DropdownMenuItem>
               <DropdownMenuSeparator />
@@ -227,7 +227,7 @@ export function ChatWindow({ chatId }: ChatWindowProps) {
                 onClick={() => setShowDeleteDialog(true)}
               >
                 <Trash2 size={16} className="mr-2" />
-                Delete Chat
+                Удалить чат
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -242,7 +242,7 @@ export function ChatWindow({ chatId }: ChatWindowProps) {
             autoFocus
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
-            placeholder="Search messages..."
+            placeholder="Поиск сообщений..."
             className="flex-1 bg-transparent border-none outline-none text-sm placeholder:text-muted-foreground"
           />
           {searchQuery && (
@@ -269,7 +269,7 @@ export function ChatWindow({ chatId }: ChatWindowProps) {
           </div>
         ) : filteredMessages?.length === 0 ? (
           <div className="h-full flex items-center justify-center text-muted-foreground text-sm">
-            {searchQuery ? "No messages match your search" : "No messages yet. Send a message to start the conversation!"}
+            {searchQuery ? "Сообщения не найдены" : "Нет сообщений. Напишите первым!"}
           </div>
         ) : (
           filteredMessages?.map((message) => (
@@ -287,19 +287,19 @@ export function ChatWindow({ chatId }: ChatWindowProps) {
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Chat</AlertDialogTitle>
+            <AlertDialogTitle>Удалить чат</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently delete this chat and all its messages. This action cannot be undone.
+              Чат и все сообщения будут удалены без возможности восстановления.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>Отмена</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDeleteChat}
               disabled={isDeleting}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {isDeleting ? "Deleting..." : "Delete"}
+              {isDeleting ? "Удаление..." : "Удалить"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

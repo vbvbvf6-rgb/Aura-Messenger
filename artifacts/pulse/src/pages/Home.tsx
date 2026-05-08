@@ -18,8 +18,8 @@ export default function Home() {
               <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse">
                 <div className="w-8 h-8 bg-primary rounded-full" />
               </div>
-              <h2 className="text-xl font-bold mb-2">Pulse Messenger</h2>
-              <p className="text-muted-foreground max-w-sm">Select a chat to start messaging, or search for a user to start a new conversation.</p>
+              <h2 className="text-xl font-bold mb-2">Pulse</h2>
+              <p className="text-muted-foreground max-w-sm">Выберите чат слева или найдите пользователя чтобы начать переписку.</p>
             </div>
           </div>
         )}
