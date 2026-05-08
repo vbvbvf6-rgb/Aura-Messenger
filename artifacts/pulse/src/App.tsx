@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Switch, Route, Router as WouterRouter } from "wouter";
+import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -51,11 +51,18 @@ function MainApp({ onLogout }: { onLogout: () => void }) {
 }
 
 function AuthPages({ onLogin }: { onLogin: (userId: number) => void }) {
+  const [, navigate] = useLocation();
+
+  const handleLogin = (userId: number) => {
+    navigate("/");
+    onLogin(userId);
+  };
+
   return (
     <Switch>
-      <Route path="/register" component={() => <Register onLogin={onLogin} />} />
+      <Route path="/register" component={() => <Register onLogin={handleLogin} />} />
       <Route path="/forgot-password" component={ForgotPassword} />
-      <Route component={() => <Login onLogin={onLogin} />} />
+      <Route component={() => <Login onLogin={handleLogin} />} />
     </Switch>
   );
 }
