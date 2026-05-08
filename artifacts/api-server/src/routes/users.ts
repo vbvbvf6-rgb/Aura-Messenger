@@ -10,9 +10,10 @@ router.get("/users/me", async (req, res) => {
     const uid = req.currentUserId;
     const user = await db.query.usersTable.findFirst({ where: eq(usersTable.id, uid) });
     if (!user) return res.status(404).json({ error: "User not found" });
-    const rows = await db.execute(sql`SELECT balance FROM users WHERE id = ${uid}`);
-    const balance = rows.rows[0] ? Number((rows.rows[0] as any).balance) : 0;
-    res.json({ ...user, balance });
+    const rows = await db.execute(sql`SELECT balance, username_changed_at FROM users WHERE id = ${uid}`);
+    const row = rows.rows[0] as any;
+    const balance = row ? Number(row.balance) : 0;
+    res.json({ ...user, balance, usernameChangedAt: row?.username_changed_at ?? null });
   } catch (err) {
     req.log.error(err);
     res.status(500).json({ error: "Internal server error" });
@@ -24,9 +25,63 @@ router.put("/users/me", async (req, res) => {
     const uid = req.currentUserId;
     const body = UpdateMeBody.parse(req.body);
     const [updated] = await db.update(usersTable).set(body).where(eq(usersTable.id, uid)).returning();
-    const rows = await db.execute(sql`SELECT balance FROM users WHERE id = ${uid}`);
-    const balance = rows.rows[0] ? Number((rows.rows[0] as any).balance) : 0;
-    res.json({ ...updated, balance });
+    const rows = await db.execute(sql`SELECT balance, username_changed_at FROM users WHERE id = ${uid}`);
+    const row = rows.rows[0] as any;
+    const balance = row ? Number(row.balance) : 0;
+    res.json({ ...updated, balance, usernameChangedAt: row?.username_changed_at ?? null });
+  } catch (err) {
+    req.log.error(err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.put("/users/me/username", async (req, res) => {
+  try {
+    const uid = req.currentUserId;
+    const { username } = req.body;
+    if (!username || typeof username !== "string") {
+      return res.status(400).json({ error: "Укажите новый никнейм" });
+    }
+    const trimmed = username.trim().toLowerCase();
+    if (trimmed.length < 3 || trimmed.length > 32) {
+      return res.status(400).json({ error: "Никнейм должен быть от 3 до 32 символов" });
+    }
+    if (!/^[a-z0-9_]+$/.test(trimmed)) {
+      return res.status(400).json({ error: "Только латинские буквы, цифры и _" });
+    }
+
+    const rows = await db.execute(sql`SELECT username, username_changed_at FROM users WHERE id = ${uid}`);
+    const current = rows.rows[0] as any;
+    if (!current) return res.status(404).json({ error: "Пользователь не найден" });
+
+    if (current.username === trimmed) {
+      return res.status(400).json({ error: "Это уже ваш никнейм" });
+    }
+
+    if (current.username_changed_at) {
+      const lastChange = new Date(current.username_changed_at);
+      const diffMs = Date.now() - lastChange.getTime();
+      const diffDays = diffMs / (1000 * 60 * 60 * 24);
+      if (diffDays < 7) {
+        const daysLeft = Math.ceil(7 - diffDays);
+        const nextDate = new Date(lastChange.getTime() + 7 * 24 * 60 * 60 * 1000);
+        return res.status(429).json({
+          error: `Следующая смена никнейма доступна через ${daysLeft} ${daysLeft === 1 ? "день" : daysLeft < 5 ? "дня" : "дней"}`,
+          nextAvailableAt: nextDate.toISOString(),
+          daysLeft,
+        });
+      }
+    }
+
+    const existing = await db.execute(sql`SELECT id FROM users WHERE username = ${trimmed} AND id != ${uid}`);
+    if ((existing.rows as any[]).length > 0) {
+      return res.status(409).json({ error: "Этот никнейм уже занят" });
+    }
+
+    await db.execute(sql`UPDATE users SET username = ${trimmed}, username_changed_at = NOW() WHERE id = ${uid}`);
+    const updated = await db.execute(sql`SELECT username, username_changed_at FROM users WHERE id = ${uid}`);
+    const u = updated.rows[0] as any;
+    res.json({ username: u.username, usernameChangedAt: u.username_changed_at });
   } catch (err) {
     req.log.error(err);
     res.status(500).json({ error: "Internal server error" });

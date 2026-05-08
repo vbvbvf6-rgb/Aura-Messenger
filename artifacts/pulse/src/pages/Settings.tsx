@@ -143,6 +143,12 @@ export default function Settings() {
   const [readReceipts, setReadReceipts] = useState(() => lsb("pulse-privacy-read-receipts", true));
   const [profilePhotoVisible, setProfilePhotoVisible] = useState(() => lsb("pulse-privacy-photo-visible", true));
 
+  // Username change
+  const [showUsernameEdit, setShowUsernameEdit] = useState(false);
+  const [newUsername, setNewUsername] = useState("");
+  const [usernameLoading, setUsernameLoading] = useState(false);
+  const [usernameError, setUsernameError] = useState("");
+
   // Security
   const [showChangePassword, setShowChangePassword] = useState(false);
   const [currentPassword, setCurrentPassword] = useState("");
@@ -315,6 +321,50 @@ export default function Settings() {
     toast({ title: "Готово", description: "Все другие сессии завершены." });
   };
 
+  const handleChangeUsername = async () => {
+    const trimmed = newUsername.trim().toLowerCase();
+    if (!trimmed) { setUsernameError("Введите новый никнейм"); return; }
+    if (trimmed.length < 3 || trimmed.length > 32) { setUsernameError("От 3 до 32 символов"); return; }
+    if (!/^[a-z0-9_]+$/.test(trimmed)) { setUsernameError("Только латинские буквы, цифры и _"); return; }
+    setUsernameLoading(true);
+    setUsernameError("");
+    try {
+      const uid = localStorage.getItem("pulse-user-id");
+      const res = await fetch("/api/users/me/username", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", ...(uid ? { "x-user-id": uid } : {}) },
+        body: JSON.stringify({ username: trimmed }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setUsernameError(data.error || "Ошибка смены никнейма");
+      } else {
+        queryClient.invalidateQueries({ queryKey: ["/api/users/me"] });
+        setShowUsernameEdit(false);
+        setNewUsername("");
+        toast({ title: "Никнейм изменён", description: `Ваш новый никнейм: @${data.username}` });
+      }
+    } catch {
+      setUsernameError("Ошибка соединения");
+    }
+    setUsernameLoading(false);
+  };
+
+  const getUsernameCooldown = () => {
+    const changedAt = (user as any)?.usernameChangedAt;
+    if (!changedAt) return null;
+    const last = new Date(changedAt);
+    const next = new Date(last.getTime() + 7 * 24 * 60 * 60 * 1000);
+    const diffMs = next.getTime() - Date.now();
+    if (diffMs <= 0) return null;
+    const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    if (days > 0) return `${days} ${days === 1 ? "день" : days < 5 ? "дня" : "дней"}`;
+    return `${hours} ${hours === 1 ? "час" : hours < 5 ? "часа" : "часов"}`;
+  };
+
+  const usernameCooldown = getUsernameCooldown();
+
   const setLs = (key: string, val: boolean | string) => localStorage.setItem(key, String(val));
 
   const avatarPreview = avatarUrl || null;
@@ -403,6 +453,73 @@ export default function Settings() {
               <Label className="text-sm font-medium mb-1 block">Имя</Label>
               <Input value={displayName} onChange={e => setDisplayName(e.target.value)} placeholder="Ваше имя" className="bg-background" />
             </div>
+
+            {/* Username change */}
+            <div>
+              <Label className="text-sm font-medium mb-1 block flex items-center gap-1.5">
+                <User size={13} /> Никнейм
+              </Label>
+              {!showUsernameEdit ? (
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 flex items-center gap-2 px-3 py-2 bg-background border border-border rounded-xl text-sm text-foreground">
+                    <span className="text-muted-foreground">@</span>
+                    <span className="font-mono">{user?.username || "—"}</span>
+                  </div>
+                  {usernameCooldown ? (
+                    <div className="flex items-center gap-1.5 px-3 py-2 bg-yellow-500/10 border border-yellow-500/20 rounded-xl shrink-0">
+                      <Clock size={13} className="text-yellow-500 shrink-0" />
+                      <span className="text-xs text-yellow-600 dark:text-yellow-400 font-medium whitespace-nowrap">через {usernameCooldown}</span>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => { setShowUsernameEdit(true); setNewUsername(user?.username || ""); setUsernameError(""); }}
+                      className="flex items-center gap-1.5 px-3 py-2 bg-primary/10 border border-primary/20 rounded-xl text-primary text-xs font-medium hover:bg-primary/20 transition-colors shrink-0"
+                    >
+                      <Edit3 size={13} /> Изменить
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 flex items-center border border-border rounded-xl overflow-hidden bg-background focus-within:border-primary transition-colors">
+                      <span className="px-3 text-muted-foreground text-sm font-mono select-none">@</span>
+                      <input
+                        value={newUsername}
+                        onChange={e => { setNewUsername(e.target.value); setUsernameError(""); }}
+                        onKeyDown={e => { if (e.key === "Enter") handleChangeUsername(); if (e.key === "Escape") setShowUsernameEdit(false); }}
+                        placeholder={user?.username || "новый_ник"}
+                        autoFocus
+                        className="flex-1 py-2 pr-3 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none font-mono"
+                        maxLength={32}
+                      />
+                    </div>
+                    <button
+                      onClick={handleChangeUsername}
+                      disabled={usernameLoading}
+                      className="px-3 py-2 bg-primary text-primary-foreground rounded-xl text-xs font-bold hover:bg-primary/90 transition-colors disabled:opacity-50 shrink-0"
+                    >
+                      {usernameLoading ? "..." : "Сохранить"}
+                    </button>
+                    <button
+                      onClick={() => { setShowUsernameEdit(false); setUsernameError(""); }}
+                      className="p-2 rounded-xl hover:bg-secondary transition-colors text-muted-foreground shrink-0"
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
+                  {usernameError && (
+                    <div className="flex items-center gap-1.5 text-xs text-red-500">
+                      <AlertTriangle size={12} className="shrink-0" /> {usernameError}
+                    </div>
+                  )}
+                  <p className="text-xs text-muted-foreground">
+                    Только латиница, цифры и _ · Смена раз в 7 дней
+                  </p>
+                </div>
+              )}
+            </div>
+
             <div>
               <Label className="text-sm font-medium mb-1 block">О себе</Label>
               <Textarea value={bio} onChange={e => setBio(e.target.value)} placeholder="Расскажите о себе..." rows={3} className="bg-background resize-none" />
