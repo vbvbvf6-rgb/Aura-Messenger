@@ -5,6 +5,7 @@ import { useAppContext } from "@/contexts/AppContext";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MessageBubble } from "./MessageBubble";
 import { ChatInput } from "./ChatInput";
+import { useLocation } from "wouter";
 
 interface ChatWindowProps {
   chatId: number;
@@ -12,6 +13,7 @@ interface ChatWindowProps {
 
 export function ChatWindow({ chatId }: ChatWindowProps) {
   const { setSelectedChatId } = useAppContext();
+  const [, setLocation] = useLocation();
   const { data: chat, isLoading: isChatLoading } = useGetChatById(chatId, { query: { enabled: !!chatId } });
   const { data: messages, isLoading: isMessagesLoading } = useGetMessages({ chatId }, { query: { enabled: !!chatId } });
   
@@ -38,8 +40,13 @@ export function ChatWindow({ chatId }: ChatWindowProps) {
             <ArrowLeft size={20} />
           </button>
           
-          <div 
-            className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold overflow-hidden"
+          <button
+            onClick={() => {
+              if (chat.type === 'direct' && chat.otherUser?.id) {
+                setLocation(`/user/${chat.otherUser.id}`);
+              }
+            }}
+            className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold overflow-hidden ${chat.type === 'direct' ? 'cursor-pointer hover:opacity-85 transition-opacity' : 'cursor-default'}`}
             style={{ backgroundColor: chat.type === 'direct' ? (chat.otherUser?.avatarColor || chat.avatarColor || '#333') : (chat.avatarColor || '#333') }}
           >
             {chat.avatarUrl ? (
@@ -47,14 +54,21 @@ export function ChatWindow({ chatId }: ChatWindowProps) {
             ) : (
               (chat.type === 'direct' ? (chat.otherUser?.displayName || 'U') : (chat.name || 'G'))[0].toUpperCase()
             )}
-          </div>
+          </button>
           
-          <div>
+          <button
+            onClick={() => {
+              if (chat.type === 'direct' && chat.otherUser?.id) {
+                setLocation(`/user/${chat.otherUser.id}`);
+              }
+            }}
+            className={chat.type === 'direct' ? 'text-left hover:opacity-80 transition-opacity cursor-pointer' : 'text-left cursor-default'}
+          >
             <h2 className="font-semibold text-sm leading-tight">{chat.type === 'direct' ? (chat.otherUser?.displayName || chat.name) : chat.name}</h2>
             <p className="text-xs text-muted-foreground">
               {chat.type === 'direct' && chat.otherUser ? chat.otherUser.status : `${chat.members?.length || 0} members`}
             </p>
-          </div>
+          </button>
         </div>
 
         <div className="flex items-center gap-2 text-muted-foreground">

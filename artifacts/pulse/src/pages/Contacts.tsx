@@ -100,8 +100,9 @@ export default function Contacts() {
               
               return (
                 <div key={user.id} className="flex items-center gap-4 p-4 rounded-xl border border-border bg-card/50 hover:bg-card transition-colors group">
-                  <div 
-                    className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg overflow-hidden shrink-0 relative"
+                  <button
+                    onClick={() => setLocation(`/user/${user.id}`)}
+                    className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg overflow-hidden shrink-0 relative hover:opacity-90 transition-opacity"
                     style={{ backgroundColor: user.avatarColor || '#333' }}
                   >
                     {user.avatarUrl ? (
@@ -113,12 +114,15 @@ export default function Contacts() {
                       user.status === 'online' ? 'bg-green-500' : 
                       user.status === 'away' ? 'bg-yellow-500' : 'bg-gray-500'
                     }`} />
-                  </div>
+                  </button>
                   
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-foreground truncate">{user.displayName}</h3>
+                  <button
+                    onClick={() => setLocation(`/user/${user.id}`)}
+                    className="flex-1 min-w-0 text-left"
+                  >
+                    <h3 className="font-semibold text-foreground truncate hover:text-primary transition-colors">{user.displayName}</h3>
                     <p className="text-sm text-muted-foreground truncate">@{user.username} {user.bio ? `• ${user.bio}` : ''}</p>
-                  </div>
+                  </button>
 
                   <div className="flex items-center gap-2">
                     <button 

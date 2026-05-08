@@ -13,6 +13,7 @@ import Gifts from "@/pages/Gifts";
 import Stories from "@/pages/Stories";
 import Profile from "@/pages/Profile";
 import Settings from "@/pages/Settings";
+import UserProfile from "@/pages/UserProfile";
 
 const queryClient = new QueryClient();
 
@@ -27,6 +28,7 @@ function Router() {
         <Route path="/stories" component={Stories} />
         <Route path="/profile" component={Profile} />
         <Route path="/settings" component={Settings} />
+        <Route path="/user/:userId" component={UserProfile} />
         <Route component={NotFound} />
       </Switch>
     </AppLayout>
