@@ -12,6 +12,9 @@ export const botWebhooksTable = pgTable("bot_webhooks", {
   id: serial("id").primaryKey(),
   botUserId: integer("bot_user_id").notNull().unique(),
   url: text("url").notNull(),
+  secretToken: text("secret_token"),
+  lastError: text("last_error"),
+  lastErrorAt: timestamp("last_error_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
