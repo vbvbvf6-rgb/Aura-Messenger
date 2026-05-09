@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef, useId } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useGetGiftCatalog, useGetSentGifts, useGetReceivedGifts, GiftItem, Gift } from "@workspace/api-client-react";
 import { Zap, ArrowUpRight, ArrowDownLeft, Gift as GiftIcon, Search, AlertTriangle, X, UserRound, MessageSquare, EyeOff } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -36,31 +36,127 @@ const RARITY_CONFIG: Record<string, { gradient: string; glow: string; badge: str
   },
 };
 
+interface GiftTheme {
+  bg1: string;
+  bg2: string;
+  glow: string;
+  ring: string;
+}
+
+const GIFT_THEMES: Record<string, GiftTheme> = {
+  "Сердечко":       { bg1: "#ff6b9d", bg2: "#9b1239", glow: "#ff6b9d", ring: "#ff4d7d" },
+  "Звёздочка":      { bg1: "#fde047", bg2: "#b45309", glow: "#fbbf24", ring: "#f59e0b" },
+  "Цветок сакуры":  { bg1: "#f9a8d4", bg2: "#9d174d", glow: "#f472b6", ring: "#ec4899" },
+  "Пончик":         { bg1: "#fb923c", bg2: "#7c2d12", glow: "#f97316", ring: "#ea580c" },
+  "Котёнок":        { bg1: "#fcd34d", bg2: "#92400e", glow: "#fbbf24", ring: "#d97706" },
+  "Воздушный шар":  { bg1: "#f87171", bg2: "#7f1d1d", glow: "#ef4444", ring: "#dc2626" },
+  "Четырёхлистник": { bg1: "#4ade80", bg2: "#14532d", glow: "#22c55e", ring: "#16a34a" },
+  "Пицца":          { bg1: "#fbbf24", bg2: "#78350f", glow: "#f59e0b", ring: "#d97706" },
+  "Торт":           { bg1: "#f0abfc", bg2: "#6b21a8", glow: "#e879f9", ring: "#d946ef" },
+  "Луна":           { bg1: "#93c5fd", bg2: "#1e1b4b", glow: "#818cf8", ring: "#6366f1" },
+
+  "Корона":         { bg1: "#fde68a", bg2: "#78350f", glow: "#f59e0b", ring: "#d97706" },
+  "Красная роза":   { bg1: "#fca5a5", bg2: "#7f1d1d", glow: "#ef4444", ring: "#b91c1c" },
+  "Лиса":           { bg1: "#fb923c", bg2: "#7c2d12", glow: "#f97316", ring: "#ea580c" },
+  "Бриллиант":      { bg1: "#67e8f9", bg2: "#164e63", glow: "#22d3ee", ring: "#06b6d4" },
+  "Ракета":         { bg1: "#93c5fd", bg2: "#1e3a5f", glow: "#60a5fa", ring: "#3b82f6" },
+  "Гитара":         { bg1: "#c4b5fd", bg2: "#3b0764", glow: "#a78bfa", ring: "#8b5cf6" },
+  "Кубок":          { bg1: "#fde68a", bg2: "#713f12", glow: "#f59e0b", ring: "#d97706" },
+  "Радуга":         { bg1: "#a5f3fc", bg2: "#3730a3", glow: "#38bdf8", ring: "#0ea5e9" },
+  "Молния":         { bg1: "#fef08a", bg2: "#713f12", glow: "#facc15", ring: "#eab308" },
+  "Самоцвет":       { bg1: "#6ee7b7", bg2: "#064e3b", glow: "#34d399", ring: "#10b981" },
+
+  "Дракон":         { bg1: "#fca5a5", bg2: "#450a0a", glow: "#ef4444", ring: "#dc2626" },
+  "Единорог":       { bg1: "#f0abfc", bg2: "#4a044e", glow: "#e879f9", ring: "#a21caf" },
+  "Феникс":         { bg1: "#fdba74", bg2: "#431407", glow: "#fb923c", ring: "#ea580c" },
+  "Планета":        { bg1: "#a5b4fc", bg2: "#1e1b4b", glow: "#818cf8", ring: "#4f46e5" },
+  "Волшебство":     { bg1: "#d8b4fe", bg2: "#3b0764", glow: "#c084fc", ring: "#9333ea" },
+  "Кристалл":       { bg1: "#7dd3fc", bg2: "#082f49", glow: "#38bdf8", ring: "#0284c7" },
+
+  "Галактика":      { bg1: "#818cf8", bg2: "#020617", glow: "#6366f1", ring: "#4338ca" },
+  "Ангел":          { bg1: "#fef9c3", bg2: "#78350f", glow: "#fde047", ring: "#ca8a04" },
+  "Пульс":          { bg1: "#e879f9", bg2: "#2e1065", glow: "#d946ef", ring: "#a21caf" },
+  "Звезда":         { bg1: "#fde68a", bg2: "#7c2d12", glow: "#f59e0b", ring: "#b45309" },
+  "Бесконечность":  { bg1: "#67e8f9", bg2: "#0c4a6e", glow: "#22d3ee", ring: "#0891b2" },
+};
+
+const DEFAULT_THEME: GiftTheme = { bg1: "#94a3b8", bg2: "#1e293b", glow: "#64748b", ring: "#475569" };
+
+function getGiftTheme(name: string): GiftTheme {
+  return GIFT_THEMES[name] || DEFAULT_THEME;
+}
+
 function getEmojiAnimation(animationType: string) {
   switch (animationType) {
-    case "hearts": return { animate: { scale: [1, 1.3, 1], rotate: [0, -10, 10, 0] }, transition: { duration: 1.5, repeat: Infinity, ease: "easeInOut" } };
-    case "fireworks": return { animate: { scale: [1, 1.4, 0.9, 1.2, 1], rotate: [0, 15, -15, 8, 0] }, transition: { duration: 1.2, repeat: Infinity, ease: "easeInOut" } };
-    case "stars": return { animate: { rotate: [0, 360], scale: [1, 1.2, 1] }, transition: { duration: 3, repeat: Infinity, ease: "linear" } };
-    case "sparkle": return { animate: { scale: [1, 1.25, 1, 1.15, 1] }, transition: { duration: 1.8, repeat: Infinity } };
-    case "confetti": return { animate: { y: [0, -12, 0], rotate: [0, 10, -10, 0] }, transition: { duration: 1.4, repeat: Infinity, ease: "easeInOut" } };
-    case "balloons": return { animate: { y: [0, -15, 0], rotate: [-5, 5, -5] }, transition: { duration: 2.5, repeat: Infinity, ease: "easeInOut" } };
-    case "diamonds": return { animate: { rotate: [0, 20, -20, 0], scale: [1, 1.3, 1] }, transition: { duration: 2.2, repeat: Infinity } };
-    case "lightning": return { animate: { scale: [1, 1.3, 1, 1.2, 1], rotate: [0, -5, 5, 0] }, transition: { duration: 0.8, repeat: Infinity, repeatDelay: 1 } };
-    case "flame": return { animate: { scale: [1, 1.2, 0.95, 1.15, 1], rotate: [-3, 3, -3] }, transition: { duration: 1, repeat: Infinity, ease: "easeInOut" } };
-    case "magic": return { animate: { rotate: [0, 360], scale: [1, 1.2, 1] }, transition: { duration: 2, repeat: Infinity, ease: "easeInOut" } };
-    case "galaxy": return { animate: { rotate: [0, 360], scale: [1, 1.1, 1] }, transition: { duration: 5, repeat: Infinity, ease: "linear" } };
-    default: return { animate: { y: [0, -10, 0], rotate: [0, 5, -5, 0] }, transition: { duration: 2, repeat: Infinity, ease: "easeInOut" } };
+    case "hearts":
+      return {
+        animate: { scale: [1, 1.25, 0.95, 1.15, 1], rotate: [0, -12, 12, -6, 0] },
+        transition: { duration: 1.6, repeat: Infinity, ease: "easeInOut" },
+      };
+    case "fireworks":
+      return {
+        animate: { scale: [1, 1.5, 0.85, 1.3, 0.95, 1], rotate: [0, 20, -20, 12, -8, 0] },
+        transition: { duration: 1.1, repeat: Infinity, ease: "easeInOut" },
+      };
+    case "stars":
+      return {
+        animate: { rotate: [0, 360], scale: [1, 1.18, 1, 1.1, 1] },
+        transition: { duration: 2.5, repeat: Infinity, ease: "linear" },
+      };
+    case "sparkle":
+      return {
+        animate: { scale: [1, 1.3, 0.9, 1.2, 1], filter: ["brightness(1)", "brightness(1.6)", "brightness(1)"] },
+        transition: { duration: 1.6, repeat: Infinity },
+      };
+    case "confetti":
+      return {
+        animate: { y: [0, -14, 3, -8, 0], rotate: [0, 14, -14, 7, 0] },
+        transition: { duration: 1.3, repeat: Infinity, ease: "easeInOut" },
+      };
+    case "balloons":
+      return {
+        animate: { y: [0, -18, -4, -14, 0], rotate: [-6, 6, -4, 4, -6] },
+        transition: { duration: 2.8, repeat: Infinity, ease: "easeInOut" },
+      };
+    case "diamonds":
+      return {
+        animate: { rotate: [0, 25, -25, 12, 0], scale: [1, 1.35, 0.92, 1.2, 1] },
+        transition: { duration: 2, repeat: Infinity },
+      };
+    case "lightning":
+      return {
+        animate: { scale: [1, 1.4, 0.88, 1.25, 1], x: [-2, 2, -2, 1, 0] },
+        transition: { duration: 0.7, repeat: Infinity, repeatDelay: 1.2 },
+      };
+    case "flame":
+      return {
+        animate: { scale: [1, 1.18, 0.93, 1.12, 1], rotate: [-4, 4, -3, 3, -4], y: [0, -4, 1, -3, 0] },
+        transition: { duration: 0.9, repeat: Infinity, ease: "easeInOut" },
+      };
+    case "magic":
+      return {
+        animate: { rotate: [0, 360], scale: [1, 1.22, 0.95, 1.15, 1] },
+        transition: { duration: 1.8, repeat: Infinity, ease: "easeInOut" },
+      };
+    case "galaxy":
+      return {
+        animate: { rotate: [0, 360], scale: [1, 1.08, 0.97, 1.04, 1] },
+        transition: { duration: 4, repeat: Infinity, ease: "linear" },
+      };
+    case "bounce":
+      return {
+        animate: { y: [0, -16, 2, -10, 0], scale: [1, 0.92, 1.08, 0.96, 1] },
+        transition: { duration: 1.1, repeat: Infinity, ease: "easeInOut" },
+      };
+    default:
+      return {
+        animate: { y: [0, -10, 0], rotate: [0, 5, -5, 0] },
+        transition: { duration: 2, repeat: Infinity, ease: "easeInOut" },
+      };
   }
 }
 
-function FloatingParticles({ rarity }: { rarity: string }) {
-  const colors: Record<string, string[]> = {
-    legendary: ["#fbbf24", "#f59e0b", "#ef4444", "#fcd34d"],
-    epic: ["#a855f7", "#ec4899", "#8b5cf6", "#c084fc"],
-    rare: ["#3b82f6", "#06b6d4", "#0ea5e9", "#22d3ee"],
-    common: ["#94a3b8", "#64748b", "#cbd5e1"],
-  };
-  const particleColors = colors[rarity] || colors.common;
+function FloatingParticles({ rarity, theme }: { rarity: string; theme: GiftTheme }) {
   const count = rarity === "legendary" ? 8 : rarity === "epic" ? 6 : rarity === "rare" ? 4 : 2;
   return (
     <>
@@ -68,174 +164,81 @@ function FloatingParticles({ rarity }: { rarity: string }) {
         <motion.div
           key={i}
           className="absolute w-1.5 h-1.5 rounded-full pointer-events-none"
-          style={{ top: "50%", left: "50%", backgroundColor: particleColors[i % particleColors.length] }}
+          style={{ top: "50%", left: "50%", backgroundColor: i % 2 === 0 ? theme.bg1 : theme.ring }}
           animate={{
-            x: [0, Math.cos(i * (360 / count) * Math.PI / 180) * 40, 0],
-            y: [0, Math.sin(i * (360 / count) * Math.PI / 180) * 40, 0],
+            x: [0, Math.cos(i * (360 / count) * Math.PI / 180) * 42, 0],
+            y: [0, Math.sin(i * (360 / count) * Math.PI / 180) * 42, 0],
             opacity: [0, 1, 0],
-            scale: [0, 1.5, 0],
+            scale: [0, 1.6, 0],
           }}
-          transition={{ duration: 2.5, repeat: Infinity, delay: i * 0.3, ease: "easeInOut" }}
+          transition={{ duration: 2.4, repeat: Infinity, delay: i * 0.28, ease: "easeInOut" }}
         />
       ))}
     </>
   );
 }
 
-function makeStarPoints(n: number, cx: number, cy: number, r1: number, r2: number): string {
-  return Array.from({ length: n * 2 }, (_, i) => {
-    const r = i % 2 === 0 ? r1 : r2;
-    const a = (i * Math.PI / n) - Math.PI / 2;
-    return `${(cx + r * Math.cos(a)).toFixed(1)},${(cy + r * Math.sin(a)).toFixed(1)}`;
-  }).join(" ");
-}
+function GiftVisual({ name, emoji, rarity, animationType, size = 64 }: {
+  name: string;
+  emoji: string;
+  rarity: string;
+  animationType: string;
+  size?: number;
+}) {
+  const theme = getGiftTheme(name);
+  const emojiAnim = getEmojiAnimation(animationType);
+  const emojiSize = Math.round(size * 0.55);
+  const isHighRarity = rarity === "legendary" || rarity === "epic";
+  const isRare = rarity === "rare";
 
-function GiftIconSVG({ animationType, rarity, size = 80 }: { animationType: string; rarity: string; size?: number }) {
-  const rawId = useId();
-  const id = `gi${rawId.replace(/[^a-zA-Z0-9]/g, "")}`;
-  const palettes: Record<string, string[]> = {
-    legendary: ["#fde68a", "#f59e0b", "#ef4444", "#fcd34d"],
-    epic:      ["#e879f9", "#a855f7", "#7c3aed", "#c084fc"],
-    rare:      ["#67e8f9", "#3b82f6", "#06b6d4", "#38bdf8"],
-    common:    ["#e2e8f0", "#94a3b8", "#64748b", "#cbd5e1"],
-  };
-  const c = palettes[rarity] || palettes.common;
-
-  switch (animationType) {
-    case "sparkle": {
-      const pts = makeStarPoints(4, 50, 50, 46, 19);
-      return (
-        <svg width={size} height={size} viewBox="0 0 100 100" fill="none">
-          <defs>
-            <radialGradient id={`${id}rg`} cx="40%" cy="35%" r="65%">
-              <stop offset="0%" stopColor="white" stopOpacity="0.95"/>
-              <stop offset="30%" stopColor={c[0]}/>
-              <stop offset="70%" stopColor={c[1]}/>
-              <stop offset="100%" stopColor={c[2]}/>
-            </radialGradient>
-            <radialGradient id={`${id}gl`} cx="50%" cy="50%" r="50%">
-              <stop offset="0%" stopColor={c[0]} stopOpacity="0.5"/>
-              <stop offset="100%" stopColor={c[0]} stopOpacity="0"/>
-            </radialGradient>
-          </defs>
-          <circle cx="50" cy="50" r="48" fill={`url(#${id}gl)`}/>
-          <polygon points={pts} fill={`url(#${id}rg)`}/>
-          <circle cx="50" cy="50" r="10" fill="white" opacity="0.4"/>
-          <circle cx="37" cy="37" r="4" fill="white" opacity="0.65"/>
-        </svg>
-      );
-    }
-    case "float": {
-      return (
-        <svg width={size} height={size} viewBox="0 0 100 100" fill="none">
-          <defs>
-            <radialGradient id={`${id}bg`} cx="34%" cy="32%" r="68%">
-              <stop offset="0%" stopColor="white" stopOpacity="0.95"/>
-              <stop offset="28%" stopColor={c[0]}/>
-              <stop offset="65%" stopColor={c[1]}/>
-              <stop offset="100%" stopColor={c[2]}/>
-            </radialGradient>
-            <radialGradient id={`${id}rim`} cx="50%" cy="50%" r="50%">
-              <stop offset="60%" stopColor="transparent"/>
-              <stop offset="100%" stopColor={c[2]} stopOpacity="0.8"/>
-            </radialGradient>
-          </defs>
-          <circle cx="50" cy="50" r="44" fill={`url(#${id}bg)`}/>
-          <circle cx="50" cy="50" r="44" fill={`url(#${id}rim)`}/>
-          <ellipse cx="36" cy="31" rx="14" ry="9" fill="white" opacity="0.55" transform="rotate(-35 36 31)"/>
-          <ellipse cx="65" cy="68" rx="7" ry="4" fill="white" opacity="0.2" transform="rotate(-35 65 68)"/>
-        </svg>
-      );
-    }
-    case "bounce": {
-      return (
-        <svg width={size} height={size} viewBox="0 0 100 100" fill="none">
-          <defs>
-            <linearGradient id={`${id}l1`} x1="0.2" y1="0" x2="0.8" y2="1">
-              <stop offset="0%" stopColor={c[0]}/>
-              <stop offset="100%" stopColor={c[2]}/>
-            </linearGradient>
-            <linearGradient id={`${id}l2`} x1="0" y1="0" x2="1" y2="0">
-              <stop offset="0%" stopColor={c[1]}/>
-              <stop offset="100%" stopColor={c[3]}/>
-            </linearGradient>
-          </defs>
-          <polygon points="50,8 86,29 86,71 50,92 14,71 14,29" fill={`url(#${id}l1)`}/>
-          <polygon points="50,8 86,29 50,50" fill={`url(#${id}l2)`} opacity="0.75"/>
-          <polygon points="50,8 14,29 50,50" fill="white" opacity="0.22"/>
-          <polygon points="86,71 50,92 50,50" fill="black" opacity="0.2"/>
-          <polygon points="14,29 14,71 50,50" fill="black" opacity="0.1"/>
-          <ellipse cx="42" cy="30" rx="13" ry="7" fill="white" opacity="0.5" transform="rotate(-20 42 30)"/>
-        </svg>
-      );
-    }
-    case "explosion": {
-      const pts = makeStarPoints(6, 50, 50, 46, 22);
-      return (
-        <svg width={size} height={size} viewBox="0 0 100 100" fill="none">
-          <defs>
-            <radialGradient id={`${id}rg`} cx="50%" cy="50%" r="50%">
-              <stop offset="0%" stopColor="white"/>
-              <stop offset="20%" stopColor={c[3] || c[0]}/>
-              <stop offset="60%" stopColor={c[0]}/>
-              <stop offset="100%" stopColor={c[1]}/>
-            </radialGradient>
-            <radialGradient id={`${id}gl`} cx="50%" cy="50%" r="50%">
-              <stop offset="0%" stopColor={c[0]} stopOpacity="0.55"/>
-              <stop offset="100%" stopColor={c[0]} stopOpacity="0"/>
-            </radialGradient>
-          </defs>
-          <circle cx="50" cy="50" r="48" fill={`url(#${id}gl)`}/>
-          <polygon points={pts} fill={`url(#${id}rg)`}/>
-          <circle cx="50" cy="50" r="13" fill="white" opacity="0.4"/>
-          <circle cx="50" cy="50" r="6" fill="white" opacity="0.75"/>
-        </svg>
-      );
-    }
-    case "orbit": {
-      return (
-        <svg width={size} height={size} viewBox="0 0 100 100" fill="none">
-          <defs>
-            <radialGradient id={`${id}pg`} cx="36%" cy="33%" r="67%">
-              <stop offset="0%" stopColor={c[0]}/>
-              <stop offset="55%" stopColor={c[1]}/>
-              <stop offset="100%" stopColor={c[2]}/>
-            </radialGradient>
-            <mask id={`${id}bm`}>
-              <rect width="100" height="100" fill="white"/>
-              <circle cx="50" cy="50" r="29" fill="black"/>
-            </mask>
-            <clipPath id={`${id}fc`}>
-              <rect x="0" y="46" width="100" height="54"/>
-            </clipPath>
-          </defs>
-          <ellipse cx="50" cy="50" rx="46" ry="14" stroke={c[0]} strokeWidth="5" strokeOpacity="0.65" fill="none" transform="rotate(-25 50 50)" mask={`url(#${id}bm)`}/>
-          <circle cx="50" cy="50" r="28" fill={`url(#${id}pg)`}/>
-          <ellipse cx="40" cy="37" rx="10" ry="7" fill="white" opacity="0.45" transform="rotate(-20 40 37)"/>
-          <ellipse cx="50" cy="50" rx="46" ry="14" stroke={c[0]} strokeWidth="5" fill="none" transform="rotate(-25 50 50)" clipPath={`url(#${id}fc)`}/>
-        </svg>
-      );
-    }
-    default: {
-      return (
-        <svg width={size} height={size} viewBox="0 0 100 100" fill="none">
-          <defs>
-            <radialGradient id={`${id}fb`} cx="35%" cy="35%" r="65%">
-              <stop offset="0%" stopColor={c[0]}/>
-              <stop offset="100%" stopColor={c[2]}/>
-            </radialGradient>
-          </defs>
-          <circle cx="50" cy="50" r="44" fill={`url(#${id}fb)`}/>
-          <ellipse cx="38" cy="33" rx="12" ry="8" fill="white" opacity="0.4" transform="rotate(-30 38 33)"/>
-        </svg>
-      );
-    }
-  }
+  return (
+    <div
+      className="relative flex items-center justify-center rounded-2xl overflow-hidden shrink-0"
+      style={{
+        width: size,
+        height: size,
+        background: `radial-gradient(circle at 35% 30%, ${theme.bg1}55 0%, ${theme.bg2}99 100%)`,
+        boxShadow: `0 0 ${size * 0.35}px ${theme.glow}50, inset 0 1px 0 rgba(255,255,255,0.12)`,
+      }}
+    >
+      {isHighRarity && (
+        <motion.div
+          className="absolute inset-0 rounded-2xl"
+          style={{ background: `conic-gradient(from 0deg, ${theme.bg1}30, ${theme.ring}50, ${theme.bg1}30)` }}
+          animate={{ rotate: [0, 360] }}
+          transition={{ duration: rarity === "legendary" ? 3 : 5, repeat: Infinity, ease: "linear" }}
+        />
+      )}
+      {isRare && (
+        <motion.div
+          className="absolute rounded-2xl border"
+          style={{ inset: 2, borderColor: `${theme.ring}60` }}
+          animate={{ opacity: [0.4, 1, 0.4] }}
+          transition={{ duration: 2, repeat: Infinity }}
+        />
+      )}
+      <motion.span
+        className="relative z-10 select-none"
+        style={{ fontSize: emojiSize, lineHeight: 1 }}
+        {...(emojiAnim as any)}
+      >
+        {emoji}
+      </motion.span>
+      {rarity === "legendary" && (
+        <motion.div
+          className="absolute inset-0 rounded-2xl"
+          style={{ background: `radial-gradient(circle at 50% 50%, ${theme.bg1}25, transparent 70%)` }}
+          animate={{ scale: [1, 1.15, 1], opacity: [0.5, 1, 0.5] }}
+          transition={{ duration: 2, repeat: Infinity }}
+        />
+      )}
+    </div>
+  );
 }
 
 function GiftCard({ item, onClick }: { item: GiftItem; onClick: () => void }) {
   const cfg = RARITY_CONFIG[item.rarity] || RARITY_CONFIG.common;
-  const emojiAnim = getEmojiAnimation(item.animationType);
+  const theme = getGiftTheme(item.name);
   const [hovered, setHovered] = useState(false);
 
   return (
@@ -249,10 +252,16 @@ function GiftCard({ item, onClick }: { item: GiftItem; onClick: () => void }) {
     >
       <div className={`p-[1.5px] rounded-2xl bg-gradient-to-br ${cfg.gradient}`}>
         <div className="bg-[hsl(222,47%,13%)] rounded-2xl p-4 flex flex-col items-center justify-center text-center min-h-[160px] relative overflow-hidden">
-          {hovered && item.rarity !== "common" && <FloatingParticles rarity={item.rarity} />}
-          <motion.div className="mb-3 relative z-10" {...(emojiAnim as any)}>
-            <GiftIconSVG animationType={item.animationType} rarity={item.rarity} size={64} />
-          </motion.div>
+          {hovered && item.rarity !== "common" && <FloatingParticles rarity={item.rarity} theme={theme} />}
+          <div className="mb-3 relative z-10">
+            <GiftVisual
+              name={item.name}
+              emoji={item.emoji}
+              rarity={item.rarity}
+              animationType={item.animationType}
+              size={64}
+            />
+          </div>
           <h3 className="font-bold text-sm mb-1 leading-tight relative z-10">{item.name}</h3>
           <div className="flex items-center gap-1 text-primary font-medium text-xs relative z-10">
             <Zap size={11} className="text-primary" />
@@ -267,19 +276,25 @@ function GiftCard({ item, onClick }: { item: GiftItem; onClick: () => void }) {
   );
 }
 
-function CelebrationOverlay({ animationType, giftName, onDone }: { animationType: string; giftName: string; onDone: () => void }) {
+function CelebrationOverlay({ animationType, giftName, emoji, onDone }: { animationType: string; giftName: string; emoji: string; onDone: () => void }) {
   useEffect(() => {
     const t = setTimeout(onDone, 3500);
     return () => clearTimeout(t);
   }, [onDone]);
 
   const emojiSets: Record<string, string[]> = {
-    hearts: ["❤️","💕","💖","💗","💓"],
-    fireworks: ["🎆","🎇","✨","💥","⭐"],
-    confetti: ["🎊","🎉","🎈","🌟","💛","💜","🧡"],
-    stars: ["⭐","🌟","✨","💫","🌠"],
-    balloons: ["🎈","🎀","🎉","🥳","🎊"],
-    sparkle: ["✨","💫","⚡","🌟","💥"],
+    hearts: ["❤️","💕","💖","💗","💓","🌸","✨"],
+    fireworks: ["🎆","🎇","✨","💥","⭐","🌟","🎉"],
+    confetti: ["🎊","🎉","🎈","🌟","💛","💜","🧡","🩷"],
+    stars: ["⭐","🌟","✨","💫","🌠","⚡"],
+    balloons: ["🎈","🎀","🎉","🥳","🎊","✨"],
+    sparkle: ["✨","💫","⚡","🌟","💥","🔆"],
+    bounce: ["💥","✨","🎉","⭐","🌟"],
+    lightning: ["⚡","💥","✨","🌟","🔆"],
+    flame: ["🔥","✨","💥","🌟","⚡"],
+    magic: ["✨","🪄","💫","🌟","⭐","🎆"],
+    galaxy: ["🌌","✨","💫","⭐","🌠","🔮"],
+    diamonds: ["💎","✨","💙","❄️","🌟"],
   };
   const emojis = emojiSets[animationType] || emojiSets.confetti;
 
@@ -290,10 +305,10 @@ function CelebrationOverlay({ animationType, giftName, onDone }: { animationType
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
     >
-      {Array.from({ length: 40 }).map((_, i) => (
+      {Array.from({ length: 45 }).map((_, i) => (
         <motion.div
           key={i}
-          className="absolute text-3xl"
+          className="absolute text-2xl"
           style={{ top: "50%", left: "50%" }}
           initial={{ x: 0, y: 0, opacity: 1, scale: 0.5 }}
           animate={{
@@ -305,7 +320,7 @@ function CelebrationOverlay({ animationType, giftName, onDone }: { animationType
           }}
           transition={{ duration: 2 + Math.random() * 1.5, ease: "easeOut" }}
         >
-          {emojis[i % emojis.length]}
+          {i % 4 === 0 ? emoji : emojis[i % emojis.length]}
         </motion.div>
       ))}
       <motion.div
@@ -316,9 +331,9 @@ function CelebrationOverlay({ animationType, giftName, onDone }: { animationType
         transition={{ duration: 0.5, delay: 0.1 }}
       >
         <div className="bg-black/60 backdrop-blur-xl rounded-3xl p-8 border border-white/10">
-          <div className="text-6xl mb-3">🎁</div>
+          <div className="text-7xl mb-3">{emoji}</div>
           <div className="text-2xl font-black text-white">Подарок отправлен!</div>
-          <div className="text-sm text-white/60 mt-1">{giftName} улетел к получателю</div>
+          <div className="text-sm text-white/60 mt-1">{giftName} улетел к получателю ✨</div>
         </div>
       </motion.div>
     </motion.div>
@@ -347,6 +362,7 @@ export default function Gifts() {
   const [showCelebration, setShowCelebration] = useState(false);
   const [celebrationAnim, setCelebrationAnim] = useState("confetti");
   const [celebrationGift, setCelebrationGift] = useState("");
+  const [celebrationEmoji, setCelebrationEmoji] = useState("🎁");
   const [balance, setBalance] = useState<number>(0);
   const [isSending, setIsSending] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
@@ -452,6 +468,7 @@ export default function Gifts() {
 
       setCelebrationAnim(selectedGift.animationType);
       setCelebrationGift(selectedGift.name);
+      setCelebrationEmoji(selectedGift.emoji);
       setSelectedGift(null);
       setSelectedRecipient(null);
       setRecipientSearch("");
@@ -476,6 +493,7 @@ export default function Gifts() {
           <CelebrationOverlay
             animationType={celebrationAnim}
             giftName={celebrationGift}
+            emoji={celebrationEmoji}
             onDone={() => setShowCelebration(false)}
           />
         )}
@@ -561,7 +579,13 @@ export default function Gifts() {
                     <motion.div key={gift.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className={`p-[1.5px] rounded-2xl bg-gradient-to-br ${cfg.gradient}`}>
                       <div className="bg-card rounded-2xl p-4 flex items-center gap-4">
                         <div className="shrink-0">
-                          <GiftIconSVG animationType={gift.giftItem?.animationType || "sparkle"} rarity={gift.giftItem?.rarity || "common"} size={52} />
+                          <GiftVisual
+                            name={gift.giftItem?.name || ""}
+                            emoji={gift.giftItem?.emoji || "🎁"}
+                            rarity={gift.giftItem?.rarity || "common"}
+                            animationType={gift.giftItem?.animationType || "sparkle"}
+                            size={52}
+                          />
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="font-bold">{gift.giftItem?.name}</p>
@@ -597,7 +621,13 @@ export default function Gifts() {
                     <motion.div key={gift.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className={`p-[1.5px] rounded-2xl bg-gradient-to-br ${cfg.gradient}`}>
                       <div className="bg-card rounded-2xl p-4 flex items-center gap-4">
                         <div className="shrink-0">
-                          <GiftIconSVG animationType={gift.giftItem?.animationType || "sparkle"} rarity={gift.giftItem?.rarity || "common"} size={52} />
+                          <GiftVisual
+                            name={gift.giftItem?.name || ""}
+                            emoji={gift.giftItem?.emoji || "🎁"}
+                            rarity={gift.giftItem?.rarity || "common"}
+                            animationType={gift.giftItem?.animationType || "sparkle"}
+                            size={52}
+                          />
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="font-bold">{gift.giftItem?.name}</p>
@@ -631,12 +661,15 @@ export default function Gifts() {
               >
                 <div className={`p-[2px] rounded-3xl bg-gradient-to-br ${getRarityColor(selectedGift.rarity).gradient}`}>
                   <div className="bg-[hsl(222,47%,13%)] rounded-3xl p-5 flex flex-col items-center text-center">
-                    <motion.div
-                      className="mb-3 drop-shadow-2xl"
-                      {...(getEmojiAnimation(selectedGift.animationType) as any)}
-                    >
-                      <GiftIconSVG animationType={selectedGift.animationType} rarity={selectedGift.rarity} size={96} />
-                    </motion.div>
+                    <div className="mb-4 drop-shadow-2xl">
+                      <GiftVisual
+                        name={selectedGift.name}
+                        emoji={selectedGift.emoji}
+                        rarity={selectedGift.rarity}
+                        animationType={selectedGift.animationType}
+                        size={96}
+                      />
+                    </div>
                     <h2 className="text-xl font-black mb-1">{selectedGift.name}</h2>
                     <span className={`text-xs font-black uppercase tracking-widest px-2.5 py-1 rounded-full border mb-2 ${getRarityColor(selectedGift.rarity).badge}`}>
                       {selectedGift.rarity}
