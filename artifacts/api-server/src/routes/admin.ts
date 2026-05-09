@@ -470,6 +470,139 @@ router.post("/admin/moderation/appeals/:id/reject", requireAdmin, async (req, re
   }
 });
 
+// ── Support Admin Routes ──────────────────────────────────────────────────────
+
+router.get("/admin/support/bugs", requireAdmin, async (req, res) => {
+  try {
+    const rows = await db.execute(sql`
+      SELECT br.id, br.title, br.description, br.category, br.status,
+             br.platform_info, br.screenshot_url, br.admin_note,
+             br.created_at, br.resolved_at,
+             u.username, u.display_name, u.avatar_color, u.avatar_url
+      FROM bug_reports br
+      JOIN users u ON u.id = br.user_id
+      ORDER BY
+        CASE br.status WHEN 'new' THEN 0 WHEN 'acknowledged' THEN 1 WHEN 'in_progress' THEN 2 ELSE 3 END,
+        br.created_at DESC
+      LIMIT 200
+    `);
+    res.json(rows.rows);
+  } catch (err) {
+    req.log.error(err);
+    res.status(500).json({ error: "Ошибка сервера" });
+  }
+});
+
+router.patch("/admin/support/bugs/:id", requireAdmin, async (req, res) => {
+  try {
+    const bugId = Number(req.params.id);
+    const { status, adminNote } = req.body;
+    const validStatuses = ['new', 'acknowledged', 'in_progress', 'resolved', 'closed'];
+    if (status && !validStatuses.includes(status)) return res.status(400).json({ error: "Неверный статус" });
+
+    if (status) {
+      if (status === 'resolved' || status === 'closed') {
+        await db.execute(sql`UPDATE bug_reports SET status = ${status}, admin_note = COALESCE(${adminNote ?? null}, admin_note), resolved_at = NOW() WHERE id = ${bugId}`);
+      } else {
+        await db.execute(sql`UPDATE bug_reports SET status = ${status}, admin_note = COALESCE(${adminNote ?? null}, admin_note) WHERE id = ${bugId}`);
+      }
+    } else {
+      await db.execute(sql`UPDATE bug_reports SET admin_note = COALESCE(${adminNote ?? null}, admin_note) WHERE id = ${bugId}`);
+    }
+    res.json({ success: true });
+  } catch (err) {
+    req.log.error(err);
+    res.status(500).json({ error: "Ошибка сервера" });
+  }
+});
+
+router.get("/admin/support/tickets", requireAdmin, async (req, res) => {
+  try {
+    const rows = await db.execute(sql`
+      SELECT t.id, t.subject, t.status, t.created_at, t.updated_at,
+             u.username, u.display_name, u.avatar_color, u.avatar_url,
+             (SELECT COUNT(*) FROM support_messages WHERE ticket_id = t.id) as message_count,
+             (SELECT text FROM support_messages WHERE ticket_id = t.id ORDER BY created_at DESC LIMIT 1) as last_message,
+             (SELECT is_admin FROM support_messages WHERE ticket_id = t.id ORDER BY created_at DESC LIMIT 1) as last_is_admin
+      FROM support_tickets t
+      JOIN users u ON u.id = t.user_id
+      ORDER BY
+        CASE t.status WHEN 'open' THEN 0 WHEN 'pending' THEN 1 WHEN 'answered' THEN 2 ELSE 3 END,
+        t.updated_at DESC
+      LIMIT 200
+    `);
+    res.json(rows.rows);
+  } catch (err) {
+    req.log.error(err);
+    res.status(500).json({ error: "Ошибка сервера" });
+  }
+});
+
+router.get("/admin/support/tickets/:ticketId", requireAdmin, async (req, res) => {
+  try {
+    const ticketId = Number(req.params.ticketId);
+    const ticketRow = await db.execute(sql`
+      SELECT t.*, u.username, u.display_name, u.avatar_color, u.avatar_url
+      FROM support_tickets t JOIN users u ON u.id = t.user_id
+      WHERE t.id = ${ticketId}
+    `);
+    const ticket = ticketRow.rows[0] as any;
+    if (!ticket) return res.status(404).json({ error: "Не найден" });
+
+    const msgRows = await db.execute(sql`
+      SELECT sm.id, sm.is_admin, sm.text, sm.created_at, sm.user_id,
+        u.display_name, u.avatar_color, u.avatar_url
+      FROM support_messages sm
+      LEFT JOIN users u ON u.id = sm.user_id
+      WHERE sm.ticket_id = ${ticketId}
+      ORDER BY sm.created_at ASC
+    `);
+    res.json({ ...ticket, messages: msgRows.rows });
+  } catch (err) {
+    req.log.error(err);
+    res.status(500).json({ error: "Ошибка сервера" });
+  }
+});
+
+router.post("/admin/support/tickets/:ticketId/reply", requireAdmin, async (req, res) => {
+  try {
+    const adminId = req.currentUserId;
+    const ticketId = Number(req.params.ticketId);
+    const { text, closeTicket } = req.body;
+    if (!text || !text.trim()) return res.status(400).json({ error: "text обязателен" });
+
+    const ticketRow = await db.execute(sql`SELECT id FROM support_tickets WHERE id = ${ticketId}`);
+    if (!(ticketRow.rows as any[]).length) return res.status(404).json({ error: "Тикет не найден" });
+
+    await db.execute(sql`
+      INSERT INTO support_messages (ticket_id, user_id, is_admin, text)
+      VALUES (${ticketId}, ${adminId}, true, ${text.trim()})
+    `);
+
+    const newStatus = closeTicket ? 'closed' : 'answered';
+    await db.execute(sql`UPDATE support_tickets SET status = ${newStatus}, updated_at = NOW() WHERE id = ${ticketId}`);
+
+    res.json({ success: true });
+  } catch (err) {
+    req.log.error(err);
+    res.status(500).json({ error: "Ошибка сервера" });
+  }
+});
+
+router.patch("/admin/support/tickets/:ticketId/status", requireAdmin, async (req, res) => {
+  try {
+    const ticketId = Number(req.params.ticketId);
+    const { status } = req.body;
+    const valid = ['open', 'pending', 'answered', 'closed'];
+    if (!valid.includes(status)) return res.status(400).json({ error: "Неверный статус" });
+    await db.execute(sql`UPDATE support_tickets SET status = ${status}, updated_at = NOW() WHERE id = ${ticketId}`);
+    res.json({ success: true });
+  } catch (err) {
+    req.log.error(err);
+    res.status(500).json({ error: "Ошибка сервера" });
+  }
+});
+
 router.get("/admin/check", async (req, res) => {
   try {
     const ok = await isAdminUser(req.currentUserId);

@@ -1385,6 +1385,37 @@ export default function Settings() {
           </div>
         </Section>
 
+        {/* ── SUPPORT ── */}
+        <div className="bg-card rounded-2xl border border-border overflow-hidden">
+          <a
+            href="/support"
+            className="flex items-center gap-3 px-4 py-3.5 hover:bg-secondary/50 transition-colors border-b border-border"
+          >
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center shrink-0">
+              <MessageSquare size={14} className="text-white" />
+            </div>
+            <div className="flex-1">
+              <p className="font-semibold text-foreground text-sm">Служба поддержки</p>
+              <p className="text-xs text-muted-foreground">Задать вопрос, решить проблему</p>
+            </div>
+            <ChevronRight size={15} className="text-muted-foreground" />
+          </a>
+          <a
+            href="/support"
+            onClick={e => { e.preventDefault(); (window as any).location.href = "/support?tab=bugs"; }}
+            className="flex items-center gap-3 px-4 py-3.5 hover:bg-secondary/50 transition-colors"
+          >
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-red-500 to-orange-600 flex items-center justify-center shrink-0">
+              <AlertTriangle size={14} className="text-white" />
+            </div>
+            <div className="flex-1">
+              <p className="font-semibold text-foreground text-sm">Сообщить об ошибке</p>
+              <p className="text-xs text-muted-foreground">Помогите нам улучшить Pulse</p>
+            </div>
+            <ChevronRight size={15} className="text-muted-foreground" />
+          </a>
+        </div>
+
         {/* ── DEVELOPER ── */}
         <div className="bg-card rounded-2xl border border-border overflow-hidden">
           <a

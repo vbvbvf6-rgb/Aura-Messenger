@@ -23,6 +23,7 @@ import Wallet from "@/pages/Wallet";
 import Admin from "@/pages/Admin";
 import Prime from "@/pages/Prime";
 import Bots from "@/pages/Bots";
+import Support from "@/pages/Support";
 import Login from "@/pages/Login";
 import Register from "@/pages/Register";
 import ForgotPassword from "@/pages/ForgotPassword";
@@ -60,6 +61,7 @@ function MainApp({ onLogout, onSwitchAccount, onRemoveAccount, onOpenAddAccount 
               <Route path="/admin" component={Admin} />
               <Route path="/prime" component={Prime} />
               <Route path="/bots" component={Bots} />
+              <Route path="/support" component={Support} />
               <Route path="/profile" component={Profile} />
               <Route path="/settings" component={Settings} />
               <Route path="/user/:userId" component={UserProfile} />

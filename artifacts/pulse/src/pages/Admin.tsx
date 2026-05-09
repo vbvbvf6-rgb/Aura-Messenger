@@ -4,8 +4,8 @@ import {
   Shield, Zap, Users, TrendingUp, Send, CheckCircle, AlertTriangle, RefreshCw,
   Plus, Trash2, Key, BadgeCheck, X, ShieldCheck, ShieldOff, MessageSquare,
   PhoneCall, Gift, Crown, Megaphone, BarChart3, Activity, Star,
-  Edit3, Save, ChevronDown, ChevronRight, Minus, Ban, FileText, Trophy, Image, Package,
-  ShieldAlert, Clock, CheckCircle2
+  Edit3, Save, ChevronDown, ChevronRight, ChevronLeft, Minus, Ban, FileText, Trophy, Image, Package,
+  ShieldAlert, Clock, CheckCircle2, Bug, Inbox, Send as SendIcon
 } from "lucide-react";
 
 interface AdminUser {
@@ -179,6 +179,97 @@ export default function Admin() {
   const [showAppeals, setShowAppeals] = useState(false);
   const [appealActionLoading, setAppealActionLoading] = useState<number | null>(null);
   const [appealResponse, setAppealResponse] = useState<Record<number, string>>({});
+
+  // Support Bugs
+  interface AdminBugReport {
+    id: number; title: string; description: string; category: string; status: string;
+    platform_info: string | null; admin_note: string | null; created_at: string;
+    username: string; display_name: string; avatar_color: string; avatar_url: string | null;
+  }
+  interface AdminSupportTicket {
+    id: number; subject: string; status: string; created_at: string; updated_at: string;
+    message_count: number; last_message: string | null; last_is_admin: boolean;
+    username: string; display_name: string; avatar_color: string; avatar_url: string | null;
+  }
+  interface SupportMessage { id: number; is_admin: boolean; text: string; created_at: string; display_name: string | null; avatar_color: string | null; }
+  interface TicketDetail extends AdminSupportTicket { messages: SupportMessage[]; }
+
+  const [bugs, setBugs] = useState<AdminBugReport[]>([]);
+  const [bugsLoading, setBugsLoading] = useState(false);
+  const [showBugs, setShowBugs] = useState(false);
+  const [bugActionId, setBugActionId] = useState<number | null>(null);
+  const [bugNote, setBugNote] = useState<Record<number, string>>({});
+  const [bugStatusEdit, setBugStatusEdit] = useState<Record<number, string>>({});
+
+  const [supportTickets, setSupportTickets] = useState<AdminSupportTicket[]>([]);
+  const [ticketsLoading, setTicketsLoading] = useState(false);
+  const [showTickets, setShowTickets] = useState(false);
+  const [activeAdminTicket, setActiveAdminTicket] = useState<TicketDetail | null>(null);
+  const [ticketReplyText, setTicketReplyText] = useState("");
+  const [ticketReplying, setTicketReplying] = useState(false);
+
+  const fetchBugs = async () => {
+    setBugsLoading(true);
+    try {
+      const res = await fetch("/api/admin/support/bugs", { headers: getHeader() });
+      if (res.ok) setBugs(await res.json());
+    } catch {}
+    setBugsLoading(false);
+  };
+
+  const fetchSupportTickets = async () => {
+    setTicketsLoading(true);
+    try {
+      const res = await fetch("/api/admin/support/tickets", { headers: getHeader() });
+      if (res.ok) setSupportTickets(await res.json());
+    } catch {}
+    setTicketsLoading(false);
+  };
+
+  const openAdminTicket = async (ticketId: number) => {
+    try {
+      const res = await fetch(`/api/admin/support/tickets/${ticketId}`, { headers: getHeader() });
+      if (res.ok) setActiveAdminTicket(await res.json());
+    } catch {}
+  };
+
+  const handleBugUpdate = async (bugId: number) => {
+    setBugActionId(bugId);
+    const status = bugStatusEdit[bugId];
+    const note = bugNote[bugId];
+    try {
+      const res = await fetch(`/api/admin/support/bugs/${bugId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", ...getHeader() },
+        body: JSON.stringify({ status: status || undefined, adminNote: note || undefined }),
+      });
+      const data = await res.json();
+      if (!res.ok) { showToast(data.error || "Ошибка", "err"); setBugActionId(null); return; }
+      showToast("✅ Обновлено", "ok");
+      setBugs(prev => prev.map(b => b.id === bugId ? { ...b, status: status || b.status, admin_note: note || b.admin_note } : b));
+      setBugNote(prev => { const n = { ...prev }; delete n[bugId]; return n; });
+    } catch { showToast("Ошибка", "err"); }
+    setBugActionId(null);
+  };
+
+  const handleTicketReply = async (close = false) => {
+    if (!activeAdminTicket || !ticketReplyText.trim()) return;
+    setTicketReplying(true);
+    try {
+      const res = await fetch(`/api/admin/support/tickets/${activeAdminTicket.id}/reply`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...getHeader() },
+        body: JSON.stringify({ text: ticketReplyText.trim(), closeTicket: close }),
+      });
+      const data = await res.json();
+      if (!res.ok) { showToast(data.error || "Ошибка", "err"); setTicketReplying(false); return; }
+      showToast(close ? "✅ Ответ отправлен, тикет закрыт" : "✅ Ответ отправлен", "ok");
+      setTicketReplyText("");
+      await openAdminTicket(activeAdminTicket.id);
+      await fetchSupportTickets();
+    } catch { showToast("Ошибка", "err"); }
+    setTicketReplying(false);
+  };
 
   const fetchAppeals = async () => {
     setAppealsLoading(true);
@@ -949,6 +1040,239 @@ export default function Admin() {
               )}
             </div>
           )}
+        </div>
+
+        {/* Support Tickets + Bug Reports */}
+        <div className="grid md:grid-cols-2 gap-4">
+          {/* Support Tickets */}
+          <div className="bg-card border border-border rounded-2xl overflow-hidden">
+            <button
+              onClick={() => { setShowTickets(v => !v); if (!showTickets && supportTickets.length === 0) fetchSupportTickets(); setActiveAdminTicket(null); }}
+              className="w-full p-4 flex items-center justify-between hover:bg-secondary/50 transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-cyan-500/10 flex items-center justify-center">
+                  <Inbox size={18} className="text-cyan-400" />
+                </div>
+                <div className="text-left">
+                  <p className="font-semibold text-sm">Тикеты поддержки</p>
+                  <p className="text-xs text-muted-foreground">
+                    {supportTickets.filter(t => t.status === "open").length > 0
+                      ? `${supportTickets.filter(t => t.status === "open").length} открытых`
+                      : "Обращения пользователей"}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                {supportTickets.filter(t => t.status === "open").length > 0 && (
+                  <span className="w-5 h-5 rounded-full bg-cyan-500 text-white text-[10px] font-black flex items-center justify-center">
+                    {supportTickets.filter(t => t.status === "open").length}
+                  </span>
+                )}
+                {showTickets ? <ChevronDown size={16} className="text-muted-foreground" /> : <ChevronRight size={16} className="text-muted-foreground" />}
+              </div>
+            </button>
+
+            {showTickets && (
+              <div className="border-t border-border">
+                {activeAdminTicket ? (
+                  <div className="p-4 flex flex-col gap-3">
+                    <button onClick={() => setActiveAdminTicket(null)} className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors self-start">
+                      <ChevronLeft size={14} /> Назад к списку
+                    </button>
+                    <div className="mb-1">
+                      <p className="font-semibold text-sm">{activeAdminTicket.subject}</p>
+                      <p className="text-[10px] text-muted-foreground">@{activeAdminTicket.username} · #{activeAdminTicket.id}</p>
+                    </div>
+                    <div className="space-y-2 max-h-60 overflow-y-auto">
+                      {activeAdminTicket.messages?.map(msg => (
+                        <div key={msg.id} className={`flex ${msg.is_admin ? "justify-start" : "justify-end"}`}>
+                          <div className={`max-w-[85%] px-3 py-2 rounded-xl text-xs ${msg.is_admin ? "bg-secondary text-foreground rounded-tl-sm" : "bg-primary/20 text-foreground rounded-tr-sm"}`}>
+                            {msg.is_admin && <p className="text-[10px] font-bold text-primary mb-0.5">Поддержка</p>}
+                            <p className="whitespace-pre-wrap">{msg.text}</p>
+                            <p className="text-[9px] text-muted-foreground mt-1">{new Date(msg.created_at).toLocaleString("ru-RU", { day:"2-digit", month:"2-digit", hour:"2-digit", minute:"2-digit" })}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    {activeAdminTicket.status !== 'closed' && (
+                      <div className="space-y-2">
+                        <textarea
+                          value={ticketReplyText}
+                          onChange={e => setTicketReplyText(e.target.value)}
+                          placeholder="Ответ пользователю..."
+                          rows={3}
+                          className="w-full bg-background border border-border rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-primary transition-colors resize-none"
+                        />
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => handleTicketReply(false)}
+                            disabled={ticketReplying || !ticketReplyText.trim()}
+                            className="flex-1 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-bold hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5"
+                          >
+                            <SendIcon size={12} /> {ticketReplying ? "..." : "Ответить"}
+                          </button>
+                          <button
+                            onClick={() => handleTicketReply(true)}
+                            disabled={ticketReplying || !ticketReplyText.trim()}
+                            className="flex-1 py-2 rounded-xl bg-secondary border border-border text-xs font-bold hover:bg-secondary/80 transition-colors disabled:opacity-50"
+                          >
+                            {ticketReplying ? "..." : "Ответить и закрыть"}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                    {activeAdminTicket.status === 'closed' && (
+                      <p className="text-center text-xs text-muted-foreground">Тикет закрыт</p>
+                    )}
+                  </div>
+                ) : (
+                  <>
+                    <div className="p-2 border-b border-border flex justify-end">
+                      <button onClick={fetchSupportTickets} className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 px-2 py-1 rounded-lg hover:bg-secondary transition-colors">
+                        <RefreshCw size={12} className={ticketsLoading ? "animate-spin" : ""} /> Обновить
+                      </button>
+                    </div>
+                    {ticketsLoading ? (
+                      <div className="p-6 flex justify-center"><RefreshCw size={20} className="animate-spin text-muted-foreground" /></div>
+                    ) : supportTickets.length === 0 ? (
+                      <div className="p-6 text-center text-sm text-muted-foreground">Тикетов нет</div>
+                    ) : (
+                      <div className="divide-y divide-border max-h-80 overflow-y-auto">
+                        {supportTickets.map(t => (
+                          <button key={t.id} onClick={() => openAdminTicket(t.id)} className="w-full p-3 flex gap-3 text-left hover:bg-secondary/30 transition-colors group">
+                            <div className="w-8 h-8 rounded-full shrink-0 flex items-center justify-center text-white text-xs font-bold overflow-hidden" style={{ backgroundColor: t.avatar_color }}>
+                              {t.avatar_url ? <img src={t.avatar_url} className="w-full h-full rounded-full object-cover" alt="" /> : t.display_name[0]?.toUpperCase()}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between gap-2 mb-0.5">
+                                <p className="text-xs font-semibold truncate">{t.subject}</p>
+                                <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full border shrink-0 ${
+                                  t.status === 'open' ? 'bg-blue-500/10 text-blue-400 border-blue-500/30' :
+                                  t.status === 'answered' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' :
+                                  t.status === 'closed' ? 'bg-muted/50 text-muted-foreground border-border' :
+                                  'bg-orange-500/10 text-orange-400 border-orange-500/30'
+                                }`}>
+                                  {t.status === 'open' ? 'Открыт' : t.status === 'answered' ? 'Отвечен' : t.status === 'closed' ? 'Закрыт' : 'Ожидает'}
+                                </span>
+                              </div>
+                              <p className="text-[10px] text-muted-foreground truncate">@{t.username} · {t.last_message}</p>
+                              <p className="text-[9px] text-muted-foreground">{Number(t.message_count)} сообщ. · {new Date(t.updated_at).toLocaleDateString("ru-RU")}</p>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Bug Reports */}
+          <div className="bg-card border border-border rounded-2xl overflow-hidden">
+            <button
+              onClick={() => { setShowBugs(v => !v); if (!showBugs && bugs.length === 0) fetchBugs(); }}
+              className="w-full p-4 flex items-center justify-between hover:bg-secondary/50 transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-red-500/10 flex items-center justify-center">
+                  <Bug size={18} className="text-red-400" />
+                </div>
+                <div className="text-left">
+                  <p className="font-semibold text-sm">Репорты багов</p>
+                  <p className="text-xs text-muted-foreground">
+                    {bugs.filter(b => b.status === "new").length > 0
+                      ? `${bugs.filter(b => b.status === "new").length} новых`
+                      : "Сообщения об ошибках"}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                {bugs.filter(b => b.status === "new").length > 0 && (
+                  <span className="w-5 h-5 rounded-full bg-red-500 text-white text-[10px] font-black flex items-center justify-center">
+                    {bugs.filter(b => b.status === "new").length}
+                  </span>
+                )}
+                {showBugs ? <ChevronDown size={16} className="text-muted-foreground" /> : <ChevronRight size={16} className="text-muted-foreground" />}
+              </div>
+            </button>
+
+            {showBugs && (
+              <div className="border-t border-border">
+                <div className="p-2 border-b border-border flex justify-end">
+                  <button onClick={fetchBugs} className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 px-2 py-1 rounded-lg hover:bg-secondary transition-colors">
+                    <RefreshCw size={12} className={bugsLoading ? "animate-spin" : ""} /> Обновить
+                  </button>
+                </div>
+                {bugsLoading ? (
+                  <div className="p-6 flex justify-center"><RefreshCw size={20} className="animate-spin text-muted-foreground" /></div>
+                ) : bugs.length === 0 ? (
+                  <div className="p-6 text-center text-sm text-muted-foreground">Репортов нет</div>
+                ) : (
+                  <div className="divide-y divide-border max-h-[480px] overflow-y-auto">
+                    {bugs.map(bug => (
+                      <div key={bug.id} className="p-3 space-y-2">
+                        <div className="flex items-start gap-2">
+                          <div className="w-7 h-7 rounded-full shrink-0 flex items-center justify-center text-white text-xs font-bold overflow-hidden" style={{ backgroundColor: bug.avatar_color }}>
+                            {bug.avatar_url ? <img src={bug.avatar_url} className="w-full h-full rounded-full object-cover" alt="" /> : bug.display_name[0]?.toUpperCase()}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between gap-1">
+                              <p className="text-xs font-semibold truncate">{bug.title}</p>
+                              <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full border shrink-0 ${
+                                bug.status === 'new' ? 'bg-blue-500/10 text-blue-400 border-blue-500/30' :
+                                bug.status === 'in_progress' ? 'bg-purple-500/10 text-purple-400 border-purple-500/30' :
+                                bug.status === 'resolved' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' :
+                                'bg-muted/50 text-muted-foreground border-border'
+                              }`}>
+                                {bug.status === 'new' ? 'Новый' : bug.status === 'acknowledged' ? 'Принят' : bug.status === 'in_progress' ? 'В работе' : bug.status === 'resolved' ? 'Решён' : 'Закрыт'}
+                              </span>
+                            </div>
+                            <p className="text-[10px] text-muted-foreground">@{bug.username} · #{bug.id} · {new Date(bug.created_at).toLocaleDateString("ru-RU")}</p>
+                          </div>
+                        </div>
+                        <p className="text-xs text-muted-foreground line-clamp-2 pl-9">{bug.description}</p>
+                        {bug.admin_note && (
+                          <div className="pl-9 text-[10px] text-primary italic">Ответ: {bug.admin_note}</div>
+                        )}
+                        {bug.status !== 'resolved' && bug.status !== 'closed' && (
+                          <div className="pl-9 space-y-1.5">
+                            <div className="flex gap-1.5">
+                              {(['acknowledged', 'in_progress', 'resolved'] as const).map(s => (
+                                <button
+                                  key={s}
+                                  onClick={() => setBugStatusEdit(prev => ({ ...prev, [bug.id]: s }))}
+                                  className={`text-[10px] px-2 py-1 rounded-lg border transition-all ${bugStatusEdit[bug.id] === s ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground hover:border-primary/30'}`}
+                                >
+                                  {s === 'acknowledged' ? 'Принят' : s === 'in_progress' ? 'В работе' : 'Решён'}
+                                </button>
+                              ))}
+                            </div>
+                            <div className="flex gap-1.5">
+                              <input
+                                value={bugNote[bug.id] || ""}
+                                onChange={e => setBugNote(prev => ({ ...prev, [bug.id]: e.target.value }))}
+                                placeholder="Ответ пользователю (необязательно)..."
+                                className="flex-1 bg-background border border-border rounded-lg px-2 py-1 text-[10px] focus:outline-none focus:border-primary transition-colors"
+                              />
+                              <button
+                                onClick={() => handleBugUpdate(bug.id)}
+                                disabled={bugActionId === bug.id || (!bugStatusEdit[bug.id] && !bugNote[bug.id])}
+                                className="px-2.5 py-1 rounded-lg bg-primary text-primary-foreground text-[10px] font-bold hover:bg-primary/90 transition-colors disabled:opacity-50"
+                              >
+                                {bugActionId === bug.id ? "..." : "Сохранить"}
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Posts Moderation + Leaderboard */}
