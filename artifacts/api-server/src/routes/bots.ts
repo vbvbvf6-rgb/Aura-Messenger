@@ -90,17 +90,21 @@ router.patch("/bots/:botId", async (req, res) => {
   try {
     const uid = req.currentUserId;
     const botId = Number(req.params.botId);
-    const { name, description } = req.body;
+    const { name, description, avatarUrl } = req.body;
 
     const own = await db.execute(sql`SELECT id FROM bot_tokens WHERE owner_user_id = ${uid} AND bot_user_id = ${botId}`);
     if ((own.rows as any[]).length === 0) return res.status(403).json({ error: "Нет доступа" });
 
-    const updates: string[] = [];
-    if (name && typeof name === "string" && name.trim().length >= 2) updates.push(`display_name = '${name.trim().replace(/'/g, "''")}'`);
-    if (description !== undefined) updates.push(`bio = ${description ? `'${description.trim().replace(/'/g, "''")}'` : "NULL"}`);
-
-    if (updates.length > 0) {
-      await db.execute(sql`UPDATE users SET ${sql.raw(updates.join(", "))} WHERE id = ${botId}`);
+    if (name && typeof name === "string" && name.trim().length >= 2) {
+      await db.execute(sql`UPDATE users SET display_name = ${name.trim()} WHERE id = ${botId}`);
+    }
+    if (description !== undefined) {
+      const bio = description?.trim() || null;
+      await db.execute(sql`UPDATE users SET bio = ${bio} WHERE id = ${botId}`);
+    }
+    if (avatarUrl !== undefined) {
+      const av = avatarUrl || null;
+      await db.execute(sql`UPDATE users SET avatar_url = ${av} WHERE id = ${botId}`);
     }
 
     const rows = await db.execute(sql`SELECT id, username, display_name, bio, avatar_color, avatar_url FROM users WHERE id = ${botId}`);

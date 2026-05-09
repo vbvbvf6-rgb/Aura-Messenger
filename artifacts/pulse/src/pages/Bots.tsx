@@ -1,11 +1,34 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Bot, Plus, Trash2, RefreshCw, Copy, Check, ChevronRight,
   Code2, Webhook, Eye, EyeOff, Pencil, X, Terminal, ExternalLink,
-  ChevronDown, ChevronUp, Zap, MessageSquare, Globe
+  ChevronDown, ChevronUp, Zap, MessageSquare, Globe, Camera, MessageCircle
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useLocation } from "wouter";
+import { useAppContext } from "@/contexts/AppContext";
+
+function compressAvatar(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const size = 200;
+      const canvas = document.createElement("canvas");
+      canvas.width = size; canvas.height = size;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) { reject(new Error("no ctx")); return; }
+      const s = Math.min(img.width, img.height);
+      const sx = (img.width - s) / 2, sy = (img.height - s) / 2;
+      ctx.drawImage(img, sx, sy, s, s, 0, 0, size, size);
+      resolve(canvas.toDataURL("image/jpeg", 0.82));
+    };
+    img.onerror = reject;
+    img.src = url;
+  });
+}
 
 function getUserIdHeader(): Record<string, string> {
   const token = localStorage.getItem("pulse-token");
@@ -214,6 +237,8 @@ class Bot:
 
 export default function Bots() {
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
+  const { setSelectedChatId } = useAppContext() as any;
   const [bots, setBots] = useState<BotRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
@@ -231,6 +256,9 @@ export default function Bots() {
   const [editName, setEditName] = useState("");
   const [editDesc, setEditDesc] = useState("");
   const [expandedExample, setExpandedExample] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState<number | null>(null);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+  const avatarUploadBotRef = useRef<number | null>(null);
 
   const fetchBots = useCallback(async () => {
     try {
@@ -332,11 +360,61 @@ export default function Bots() {
     }
   };
 
+  const handleAvatarFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    const botId = avatarUploadBotRef.current;
+    if (!file || !botId) return;
+    setUploadingAvatar(botId);
+    try {
+      const compressed = await compressAvatar(file);
+      const res = await fetch(`/api/bots/${botId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", ...getUserIdHeader() },
+        body: JSON.stringify({ avatarUrl: compressed }),
+      });
+      if (res.ok) {
+        setBots(prev => prev.map(b => b.bot_user_id === botId ? { ...b, avatar_url: compressed } : b));
+        toast({ title: "Фото обновлено" });
+      }
+    } catch {
+      toast({ title: "Ошибка загрузки фото", variant: "destructive" });
+    }
+    setUploadingAvatar(null);
+    e.target.value = "";
+  };
+
+  const handleStartChat = async (bot: BotRecord) => {
+    try {
+      const res = await fetch("/api/chats/direct", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...getUserIdHeader() },
+        body: JSON.stringify({ userId: bot.bot_user_id }),
+      });
+      if (res.ok) {
+        const chat = await res.json();
+        setLocation("/");
+        setTimeout(() => {
+          if (setSelectedChatId) setSelectedChatId(chat.id);
+          else window.dispatchEvent(new CustomEvent("open-chat", { detail: chat.id }));
+        }, 80);
+      }
+    } catch {
+      toast({ title: "Ошибка открытия чата", variant: "destructive" });
+    }
+  };
+
   const host = window.location.origin;
   const botSelected = selectedBot ? bots.find(b => b.bot_user_id === selectedBot.bot_user_id) || selectedBot : null;
 
   return (
     <div className="min-h-full bg-background">
+      <input
+        ref={avatarInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={handleAvatarFileChange}
+      />
       {/* Header */}
       <div className="sticky top-0 z-20 bg-card/95 backdrop-blur-md border-b border-border px-4 py-3">
         <div className="max-w-2xl mx-auto flex items-center justify-between">
@@ -414,10 +492,22 @@ export default function Bots() {
                         onClick={() => setSelectedBot(prev => prev?.bot_user_id === bot.bot_user_id ? null : bot)}
                       >
                         <div
-                          className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-black text-base shrink-0"
+                          className="relative w-10 h-10 rounded-xl flex items-center justify-center text-white font-black text-base shrink-0 overflow-hidden group/av cursor-pointer"
                           style={{ background: bot.avatar_color }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            avatarUploadBotRef.current = bot.bot_user_id;
+                            avatarInputRef.current?.click();
+                          }}
                         >
-                          {bot.display_name[0]?.toUpperCase()}
+                          {bot.avatar_url
+                            ? <img src={bot.avatar_url} alt="" className="w-full h-full object-cover" />
+                            : bot.display_name[0]?.toUpperCase()}
+                          <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover/av:opacity-100 transition-opacity rounded-xl">
+                            {uploadingAvatar === bot.bot_user_id
+                              ? <RefreshCw size={12} className="text-white animate-spin" />
+                              : <Camera size={12} className="text-white" />}
+                          </div>
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-1.5">
@@ -494,7 +584,13 @@ export default function Bots() {
                               </div>
 
                               {/* Actions */}
-                              <div className="flex gap-2 pt-1">
+                              <div className="flex flex-wrap gap-2 pt-1">
+                                <button
+                                  onClick={() => handleStartChat(bot)}
+                                  className="flex items-center gap-1.5 px-3 py-2 bg-primary/10 hover:bg-primary/15 border border-primary/20 rounded-xl text-xs font-medium text-primary transition-colors"
+                                >
+                                  <MessageCircle size={12} /> Написать
+                                </button>
                                 <button
                                   onClick={() => { setEditBot(bot); setEditName(bot.display_name); setEditDesc(bot.bio || ""); }}
                                   className="flex items-center gap-1.5 px-3 py-2 bg-secondary hover:bg-secondary/70 rounded-xl text-xs font-medium text-foreground transition-colors"

@@ -1,6 +1,8 @@
 import React, { useRef, useEffect, useState } from "react";
 import { useGetChatById, useGetMessages, getGetMessagesQueryKey, useInitiateCall, useMarkChatAsRead, useUpdateChat, getGetChatsQueryKey, Message } from "@workspace/api-client-react";
-import { Phone, Video, MoreVertical, ArrowLeft, Search, BellOff, Bell, Pin, PinOff, User, Trash2, X, Timer, Flame, ChevronRight } from "lucide-react";
+import { Phone, Video, MoreVertical, ArrowLeft, Search, BellOff, Bell, Pin, PinOff, User, Trash2, X, Timer, Flame, ChevronRight, Settings } from "lucide-react";
+import { AnimatePresence } from "framer-motion";
+import { ChatInfoPanel } from "./ChatInfoPanel";
 import { useAppContext } from "@/contexts/AppContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -76,6 +78,7 @@ export function ChatWindow({ chatId }: ChatWindowProps) {
   const [autoDeleteLoading, setAutoDeleteLoading] = useState(false);
   const [replyTo, setReplyTo] = useState<Message | null>(null);
   const [editMessage, setEditMessage] = useState<Message | null>(null);
+  const [showInfoPanel, setShowInfoPanel] = useState(false);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const lastMessageCountRef = useRef<number>(0);
   const sseRef = useRef<EventSource | null>(null);
@@ -292,9 +295,8 @@ export function ChatWindow({ chatId }: ChatWindowProps) {
           </button>
 
           <button
-            onClick={openProfile}
-            disabled={chat.type !== "direct"}
-            className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold overflow-hidden shrink-0 ${chat.type === "direct" ? "cursor-pointer hover:opacity-85 transition-opacity" : "cursor-default"}`}
+            onClick={chat.type === "direct" ? openProfile : () => setShowInfoPanel(v => !v)}
+            className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold overflow-hidden shrink-0 cursor-pointer hover:opacity-85 transition-opacity`}
             style={{ backgroundColor: avatarColor }}
           >
             {(chat.type === "direct" ? (chat.otherUser as any)?.avatarUrl : chat.avatarUrl) ? (
@@ -305,9 +307,8 @@ export function ChatWindow({ chatId }: ChatWindowProps) {
           </button>
 
           <button
-            onClick={openProfile}
-            disabled={chat.type !== "direct"}
-            className={`text-left min-w-0 ${chat.type === "direct" ? "cursor-pointer hover:opacity-80 transition-opacity" : "cursor-default"}`}
+            onClick={chat.type === "direct" ? openProfile : () => setShowInfoPanel(v => !v)}
+            className={`text-left min-w-0 cursor-pointer hover:opacity-80 transition-opacity`}
           >
             <div className="flex items-center gap-1.5">
               <h2 className="font-semibold text-sm leading-tight truncate">{displayName}</h2>
@@ -399,21 +400,27 @@ export function ChatWindow({ chatId }: ChatWindowProps) {
                 <span className="text-xs text-muted-foreground ml-2">{autoDeleteLabel}</span>
               </DropdownMenuItem>
               {(chat.type === "group" || chat.type === "channel") && (
-                <DropdownMenuItem
-                  className="text-orange-500 focus:text-orange-500"
-                  onClick={async () => {
-                    try {
-                      await fetch(`/api/chats/${chatId}/leave`, { method: "POST", headers: getCWAuthHeaders() });
-                      queryClient.invalidateQueries({ queryKey: getGetChatsQueryKey() });
-                      setSelectedChatId(null);
-                    } catch {
-                      toast({ title: "Ошибка", description: "Не удалось покинуть чат", variant: "destructive" });
-                    }
-                  }}
-                >
-                  <ArrowLeft size={16} className="mr-2" />
-                  Покинуть чат
-                </DropdownMenuItem>
+                <>
+                  <DropdownMenuItem onClick={() => setShowInfoPanel(v => !v)}>
+                    <Settings size={16} className="mr-2 text-primary" />
+                    {chat.type === "channel" ? "Настройки канала" : "Настройки группы"}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    className="text-orange-500 focus:text-orange-500"
+                    onClick={async () => {
+                      try {
+                        await fetch(`/api/chats/${chatId}/leave`, { method: "POST", headers: getCWAuthHeaders() });
+                        queryClient.invalidateQueries({ queryKey: getGetChatsQueryKey() });
+                        setSelectedChatId(null);
+                      } catch {
+                        toast({ title: "Ошибка", description: "Не удалось покинуть чат", variant: "destructive" });
+                      }
+                    }}
+                  >
+                    <ArrowLeft size={16} className="mr-2" />
+                    Покинуть чат
+                  </DropdownMenuItem>
+                </>
               )}
               <DropdownMenuSeparator />
               <DropdownMenuItem
@@ -583,6 +590,20 @@ export function ChatWindow({ chatId }: ChatWindowProps) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Group/Channel Info Panel */}
+      <AnimatePresence>
+        {showInfoPanel && (chat.type === "group" || chat.type === "channel") && (
+          <ChatInfoPanel
+            chatId={chatId}
+            chatType={chat.type as "group" | "channel"}
+            displayName={displayName}
+            avatarUrl={chat.avatarUrl}
+            avatarColor={avatarColor}
+            onClose={() => setShowInfoPanel(false)}
+          />
+        )}
+      </AnimatePresence>
 
       {/* Delete Chat Dialog */}
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
