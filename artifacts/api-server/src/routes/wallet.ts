@@ -102,37 +102,20 @@ router.post("/wallet/daily-bonus", async (req, res) => {
   }
 });
 
-router.post("/wallet/topup-request", async (req, res) => {
+router.post("/wallet/buy", async (req, res) => {
   try {
     const uid = req.currentUserId;
     const { amount, packageLabel, priceLabel } = req.body;
-    if (!amount || !packageLabel || !priceLabel) {
+    if (!amount || typeof amount !== "number" || amount <= 0 || !packageLabel || !priceLabel) {
       return res.status(400).json({ error: "Некорректные данные" });
     }
-    const existing = await db.execute(
-      sql`SELECT id FROM topup_requests WHERE user_id = ${uid} AND status = 'pending' LIMIT 1`
-    );
-    if ((existing.rows as any[]).length > 0) {
-      return res.status(409).json({ error: "У вас уже есть ожидающая заявка. Дождитесь её обработки." });
-    }
-    const result = await db.execute(
-      sql`INSERT INTO topup_requests (user_id, amount, package_label, price_label) VALUES (${uid}, ${amount}, ${packageLabel}, ${priceLabel}) RETURNING id`
-    );
-    const id = (result.rows[0] as any).id;
-    res.json({ success: true, requestId: id });
-  } catch (err) {
-    req.log.error(err);
-    res.status(500).json({ error: "Ошибка сервера" });
-  }
-});
-
-router.get("/wallet/topup-request/status", async (req, res) => {
-  try {
-    const uid = req.currentUserId;
-    const rows = await db.execute(
-      sql`SELECT id, amount, package_label, price_label, status, created_at FROM topup_requests WHERE user_id = ${uid} ORDER BY created_at DESC LIMIT 5`
-    );
-    res.json(rows.rows);
+    await db.execute(sql`UPDATE users SET balance = balance + ${amount} WHERE id = ${uid}`);
+    const rows = await db.execute(sql`SELECT balance FROM users WHERE id = ${uid}`);
+    const balance = Number((rows.rows[0] as any)?.balance ?? 0);
+    await db.execute(
+      sql`INSERT INTO topup_requests (user_id, amount, package_label, price_label, status) VALUES (${uid}, ${amount}, ${packageLabel}, ${priceLabel}, 'completed')`
+    ).catch(() => {});
+    res.json({ success: true, balance, amount });
   } catch (err) {
     req.log.error(err);
     res.status(500).json({ error: "Ошибка сервера" });

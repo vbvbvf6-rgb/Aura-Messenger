@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Zap, Copy, Check, Trophy, Star, MessageSquare, Phone, Gift,
   History, Shield, ChevronRight, ArrowUpRight, ArrowDownLeft,
-  AlertTriangle, CheckCircle2, TrendingUp, X, Send, ShoppingCart, Clock
+  AlertTriangle, CheckCircle2, TrendingUp, X, Send, ShoppingCart
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useGetMe } from "@workspace/api-client-react";
@@ -114,7 +114,7 @@ export default function Wallet() {
   const [isSending, setIsSending] = useState(false);
   const [showBuyModal, setShowBuyModal] = useState(false);
   const [buyingPackage, setBuyingPackage] = useState<string | null>(null);
-  const [pendingRequest, setPendingRequest] = useState<{ packageLabel: string; amount: number } | null>(null);
+  const [boughtPackage, setBoughtPackage] = useState<string | null>(null);
 
   const uid = Number(localStorage.getItem("pulse-user-id") || "0");
   const isAdmin = (me as any)?.isAdmin === true;
@@ -228,49 +228,35 @@ export default function Wallet() {
     setBonusLoading(false);
   };
 
-  const fetchPendingRequest = useCallback(async () => {
-    try {
-      const res = await fetch("/api/wallet/topup-request/status", { headers: getUserIdHeader() });
-      if (res.ok) {
-        const data = await res.json();
-        const pending = data.find((r: any) => r.status === "pending");
-        if (pending) setPendingRequest({ packageLabel: pending.package_label, amount: pending.amount });
-        else setPendingRequest(null);
-      }
-    } catch {}
-  }, []);
-
-  useEffect(() => { fetchPendingRequest(); }, []);
-
   const SPARK_PACKAGES = [
-    { id: "starter",  label: "Стартер",   spark: 100,   price: "59 ₽",   color: "from-slate-500 to-slate-600",  popular: false },
-    { id: "basic",    label: "Базовый",   spark: 500,   price: "249 ₽",  color: "from-blue-500 to-cyan-500",    popular: false },
-    { id: "popular",  label: "Популярный",spark: 1200,  price: "499 ₽",  color: "from-violet-500 to-purple-600",popular: true  },
-    { id: "pro",      label: "Про",       spark: 3000,  price: "999 ₽",  color: "from-amber-500 to-orange-500", popular: false },
-    { id: "mega",     label: "Мега",      spark: 8000,  price: "2 490 ₽",color: "from-rose-500 to-pink-600",    popular: false },
-    { id: "ultimate", label: "Макс",      spark: 25000, price: "5 990 ₽",color: "from-yellow-400 to-amber-500", popular: false },
+    { id: "starter",  label: "Стартер",    spark: 100,   price: "59 ₽",    color: "from-slate-500 to-slate-600",  popular: false },
+    { id: "basic",    label: "Базовый",    spark: 500,   price: "249 ₽",   color: "from-blue-500 to-cyan-500",    popular: false },
+    { id: "popular",  label: "Популярный", spark: 1200,  price: "499 ₽",   color: "from-violet-500 to-purple-600",popular: true  },
+    { id: "pro",      label: "Про",        spark: 3000,  price: "999 ₽",   color: "from-amber-500 to-orange-500", popular: false },
+    { id: "mega",     label: "Мега",       spark: 8000,  price: "2 490 ₽", color: "from-rose-500 to-pink-600",    popular: false },
+    { id: "ultimate", label: "Макс",       spark: 25000, price: "5 990 ₽", color: "from-yellow-400 to-amber-500", popular: false },
   ];
 
   const handleBuyPackage = async (pkg: typeof SPARK_PACKAGES[number]) => {
-    if (pendingRequest) {
-      toast({ title: "Есть ожидающая заявка", description: "Дождитесь обработки текущей заявки", variant: "destructive" });
-      return;
-    }
     setBuyingPackage(pkg.id);
     try {
-      const res = await fetch("/api/wallet/topup-request", {
+      const res = await fetch("/api/wallet/buy", {
         method: "POST",
         headers: { "Content-Type": "application/json", ...getUserIdHeader() },
         body: JSON.stringify({ amount: pkg.spark, packageLabel: `${pkg.label} (${pkg.spark} ⚡)`, priceLabel: pkg.price }),
       });
       const data = await res.json();
       if (res.ok && data.success) {
-        setPendingRequest({ packageLabel: `${pkg.label} (${pkg.spark} ⚡)`, amount: pkg.spark });
-        toast({ title: "Заявка отправлена!", description: "Администратор пополнит баланс в ближайшее время" });
-        setShowBuyModal(false);
+        setBalance(data.balance);
+        setBoughtPackage(pkg.label);
+        const newTx: TxEntry = { id: `buy-${Date.now()}`, type: "earn", amount: pkg.spark, label: `Покупка: ${pkg.label}`, time: new Date() };
+        const updated = [newTx, ...txHistory].slice(0, 50);
+        setTxHistory(updated);
+        localStorage.setItem(txKey, JSON.stringify(updated));
+        toast({ title: `+${pkg.spark.toLocaleString("ru")} ⚡ Spark!`, description: `Пакет «${pkg.label}» успешно зачислен` });
+        setTimeout(() => { setShowBuyModal(false); setBoughtPackage(null); }, 1800);
       } else {
-        toast({ title: "Ошибка", description: data.error || "Попробуйте позже", variant: "destructive" });
-        if (res.status === 409) fetchPendingRequest();
+        toast({ title: "Ошибка покупки", description: data.error || "Попробуйте позже", variant: "destructive" });
       }
     } catch {
       toast({ title: "Ошибка сети", variant: "destructive" });
@@ -425,12 +411,6 @@ export default function Wallet() {
                 <Zap size={15} fill="white" /> {bonusClaimed ? "Завтра" : "Бонус"}
               </button>
             </div>
-            {pendingRequest && (
-              <div className="relative z-10 mt-2 flex items-center gap-2 bg-amber-500/10 border border-amber-500/25 rounded-xl px-3 py-2 text-xs text-amber-300">
-                <Clock size={12} className="shrink-0" />
-                <span>Заявка на пополнение <b>{pendingRequest.packageLabel}</b> обрабатывается...</span>
-              </div>
-            )}
           </motion.div>
 
           {/* ── Admin link ── */}
@@ -720,49 +700,62 @@ export default function Wallet() {
                 </button>
               </div>
 
-              {pendingRequest ? (
-                <div className="flex flex-col items-center gap-3 py-6">
-                  <div className="w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center">
-                    <Clock size={28} className="text-amber-400" />
-                  </div>
-                  <div className="text-center">
-                    <p className="font-bold text-foreground">Заявка обрабатывается</p>
-                    <p className="text-sm text-muted-foreground mt-1">{pendingRequest.packageLabel}</p>
-                    <p className="text-xs text-muted-foreground mt-2">Администратор зачислит Spark в ближайшее время</p>
-                  </div>
-                </div>
-              ) : (
-                <div className="grid grid-cols-2 gap-2.5">
-                  {SPARK_PACKAGES.map((pkg) => (
-                    <motion.button
-                      key={pkg.id}
-                      whileHover={{ scale: 1.03 }}
-                      whileTap={{ scale: 0.97 }}
-                      onClick={() => handleBuyPackage(pkg)}
-                      disabled={buyingPackage !== null}
-                      className="relative rounded-2xl p-3.5 text-left border border-white/5 overflow-hidden disabled:opacity-60 transition-all"
-                      style={{ background: "hsl(222,47%,11%)" }}
+              <AnimatePresence mode="wait">
+                {boughtPackage ? (
+                  <motion.div
+                    key="success"
+                    initial={{ scale: 0.85, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    className="flex flex-col items-center gap-3 py-6"
+                  >
+                    <motion.div
+                      initial={{ scale: 0 }}
+                      animate={{ scale: [0, 1.2, 1] }}
+                      transition={{ duration: 0.5 }}
+                      className="w-16 h-16 rounded-2xl bg-green-500/15 border border-green-500/30 flex items-center justify-center"
                     >
-                      {pkg.popular && (
-                        <span className="absolute top-2 right-2 text-[9px] font-black uppercase tracking-wider bg-violet-500 text-white px-1.5 py-0.5 rounded-full">
-                          ХИТ
-                        </span>
-                      )}
-                      <div className={`w-8 h-8 rounded-xl bg-gradient-to-br ${pkg.color} flex items-center justify-center mb-2.5`}>
-                        <Zap size={15} className="text-white fill-white" />
-                      </div>
-                      <p className="font-black text-base text-foreground leading-none mb-0.5">{pkg.spark.toLocaleString("ru")}</p>
-                      <p className="text-[10px] text-muted-foreground mb-2">⚡ Spark</p>
-                      <div className={`w-full py-1.5 rounded-lg bg-gradient-to-r ${pkg.color} text-white text-xs font-bold text-center`}>
-                        {buyingPackage === pkg.id ? "..." : pkg.price}
-                      </div>
-                    </motion.button>
-                  ))}
-                </div>
-              )}
+                      <Check size={28} className="text-green-400" />
+                    </motion.div>
+                    <div className="text-center">
+                      <p className="font-bold text-foreground">Spark зачислен!</p>
+                      <p className="text-sm text-muted-foreground mt-1">Пакет «{boughtPackage}» успешно куплен</p>
+                    </div>
+                  </motion.div>
+                ) : (
+                  <motion.div key="packages" className="grid grid-cols-2 gap-2.5">
+                    {SPARK_PACKAGES.map((pkg) => (
+                      <motion.button
+                        key={pkg.id}
+                        whileHover={{ scale: 1.03 }}
+                        whileTap={{ scale: 0.97 }}
+                        onClick={() => handleBuyPackage(pkg)}
+                        disabled={buyingPackage !== null}
+                        className="relative rounded-2xl p-3.5 text-left border border-white/5 overflow-hidden disabled:opacity-60 transition-all"
+                        style={{ background: "hsl(222,47%,11%)" }}
+                      >
+                        {pkg.popular && (
+                          <span className="absolute top-2 right-2 text-[9px] font-black uppercase tracking-wider bg-violet-500 text-white px-1.5 py-0.5 rounded-full">
+                            ХИТ
+                          </span>
+                        )}
+                        <div className={`w-8 h-8 rounded-xl bg-gradient-to-br ${pkg.color} flex items-center justify-center mb-2.5`}>
+                          {buyingPackage === pkg.id
+                            ? <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 0.7, ease: "linear" }}><Zap size={15} className="text-white" /></motion.div>
+                            : <Zap size={15} className="text-white fill-white" />}
+                        </div>
+                        <p className="font-black text-base text-foreground leading-none mb-0.5">{pkg.spark.toLocaleString("ru")}</p>
+                        <p className="text-[10px] text-muted-foreground mb-2">⚡ Spark</p>
+                        <div className={`w-full py-1.5 rounded-lg bg-gradient-to-r ${pkg.color} text-white text-xs font-bold text-center`}>
+                          {buyingPackage === pkg.id ? "Покупка..." : pkg.price}
+                        </div>
+                      </motion.button>
+                    ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
               <p className="text-[10px] text-muted-foreground text-center mt-3">
-                После выбора пакета заявка поступает администратору. Spark зачисляется вручную.
+                Spark зачисляется мгновенно после нажатия кнопки
               </p>
             </motion.div>
           </motion.div>
