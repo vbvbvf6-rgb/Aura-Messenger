@@ -98,7 +98,15 @@ export function ChatWindow({ chatId }: ChatWindowProps) {
 
     es.addEventListener("new-message", () => {
       queryClient.refetchQueries({ queryKey: getGetMessagesQueryKey({ chatId }) });
-      queryClient.invalidateQueries({ queryKey: getGetChatsQueryKey() });
+      markAsRead.mutate({ chatId }, {
+        onSuccess: () => {
+          queryClient.setQueriesData({ queryKey: getGetChatsQueryKey() }, (old: any) => {
+            if (!Array.isArray(old)) return old;
+            return old.map((c: any) => c.id === chatId ? { ...c, unreadCount: 0 } : c);
+          });
+          queryClient.invalidateQueries({ queryKey: getGetChatsQueryKey() });
+        }
+      });
     });
 
     es.addEventListener("typing", (e: MessageEvent) => {
@@ -128,6 +136,10 @@ export function ChatWindow({ chatId }: ChatWindowProps) {
 
   useEffect(() => {
     if (chatId) {
+      queryClient.setQueriesData({ queryKey: getGetChatsQueryKey() }, (old: any) => {
+        if (!Array.isArray(old)) return old;
+        return old.map((c: any) => c.id === chatId ? { ...c, unreadCount: 0 } : c);
+      });
       markAsRead.mutate({ chatId }, {
         onSuccess: () => {
           queryClient.invalidateQueries({ queryKey: getGetChatsQueryKey() });
