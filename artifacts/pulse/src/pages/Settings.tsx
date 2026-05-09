@@ -452,6 +452,7 @@ export default function Settings() {
   const [reduceAnimations, setReduceAnimations] = useState(() => lsb("pulse-reduce-animations", false));
   const [fontSize, setFontSize] = useState(() => ls("pulse-font-size", "medium"));
   const [language, setLanguage] = useState(() => ls("pulse-language", "ru"));
+  const [pageZoom, setPageZoom] = useState(() => ls("pulse-page-zoom", "100"));
 
   // Notifications
   const [notifyMessages, setNotifyMessages] = useState(() => lsb("pulse-notify-messages", true));
@@ -475,6 +476,12 @@ export default function Settings() {
     const v = localStorage.getItem("pulse-global-auto-delete");
     return v ? Number(v) : null;
   });
+
+  // Apply page zoom on mount
+  useEffect(() => {
+    const saved = localStorage.getItem("pulse-page-zoom") || "100";
+    (document.documentElement as any).style.zoom = `${saved}%`;
+  }, []);
 
   // Prime theme
   const [primeTheme, setPrimeTheme] = useState(() => localStorage.getItem("pulse-prime-theme") || "cyan");
@@ -1048,6 +1055,33 @@ export default function Settings() {
                 >
                   {opt.label}
                   {fontSize === opt.value && <CheckCircle size={12} className="text-primary" />}
+                </button>
+              ))}
+            </div>
+          </div>
+          {/* Page zoom */}
+          <div className="p-4 border-t border-border">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="p-2 bg-cyan-500/10 text-cyan-500 rounded-xl"><Monitor size={18} /></div>
+              <div>
+                <p className="text-sm font-medium">{lang === "ru" ? "Масштаб страницы" : "Page zoom"}</p>
+                <p className="text-xs text-muted-foreground">{lang === "ru" ? "Изменить размер всего интерфейса" : "Scale the entire interface"}</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-5 gap-2">
+              {(["80", "90", "100", "110", "120"] as const).map(zoom => (
+                <button
+                  key={zoom}
+                  onClick={() => {
+                    setPageZoom(zoom);
+                    localStorage.setItem("pulse-page-zoom", zoom);
+                    (document.documentElement as any).style.zoom = `${zoom}%`;
+                    toast({ title: t("common.saved"), description: `${lang === "ru" ? "Масштаб" : "Zoom"}: ${zoom}%` });
+                  }}
+                  className={`py-2 rounded-xl border text-xs font-medium transition-all flex flex-col items-center gap-0.5 ${pageZoom === zoom ? "border-primary bg-primary/8 text-primary" : "border-border hover:border-primary/30"}`}
+                >
+                  {zoom}%
+                  {pageZoom === zoom && <CheckCircle size={10} className="text-primary" />}
                 </button>
               ))}
             </div>

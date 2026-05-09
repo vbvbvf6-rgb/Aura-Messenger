@@ -155,7 +155,21 @@ export function AppProvider({ children, onLogout, onSwitchAccount, onRemoveAccou
 
   const startCall = useCallback(async (calleeId: number, chatId: number | null, type: "audio" | "video") => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: type === "video" });
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error("MEDIA_NOT_SUPPORTED");
+      }
+      let stream: MediaStream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: type === "video" });
+      } catch (mediaErr: any) {
+        if (type === "video" && (mediaErr.name === "NotFoundError" || mediaErr.name === "DevicesNotFoundError")) {
+          stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+        } else if (mediaErr.name === "NotAllowedError" || mediaErr.name === "PermissionDeniedError") {
+          throw new Error("MEDIA_PERMISSION_DENIED");
+        } else {
+          throw new Error("MEDIA_NOT_FOUND");
+        }
+      }
       localStreamRef.current = stream;
       setLocalStream(stream);
 

@@ -216,8 +216,17 @@ export function ChatWindow({ chatId }: ChatWindowProps) {
     if (!chat?.otherUser?.id) return;
     try {
       await startCall(chat.otherUser.id, chatId, type);
-    } catch {
-      toast({ title: "Не удалось начать звонок", description: "Проверьте доступ к микрофону/камере", variant: "destructive" });
+    } catch (err: any) {
+      const msg = err?.message || "";
+      if (msg === "MEDIA_PERMISSION_DENIED") {
+        toast({ title: "Доступ запрещён", description: "Разрешите доступ к микрофону/камере в настройках браузера", variant: "destructive" });
+      } else if (msg === "MEDIA_NOT_FOUND") {
+        toast({ title: "Устройство не найдено", description: "Микрофон или камера не подключены", variant: "destructive" });
+      } else if (msg === "MEDIA_NOT_SUPPORTED") {
+        toast({ title: "Не поддерживается", description: "Ваш браузер не поддерживает звонки. Попробуйте Chrome или Firefox.", variant: "destructive" });
+      } else {
+        toast({ title: "Не удалось начать звонок", description: "Проверьте доступ к микрофону/камере", variant: "destructive" });
+      }
     }
   };
 
