@@ -278,6 +278,7 @@ export default function Feed() {
   const [showCreatePost, setShowCreatePost] = useState(false);
   const [newPostText, setNewPostText] = useState("");
   const [newPostImage, setNewPostImage] = useState<string | null>(null);
+  const [imageLoading, setImageLoading] = useState(false);
   const { data: posts, isLoading } = useGetPosts();
   const { data: me } = useGetMe();
   const createPost = useCreatePost();
@@ -289,20 +290,39 @@ export default function Feed() {
     const file = e.target.files?.[0];
     if (!file) return;
     e.target.value = "";
-    const img = new window.Image();
-    const objectUrl = URL.createObjectURL(file);
-    img.onload = () => {
-      URL.revokeObjectURL(objectUrl);
-      const MAX = 1200;
-      const scale = Math.min(1, MAX / Math.max(img.width, img.height));
-      const canvas = document.createElement("canvas");
-      canvas.width = Math.round(img.width * scale);
-      canvas.height = Math.round(img.height * scale);
-      const ctx = canvas.getContext("2d")!;
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-      setNewPostImage(canvas.toDataURL("image/jpeg", 0.8));
+    setImageLoading(true);
+
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const dataUrl = ev.target?.result as string;
+      if (!dataUrl) { setImageLoading(false); return; }
+
+      const img = new window.Image();
+      img.onload = () => {
+        try {
+          const MAX = 1200;
+          const w = img.naturalWidth || img.width;
+          const h = img.naturalHeight || img.height;
+          if (!w || !h) { setNewPostImage(dataUrl); setImageLoading(false); return; }
+          const scale = Math.min(1, MAX / Math.max(w, h));
+          const canvas = document.createElement("canvas");
+          canvas.width = Math.round(w * scale);
+          canvas.height = Math.round(h * scale);
+          const ctx = canvas.getContext("2d");
+          if (!ctx) { setNewPostImage(dataUrl); setImageLoading(false); return; }
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          setNewPostImage(canvas.toDataURL("image/jpeg", 0.82));
+        } catch {
+          setNewPostImage(dataUrl);
+        } finally {
+          setImageLoading(false);
+        }
+      };
+      img.onerror = () => { setNewPostImage(dataUrl); setImageLoading(false); };
+      img.src = dataUrl;
     };
-    img.src = objectUrl;
+    reader.onerror = () => setImageLoading(false);
+    reader.readAsDataURL(file);
   };
 
   const handleCreatePost = async (e: React.FormEvent) => {
@@ -382,7 +402,7 @@ export default function Feed() {
                 <form onSubmit={handleCreatePost} className="p-4 space-y-3">
                   <div className="flex items-center justify-between mb-1">
                     <h3 className="font-semibold">Создать пост</h3>
-                    <button type="button" onClick={() => { setShowCreatePost(false); setNewPostImage(null); }} className="text-muted-foreground hover:text-foreground">
+                    <button type="button" onClick={() => { setShowCreatePost(false); setNewPostImage(null); setImageLoading(false); }} className="text-muted-foreground hover:text-foreground">
                       <X size={18} />
                     </button>
                   </div>
@@ -394,7 +414,13 @@ export default function Feed() {
                     className="w-full bg-background border border-border rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-primary/50 transition-colors resize-none"
                     autoFocus
                   />
-                  {newPostImage && (
+                  {imageLoading && (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground py-1">
+                      <div className="w-4 h-4 border-2 border-primary/40 border-t-primary rounded-full animate-spin" />
+                      Загрузка фото...
+                    </div>
+                  )}
+                  {newPostImage && !imageLoading && (
                     <div className="relative inline-block">
                       <img src={newPostImage} alt="preview" className="max-h-40 rounded-xl object-contain border border-border" />
                       <button
@@ -423,10 +449,10 @@ export default function Feed() {
                     </button>
                     <button
                       type="submit"
-                      disabled={!newPostText.trim() && !newPostImage}
+                      disabled={imageLoading || (!newPostText.trim() && !newPostImage)}
                       className="px-5 py-2 bg-primary text-primary-foreground rounded-xl text-sm font-medium disabled:opacity-50 hover:bg-primary/90 transition-colors"
                     >
-                      Опубликовать
+                      {imageLoading ? "Обработка..." : "Опубликовать"}
                     </button>
                   </div>
                 </form>
