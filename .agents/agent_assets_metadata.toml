@@ -1,0 +1,121 @@
+uploads = []
+
+[[generated]]
+id = "nbX4JVlf_6yZUZtAwrV9D"
+uri = "file://artifacts/pulse/public/gifts/rose-in-glass.png"
+type = "image"
+title = "rose in glass dome"
+
+[[generated]]
+id = "XsYTfwUTDnsULmKl7mIG6"
+uri = "file://artifacts/pulse/public/gifts/gaming-console.png"
+type = "image"
+title = "gaming console with bow"
+
+[[generated]]
+id = "yeJhbEjzb9B0UWss9RPSO"
+uri = "file://artifacts/pulse/public/gifts/star-42.png"
+type = "image"
+title = "shining star 42"
+
+[[generated]]
+id = "23Ob4PC7Vt_FzGQAKit_O"
+uri = "file://artifacts/pulse/public/gifts/teddy-bear.png"
+type = "image"
+title = "teddy bear with heart"
+
+[[generated]]
+id = "VvMWGVTfULOLv9JyIWRHc"
+uri = "file://artifacts/pulse/public/gifts/birthday-cake.png"
+type = "image"
+title = "birthday cake with candles"
+
+[[generated]]
+id = "ayWfvHrJ94XoepWru1eqb"
+uri = "file://artifacts/pulse/public/gifts/confetti-box.png"
+type = "image"
+title = "confetti gift box"
+
+[[generated]]
+id = "ET4rsjRbYnXu0XET_Oi_n"
+uri = "file://artifacts/pulse/public/gifts/gold-coin.png"
+type = "image"
+title = "golden coin sparkle"
+
+[[generated]]
+id = "iRNERvIiZ9jsUkxWd991d"
+uri = "file://artifacts/pulse/public/gifts/magic-crystal.png"
+type = "image"
+title = "magic crystal ball"
+
+[[generated]]
+id = "tkAblFjTj4cB8C6clKiWR"
+uri = "file://artifacts/pulse/public/gifts/retro-phone.png"
+type = "image"
+title = "retro rotary phone"
+
+[[generated]]
+id = "37_eLrScYidDewcq_4S3g"
+uri = "file://artifacts/pulse/public/gifts/diamond-heart.png"
+type = "image"
+title = "diamond heart gem"
+
+[[outputs]]
+id = "lhkcHx0fkaD2JKBZ0j9yt"
+uri = "file://artifacts/pulse/public/gifts/rose-in-glass.png"
+type = "image"
+title = "Роза в стеклянной колбе"
+
+[[outputs]]
+id = "CXJT07v78f8P9BY7XgCfA"
+uri = "file://artifacts/pulse/public/gifts/gaming-console.png"
+type = "image"
+title = "Игровая приставка с бантом"
+
+[[outputs]]
+id = "fzX5und7WlHFOxyHFjsmM"
+uri = "file://artifacts/pulse/public/gifts/star-42.png"
+type = "image"
+title = "Сияющая звезда #42"
+
+[[outputs]]
+id = "Ox-RgYZDnNBrX9jdYDQ6-"
+uri = "file://artifacts/pulse/public/gifts/teddy-bear.png"
+type = "image"
+title = "Плюшевый мишка с сердечком"
+
+[[outputs]]
+id = "iCFVyeOdC3XwpTBAfrLOv"
+uri = "file://artifacts/pulse/public/gifts/birthday-cake.png"
+type = "image"
+title = "Торт со свечами"
+
+[[outputs]]
+id = "g1TiP6Hua33UrjRZL9HTz"
+uri = "file://artifacts/pulse/public/gifts/confetti-box.png"
+type = "image"
+title = "Коробка с конфетти"
+
+[[outputs]]
+id = "avSKQ7rfivSEeOt8Iv7Kx"
+uri = "file://artifacts/pulse/public/gifts/gold-coin.png"
+type = "image"
+title = "Золотая монета"
+
+[[outputs]]
+id = "9YPKHFD4S2N3VMN9_TKtG"
+uri = "file://artifacts/pulse/public/gifts/magic-crystal.png"
+type = "image"
+title = "Магический кристалл"
+
+[[outputs]]
+id = "uweczz_YPHBLQI3rLqEXc"
+uri = "file://artifacts/pulse/public/gifts/retro-phone.png"
+type = "image"
+title = "Ретро-телефон"
+
+[[outputs]]
+id = "6oa7aQbxJiOR2wVKaxNfY"
+uri = "file://artifacts/pulse/public/gifts/diamond-heart.png"
+type = "image"
+title = "Алмазное сердце"
