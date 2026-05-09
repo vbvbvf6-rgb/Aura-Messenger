@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -11,6 +11,7 @@ import { getSavedAccounts, saveAccount, removeAccount, SavedAccount } from "@/li
 import { ScreenLock } from "@/components/ScreenLock";
 import { motion } from "framer-motion";
 import { Clock, LogOut, ShieldCheck } from "lucide-react";
+import { useNotifications } from "@/hooks/useNotifications";
 
 import Home from "@/pages/Home";
 import Calls from "@/pages/Calls";
@@ -118,6 +119,43 @@ function MainApp({ onLogout, onSwitchAccount, onRemoveAccount, onOpenAddAccount 
   return <MainAppInner onLogout={onLogout} onSwitchAccount={onSwitchAccount} onRemoveAccount={onRemoveAccount} onOpenAddAccount={onOpenAddAccount} />;
 }
 
+function GlobalNotificationListener() {
+  const { notify, requestPermission } = useNotifications();
+  const sseRef = useRef<EventSource | null>(null);
+
+  useEffect(() => {
+    // Request permission on first mount
+    if (typeof Notification !== "undefined" && Notification.permission === "default") {
+      requestPermission();
+    }
+
+    const uid = localStorage.getItem("pulse-user-id");
+    if (!uid) return;
+    const token = localStorage.getItem("pulse-token");
+    const es = new EventSource(`/api/users/me/events${token ? `?token=${token}` : `?_uid=${uid}`}`);
+    sseRef.current = es;
+
+    es.addEventListener("new-message", (e: MessageEvent) => {
+      try {
+        const data = JSON.parse(e.data) as { chatId: number; senderName: string; body: string; messageId: number };
+        notify(data.senderName, {
+          body: data.body,
+          url: "/",
+          tag: `chat-${data.chatId}`,
+          type: "message",
+        });
+      } catch {}
+    });
+
+    return () => {
+      es.close();
+      sseRef.current = null;
+    };
+  }, []);
+
+  return null;
+}
+
 function MainAppInner({ onLogout, onSwitchAccount, onRemoveAccount, onOpenAddAccount }: MainAppProps) {
   useEffect(() => {
     const checkScheduled = async () => {
@@ -169,6 +207,7 @@ function MainAppInner({ onLogout, onSwitchAccount, onRemoveAccount, onOpenAddAcc
       onOpenAddAccount={onOpenAddAccount}
     >
       <TooltipProvider>
+        <GlobalNotificationListener />
         <ScreenLock>
           <AppLayout>
             <Switch>

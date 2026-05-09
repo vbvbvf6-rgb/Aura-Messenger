@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db, messagesTable, reactionsTable, usersTable, chatMembersTable, chatsTable } from "@workspace/db";
 import { eq, and, lt, desc, sql, lte } from "drizzle-orm";
-import { broadcastToChat } from "../lib/sse";
+import { broadcastToChat, broadcastToUser } from "../lib/sse";
 import { SendMessageBody, EditMessageBody, AddReactionBody } from "@workspace/api-zod";
 
 async function isAdmin(userId: number): Promise<boolean> {
@@ -162,6 +162,26 @@ router.post("/messages", async (req, res) => {
     res.status(201).json(built);
 
     broadcastToChat(body.chatId, "new-message", { messageId: msg.id, chatId: body.chatId });
+
+    // Notify all other members via user-level SSE for global push notifications
+    setImmediate(async () => {
+      try {
+        const chatMembers = await db.execute(
+          sql`SELECT u.id, u.display_name FROM chat_members cm JOIN users u ON u.id = cm.user_id WHERE cm.chat_id = ${body.chatId} AND cm.user_id != ${uid}`
+        );
+        const senderRow = await db.execute(sql`SELECT display_name FROM users WHERE id = ${uid} LIMIT 1`);
+        const senderName = (senderRow.rows[0] as any)?.display_name || "Pulse";
+        const msgBody = body.type === "image" ? "📷 Фото" : body.type === "audio" ? "🎤 Голосовое" : (body.text || "");
+        for (const member of chatMembers.rows as any[]) {
+          broadcastToUser(member.id, "new-message", {
+            messageId: msg.id,
+            chatId: body.chatId,
+            senderName,
+            body: msgBody,
+          });
+        }
+      } catch {}
+    });
 
     if (body.type === "text" && body.text) {
       setImmediate(async () => {

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
+import { useNotifications } from "@/hooks/useNotifications";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -359,6 +360,51 @@ function ScreenLockSection({ lang, toast }: { lang: string; toast: any }) {
           </button>
         </div>
       )}
+    </div>
+  );
+}
+
+function NotificationPermissionBanner() {
+  const { permission, requestPermission, isSupported } = useNotifications();
+  const [requesting, setRequesting] = React.useState(false);
+
+  if (!isSupported) return null;
+
+  if (permission === "granted") {
+    return (
+      <div className="mx-4 mb-2 flex items-center gap-2 text-xs text-green-400 bg-green-500/10 border border-green-500/20 rounded-xl px-3 py-2.5">
+        <CheckCircle size={14} className="shrink-0" />
+        <span>Уведомления разрешены браузером</span>
+      </div>
+    );
+  }
+
+  if (permission === "denied") {
+    return (
+      <div className="mx-4 mb-2 flex items-start gap-2 text-xs text-amber-400 bg-amber-500/10 border border-amber-500/20 rounded-xl px-3 py-2.5">
+        <AlertTriangle size={14} className="shrink-0 mt-0.5" />
+        <span>Уведомления заблокированы в браузере. Разрешите их вручную в настройках браузера.</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mx-4 mb-2 flex items-center justify-between gap-3 bg-primary/5 border border-primary/20 rounded-xl px-3 py-2.5">
+      <div className="flex items-center gap-2 min-w-0">
+        <Bell size={14} className="text-primary shrink-0" />
+        <span className="text-xs text-foreground">Разрешить push-уведомления?</span>
+      </div>
+      <button
+        disabled={requesting}
+        onClick={async () => {
+          setRequesting(true);
+          await requestPermission();
+          setRequesting(false);
+        }}
+        className="shrink-0 px-3 py-1.5 bg-primary text-primary-foreground text-xs font-semibold rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-60"
+      >
+        {requesting ? "..." : "Включить"}
+      </button>
     </div>
   );
 }
@@ -1036,6 +1082,7 @@ export default function Settings() {
 
         {/* ── NOTIFICATIONS ── */}
         <Section title={t("settings.notifications")} icon={<Bell size={13} />}>
+          <NotificationPermissionBanner />
           <Row
             icon={<MessageSquare size={18} />}
             color="bg-blue-500/10 text-blue-500"

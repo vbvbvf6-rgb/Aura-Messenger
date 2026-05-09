@@ -14,7 +14,6 @@ export function useNotifications() {
 
   const requestPermission = useCallback(async (): Promise<NotificationPermission> => {
     if (typeof Notification === "undefined") return "denied";
-    if (Notification.permission === "granted") return "granted";
     if (Notification.permission === "denied") return "denied";
     const result = await Notification.requestPermission();
     setPermission(result);
@@ -22,17 +21,25 @@ export function useNotifications() {
   }, []);
 
   const notify = useCallback(
-    (title: string, options: { body?: string; icon?: string; url?: string; tag?: string } = {}) => {
+    (title: string, options: { body?: string; icon?: string; url?: string; tag?: string; type?: "message" | "call" | "gift" } = {}) => {
       if (typeof Notification === "undefined") return;
       if (Notification.permission !== "granted") return;
       if (document.visibilityState === "visible" && document.hasFocus()) return;
 
+      const type = options.type ?? "message";
+      if (type === "message" && localStorage.getItem("pulse-notify-messages") === "false") return;
+      if (type === "call" && localStorage.getItem("pulse-notify-calls") === "false") return;
+      if (type === "gift" && localStorage.getItem("pulse-notify-gifts") === "false") return;
+
+      const showPreview = localStorage.getItem("pulse-notify-preview") !== "false";
+      const body = showPreview ? (options.body || "") : "";
+
       const notifOpts: NotificationOptions = {
-        body: options.body || "",
+        body,
         icon: options.icon || "/favicon.svg",
         badge: "/favicon.svg",
         tag: options.tag || "pulse-message",
-        silent: false,
+        silent: localStorage.getItem("pulse-notify-sounds") === "false",
         data: { url: options.url || "/" },
       };
 
