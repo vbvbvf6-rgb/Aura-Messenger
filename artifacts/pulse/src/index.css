@@ -126,15 +126,8 @@
     -moz-osx-font-smoothing: grayscale;
   }
 
-  /* Prevent transform-induced subpixel text blur on mobile */
-  html {
-    -webkit-backface-visibility: hidden;
-    backface-visibility: hidden;
-  }
-
-  /* Prevent text blur inside animated containers */
-  [data-framer-component-type],
-  .motion-reduce {
+  /* Prevent text blur inside animated containers only (not globally on html) */
+  [data-framer-component-type] {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }

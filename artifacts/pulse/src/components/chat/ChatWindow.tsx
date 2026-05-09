@@ -258,9 +258,9 @@ export function ChatWindow({ chatId }: ChatWindowProps) {
   return (
     <div className="flex-1 flex flex-col h-full bg-background relative overflow-hidden">
       {/* Header */}
-      <header className="h-16 border-b border-border flex items-center px-4 justify-between bg-card/80 backdrop-blur-md z-10 shrink-0">
+      <header className="h-16 border-b border-border flex items-center px-4 justify-between bg-card z-10 shrink-0">
         <div className="flex items-center gap-3 min-w-0">
-          <button className="md:hidden p-2 -ml-2 text-muted-foreground hover:text-foreground shrink-0" onClick={() => setSelectedChatId(null)}>
+          <button className="p-2 -ml-2 text-muted-foreground hover:text-foreground shrink-0" onClick={() => setSelectedChatId(null)}>
             <ArrowLeft size={20} />
           </button>
 
