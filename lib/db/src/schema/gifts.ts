@@ -10,6 +10,7 @@ export const giftItemsTable = pgTable("gift_items", {
   animationType: text("animation_type").notNull().default("sparkle"),
   rarity: text("rarity").notNull().default("common"),
   stars: integer("stars").notNull().default(1),
+  price: integer("price").notNull().default(10),
   description: text("description").notNull().default(""),
 });
 

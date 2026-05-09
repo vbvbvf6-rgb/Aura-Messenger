@@ -22,6 +22,9 @@ export const usersTable = pgTable("users", {
   hasPrime: boolean("has_prime").notNull().default(false),
   primeExpiresAt: timestamp("prime_expires_at", { withTimezone: true }),
   usernameChangedAt: timestamp("username_changed_at", { withTimezone: true }),
+  totpSecret: text("totp_secret"),
+  totpEnabled: boolean("totp_enabled").notNull().default(false),
+  showOnlineStatus: boolean("show_online_status").notNull().default(true),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 });

@@ -11,6 +11,15 @@ import { StoriesBar } from "@/components/stories/StoriesBar";
 import { useToast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
 
+type FolderKey = "all" | "unread" | "groups" | "bots";
+
+const FOLDERS: { key: FolderKey; label: string }[] = [
+  { key: "all",    label: "Все" },
+  { key: "unread", label: "Непрочитанные" },
+  { key: "groups", label: "Группы" },
+  { key: "bots",   label: "Боты" },
+];
+
 function VerifiedBadge() {
   return (
     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" className="shrink-0 inline-block">
@@ -88,6 +97,7 @@ export function ChatList({ onMenuClick }: { onMenuClick?: () => void }) {
   const { data: chats, isLoading } = useGetChats();
   const { toast } = useToast();
   const [search, setSearch] = useState("");
+  const [folder, setFolder] = useState<FolderKey>("all");
 
   const openSupportChat = async () => {
     const token = localStorage.getItem("pulse-token");
@@ -107,12 +117,18 @@ export function ChatList({ onMenuClick }: { onMenuClick?: () => void }) {
   };
 
   const filtered = chats?.filter((chat: Chat) => {
-    if (!search) return true;
-    const name =
-      chat.type === "direct"
-        ? ((chat.otherUser as any)?.displayName || chat.name || "")
-        : (chat.name || "");
-    return name.toLowerCase().includes(search.toLowerCase());
+    if (search) {
+      const name =
+        chat.type === "direct"
+          ? ((chat.otherUser as any)?.displayName || chat.name || "")
+          : (chat.name || "");
+      if (!name.toLowerCase().includes(search.toLowerCase())) return false;
+    }
+
+    if (folder === "unread") return (chat.unreadCount ?? 0) > 0;
+    if (folder === "groups") return chat.type === "group" || chat.type === "channel";
+    if (folder === "bots") return chat.type === "direct" && !!(chat.otherUser as any)?.isBot;
+    return true;
   });
 
   const sorted = filtered?.slice().sort((a: Chat, b: Chat) => {
@@ -143,6 +159,28 @@ export function ChatList({ onMenuClick }: { onMenuClick?: () => void }) {
             />
           </div>
         </div>
+
+        {/* Folder filter tabs */}
+        <div className="flex gap-1.5 mt-3 overflow-x-auto scrollbar-none pb-0.5">
+          {FOLDERS.map(f => (
+            <button
+              key={f.key}
+              onClick={() => setFolder(f.key)}
+              className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold transition-all whitespace-nowrap ${
+                folder === f.key
+                  ? "bg-primary text-primary-foreground shadow-[0_0_8px_rgba(0,188,212,0.3)]"
+                  : "bg-background text-muted-foreground hover:text-foreground hover:bg-secondary border border-border"
+              }`}
+            >
+              {f.label}
+              {f.key === "unread" && chats && chats.filter((c: Chat) => (c.unreadCount ?? 0) > 0).length > 0 && (
+                <span className={`ml-1.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full ${folder === f.key ? "bg-primary-foreground/20" : "bg-primary/20 text-primary"}`}>
+                  {chats.filter((c: Chat) => (c.unreadCount ?? 0) > 0).length}
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className="border-b border-border">
@@ -151,7 +189,7 @@ export function ChatList({ onMenuClick }: { onMenuClick?: () => void }) {
 
       <div className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-thin">
         {/* Support chat shortcut */}
-        {!search && (
+        {!search && folder === "all" && (
           <button
             onClick={openSupportChat}
             className="w-full flex items-center gap-3 px-4 py-3 transition-colors text-left hover:bg-secondary border-b border-border/50"
@@ -183,7 +221,15 @@ export function ChatList({ onMenuClick }: { onMenuClick?: () => void }) {
           </div>
         ) : sorted?.length === 0 ? (
           <div className="p-8 text-center text-muted-foreground text-sm">
-            {search ? "Чаты не найдены" : "Нет чатов"}
+            {search
+              ? "Чаты не найдены"
+              : folder === "unread"
+              ? "Нет непрочитанных чатов"
+              : folder === "groups"
+              ? "Нет групп и каналов"
+              : folder === "bots"
+              ? "Нет ботов"
+              : "Нет чатов"}
           </div>
         ) : (
           sorted?.map((chat: Chat) => {
@@ -296,7 +342,7 @@ export function ChatList({ onMenuClick }: { onMenuClick?: () => void }) {
                     <div className="flex items-center gap-1 shrink-0">
                       {chat.isMuted && <VolumeX size={12} className="text-muted-foreground" />}
                       {chat.unreadCount > 0 && (
-                        <div className="bg-primary text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center">
+                        <div className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center ${chat.isMuted ? "bg-muted text-muted-foreground" : "bg-primary text-white"}`}>
                           {chat.unreadCount > 99 ? "99+" : chat.unreadCount}
                         </div>
                       )}

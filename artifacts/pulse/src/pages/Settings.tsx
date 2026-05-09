@@ -8,7 +8,8 @@ import {
   Sun, Palette, Database, Edit3, CheckCircle, LogOut, Link, Key, Eye,
   EyeOff, Phone, Globe, Type, Download, Trash2, Copy, Check, ChevronDown,
   ChevronRight, User, Radio, BellOff, Volume2, VolumeX, Clock, MessageSquare,
-  Gift, PhoneCall, Monitor, Zap, AlertTriangle, X, Flame, Upload, Camera, Crown
+  Gift, PhoneCall, Monitor, Zap, AlertTriangle, X, Flame, Upload, Camera, Crown,
+  ShieldCheck, QrCode, Fingerprint, LogIn
 } from "lucide-react";
 import { useGetMe, useUpdateMe } from "@workspace/api-client-react";
 import { useAppContext } from "@/contexts/AppContext";
@@ -87,6 +88,257 @@ function Row({ icon, color, label, desc, right, onClick }: {
         </div>
       </div>
       {right}
+    </div>
+  );
+}
+
+function hashPin(pin: string): string {
+  let h = 5381;
+  for (let i = 0; i < pin.length; i++) h = ((h << 5) + h) ^ pin.charCodeAt(i);
+  return String(h >>> 0);
+}
+
+function TwoFaSection({ user, toast, lang }: { user: any; toast: any; lang: string }) {
+  const [enabled, setEnabled] = useState<boolean>(!!(user as any)?.totpEnabled);
+  const [showSetup, setShowSetup] = useState(false);
+  const [setupData, setSetupData] = useState<{ secret: string; qrUrl: string } | null>(null);
+  const [code, setCode] = useState("");
+  const [disablePw, setDisablePw] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [err, setErr] = useState("");
+
+  useEffect(() => { setEnabled(!!(user as any)?.totpEnabled); }, [user]);
+
+  const getHeaders = () => {
+    const token = localStorage.getItem("pulse-token");
+    if (token) return { "Authorization": `Bearer ${token}` };
+    const uid = localStorage.getItem("pulse-user-id");
+    return uid ? { "x-user-id": uid } : {};
+  };
+
+  const handleSetupOpen = async () => {
+    setErr(""); setCode("");
+    if (!setupData) {
+      setLoading(true);
+      try {
+        const res = await fetch("/api/auth/2fa/setup", { headers: getHeaders() });
+        const data = await res.json();
+        if (res.ok) setSetupData(data);
+        else setErr(data.error || "Ошибка");
+      } catch { setErr("Ошибка подключения"); }
+      setLoading(false);
+    }
+    setShowSetup(true);
+  };
+
+  const handleEnable = async () => {
+    if (code.length !== 6) { setErr("Введите 6-значный код"); return; }
+    setLoading(true); setErr("");
+    try {
+      const res = await fetch("/api/auth/2fa/enable", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...getHeaders() },
+        body: JSON.stringify({ code }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setEnabled(true); setShowSetup(false);
+        toast({ title: "2FA включена", description: "Аккаунт защищён двухфакторной аутентификацией" });
+      } else setErr(data.error || "Неверный код");
+    } catch { setErr("Ошибка подключения"); }
+    setLoading(false);
+  };
+
+  const handleDisable = async () => {
+    if (!disablePw) { setErr("Введите пароль"); return; }
+    setLoading(true); setErr("");
+    try {
+      const res = await fetch("/api/auth/2fa/disable", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...getHeaders() },
+        body: JSON.stringify({ password: disablePw }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setEnabled(false); setShowSetup(false); setDisablePw("");
+        toast({ title: "2FA отключена" });
+      } else setErr(data.error || "Неверный пароль");
+    } catch { setErr("Ошибка подключения"); }
+    setLoading(false);
+  };
+
+  return (
+    <div className="p-4 space-y-3 border-t border-border">
+      <div className="flex items-center gap-3">
+        <div className="p-2 bg-green-500/10 text-green-500 rounded-xl"><ShieldCheck size={18} /></div>
+        <div className="flex-1">
+          <p className="text-sm font-medium">{lang === "ru" ? "Двухфакторная аутентификация" : "Two-factor authentication"}</p>
+          <p className="text-xs text-muted-foreground">{enabled ? (lang === "ru" ? "Включена ✓" : "Enabled ✓") : (lang === "ru" ? "Выключена" : "Disabled")}</p>
+        </div>
+        <button
+          onClick={enabled ? () => { setShowSetup(v => !v); setErr(""); } : handleSetupOpen}
+          disabled={loading}
+          className={`shrink-0 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors disabled:opacity-50 ${enabled ? "bg-destructive/10 text-destructive hover:bg-destructive/20" : "bg-green-500/10 text-green-500 hover:bg-green-500/20"}`}
+        >
+          {loading ? "..." : enabled ? (lang === "ru" ? "Отключить" : "Disable") : (lang === "ru" ? "Включить" : "Enable")}
+        </button>
+      </div>
+
+      {showSetup && !enabled && setupData && (
+        <div className="bg-background rounded-xl border border-border p-4 space-y-3">
+          <p className="text-xs text-muted-foreground">{lang === "ru" ? "Отсканируйте QR-код в приложении Google Authenticator или Authy:" : "Scan the QR code in Google Authenticator or Authy:"}</p>
+          <div className="flex justify-center">
+            <img src={setupData.qrUrl} alt="QR Code" className="w-40 h-40 rounded-xl border border-border" />
+          </div>
+          <div className="bg-muted rounded-lg px-3 py-2 text-center">
+            <p className="text-[10px] text-muted-foreground mb-0.5">{lang === "ru" ? "Или введите ключ вручную:" : "Or enter key manually:"}</p>
+            <p className="font-mono text-xs text-foreground break-all select-all">{setupData.secret}</p>
+          </div>
+          <input
+            type="text"
+            inputMode="numeric"
+            maxLength={6}
+            value={code}
+            onChange={e => { setCode(e.target.value.replace(/\D/g, "")); setErr(""); }}
+            placeholder={lang === "ru" ? "6-значный код" : "6-digit code"}
+            className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-center font-mono text-lg tracking-widest focus:outline-none focus:border-primary"
+          />
+          {err && <p className="text-xs text-destructive flex items-center gap-1"><AlertTriangle size={11} />{err}</p>}
+          <button
+            onClick={handleEnable}
+            disabled={loading || code.length !== 6}
+            className="w-full py-2.5 bg-primary text-white rounded-xl text-sm font-semibold disabled:opacity-50"
+          >
+            {loading ? "..." : (lang === "ru" ? "Подтвердить и включить" : "Confirm & enable")}
+          </button>
+        </div>
+      )}
+
+      {showSetup && enabled && (
+        <div className="bg-background rounded-xl border border-border p-4 space-y-3">
+          <p className="text-xs text-muted-foreground">{lang === "ru" ? "Введите пароль аккаунта для отключения 2FA:" : "Enter account password to disable 2FA:"}</p>
+          <input
+            type="password"
+            value={disablePw}
+            onChange={e => { setDisablePw(e.target.value); setErr(""); }}
+            placeholder={lang === "ru" ? "Текущий пароль" : "Current password"}
+            className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-primary"
+          />
+          {err && <p className="text-xs text-destructive flex items-center gap-1"><AlertTriangle size={11} />{err}</p>}
+          <button
+            onClick={handleDisable}
+            disabled={loading || !disablePw}
+            className="w-full py-2.5 bg-destructive/90 text-white rounded-xl text-sm font-semibold disabled:opacity-50"
+          >
+            {loading ? "..." : (lang === "ru" ? "Отключить 2FA" : "Disable 2FA")}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ScreenLockSection({ lang, toast }: { lang: string; toast: any }) {
+  const [pinEnabled, setPinEnabled] = useState(() => localStorage.getItem("pulse-screen-lock-enabled") === "true");
+  const [showSetup, setShowSetup] = useState(false);
+  const [mode, setMode] = useState<"set" | "disable">("set");
+  const [newPin, setNewPin] = useState("");
+  const [confirmPin, setConfirmPin] = useState("");
+  const [oldPin, setOldPin] = useState("");
+  const [err, setErr] = useState("");
+
+  const handleEnable = () => {
+    if (newPin.length < 4) { setErr(lang === "ru" ? "Минимум 4 цифры" : "Minimum 4 digits"); return; }
+    if (newPin !== confirmPin) { setErr(lang === "ru" ? "Коды не совпадают" : "PINs do not match"); return; }
+    localStorage.setItem("pulse-screen-lock-pin", hashPin(newPin));
+    localStorage.setItem("pulse-screen-lock-enabled", "true");
+    setPinEnabled(true); setShowSetup(false); setNewPin(""); setConfirmPin(""); setErr("");
+    toast({ title: lang === "ru" ? "Блокировка включена" : "Screen lock enabled" });
+  };
+
+  const handleDisable = () => {
+    const stored = localStorage.getItem("pulse-screen-lock-pin") || "";
+    if (hashPin(oldPin) !== stored) { setErr(lang === "ru" ? "Неверный PIN" : "Incorrect PIN"); return; }
+    localStorage.removeItem("pulse-screen-lock-pin");
+    localStorage.removeItem("pulse-screen-lock-enabled");
+    setPinEnabled(false); setShowSetup(false); setOldPin(""); setErr("");
+    toast({ title: lang === "ru" ? "Блокировка отключена" : "Screen lock disabled" });
+  };
+
+  const handleLockNow = () => {
+    sessionStorage.removeItem("pulse-unlocked");
+    window.dispatchEvent(new CustomEvent("pulse-lock"));
+    toast({ title: lang === "ru" ? "Экран заблокирован" : "Screen locked" });
+  };
+
+  return (
+    <div className="p-4 space-y-3 border-t border-border">
+      <div className="flex items-center gap-3">
+        <div className="p-2 bg-violet-500/10 text-violet-500 rounded-xl"><Fingerprint size={18} /></div>
+        <div className="flex-1">
+          <p className="text-sm font-medium">{lang === "ru" ? "Блокировка экрана" : "Screen lock"}</p>
+          <p className="text-xs text-muted-foreground">{pinEnabled ? (lang === "ru" ? "PIN-код установлен ✓" : "PIN set ✓") : (lang === "ru" ? "Не установлена" : "Not set")}</p>
+        </div>
+        <button
+          onClick={() => { setShowSetup(v => !v); setMode(pinEnabled ? "disable" : "set"); setErr(""); }}
+          className={`shrink-0 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${pinEnabled ? "bg-destructive/10 text-destructive hover:bg-destructive/20" : "bg-violet-500/10 text-violet-500 hover:bg-violet-500/20"}`}
+        >
+          {pinEnabled ? (lang === "ru" ? "Изменить / Выкл." : "Change / Off") : (lang === "ru" ? "Включить" : "Enable")}
+        </button>
+      </div>
+
+      {pinEnabled && (
+        <button onClick={handleLockNow} className="w-full py-2 rounded-xl border border-border text-xs font-semibold text-muted-foreground hover:text-foreground hover:border-primary/40 transition-colors flex items-center justify-center gap-2">
+          <Lock size={13} /> {lang === "ru" ? "Заблокировать сейчас" : "Lock now"}
+        </button>
+      )}
+
+      {showSetup && mode === "set" && (
+        <div className="bg-background rounded-xl border border-border p-4 space-y-3">
+          <input
+            type="password"
+            inputMode="numeric"
+            maxLength={8}
+            value={newPin}
+            onChange={e => { setNewPin(e.target.value.replace(/\D/g, "")); setErr(""); }}
+            placeholder={lang === "ru" ? "Новый PIN (4-8 цифр)" : "New PIN (4-8 digits)"}
+            className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-center font-mono text-lg tracking-widest focus:outline-none focus:border-primary"
+          />
+          <input
+            type="password"
+            inputMode="numeric"
+            maxLength={8}
+            value={confirmPin}
+            onChange={e => { setConfirmPin(e.target.value.replace(/\D/g, "")); setErr(""); }}
+            placeholder={lang === "ru" ? "Повторите PIN" : "Confirm PIN"}
+            className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-center font-mono text-lg tracking-widest focus:outline-none focus:border-primary"
+          />
+          {err && <p className="text-xs text-destructive flex items-center gap-1"><AlertTriangle size={11} />{err}</p>}
+          <button onClick={handleEnable} disabled={newPin.length < 4}
+            className="w-full py-2.5 bg-primary text-white rounded-xl text-sm font-semibold disabled:opacity-50">
+            {lang === "ru" ? "Установить PIN" : "Set PIN"}
+          </button>
+        </div>
+      )}
+
+      {showSetup && mode === "disable" && (
+        <div className="bg-background rounded-xl border border-border p-4 space-y-3">
+          <input
+            type="password"
+            inputMode="numeric"
+            maxLength={8}
+            value={oldPin}
+            onChange={e => { setOldPin(e.target.value.replace(/\D/g, "")); setErr(""); }}
+            placeholder={lang === "ru" ? "Текущий PIN" : "Current PIN"}
+            className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-center font-mono text-lg tracking-widest focus:outline-none focus:border-primary"
+          />
+          {err && <p className="text-xs text-destructive flex items-center gap-1"><AlertTriangle size={11} />{err}</p>}
+          <button onClick={handleDisable} disabled={!oldPin}
+            className="w-full py-2.5 bg-destructive/90 text-white rounded-xl text-sm font-semibold disabled:opacity-50">
+            {lang === "ru" ? "Отключить блокировку" : "Disable lock"}
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -989,6 +1241,12 @@ export default function Settings() {
             onClick={handleEndSessions}
             right={<span className="text-xs text-muted-foreground">{t("settings.endSessions")}</span>}
           />
+
+          {/* 2FA */}
+          <TwoFaSection user={user} toast={toast} lang={lang} />
+
+          {/* Screen Lock PIN */}
+          <ScreenLockSection lang={lang} toast={toast} />
         </Section>
 
         {/* ── STORAGE ── */}

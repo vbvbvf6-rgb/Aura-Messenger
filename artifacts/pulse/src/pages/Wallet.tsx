@@ -503,13 +503,16 @@ export default function Wallet() {
                 <div className="text-center">
                   <p className="text-sm text-muted-foreground mb-1">Ваш адрес кошелька</p>
                   <div className="bg-background border border-border rounded-xl px-4 py-3 font-mono text-sm text-foreground select-all break-all text-center">
-                    PULSE-{uid ? uid.toString().padStart(6, "0") : "000000"}
+                    {walletAddress || `PULSE-${uid ? uid.toString().padStart(6, "0") : "000000"}`}
                   </div>
                 </div>
                 <p className="text-xs text-muted-foreground text-center">Передайте этот адрес отправителю для получения Spark</p>
                 <button
                   onClick={() => {
-                    navigator.clipboard?.writeText(`PULSE-${uid ? uid.toString().padStart(6, "0") : "000000"}`);
+                    const addr = walletAddress || `PULSE-${uid ? uid.toString().padStart(6, "0") : "000000"}`;
+                    navigator.clipboard?.writeText(addr);
+                    setAddressCopied(true);
+                    setTimeout(() => setAddressCopied(false), 2000);
                     setShowReceiveModal(false);
                   }}
                   className="w-full py-3 bg-primary rounded-xl text-sm font-semibold text-white"

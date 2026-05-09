@@ -31,20 +31,26 @@ interface ChatWindowProps {
   chatId: number;
 }
 
-const AUTO_DELETE_OPTIONS = [
-  { value: null,    labelKey: "autodelete.off" as const },
-  { value: 3600,    labelKey: "autodelete.1h" as const },
-  { value: 86400,   labelKey: "autodelete.1d" as const },
-  { value: 604800,  labelKey: "autodelete.1w" as const },
-  { value: 2592000, labelKey: "autodelete.1m" as const },
+const AUTO_DELETE_OPTIONS: { value: number | null; label: string }[] = [
+  { value: null,    label: "Выкл." },
+  { value: 5,       label: "5 секунд" },
+  { value: 30,      label: "30 секунд" },
+  { value: 60,      label: "1 минута" },
+  { value: 300,     label: "5 минут" },
+  { value: 3600,    label: "1 час" },
+  { value: 86400,   label: "1 день" },
+  { value: 604800,  label: "1 неделя" },
+  { value: 2592000, label: "1 месяц" },
 ];
 
-function formatAutoDeleteLabel(seconds: number | null | undefined, t: (k: any) => string): string {
-  if (!seconds) return t("autodelete.off");
-  if (seconds <= 3600) return t("autodelete.1h");
-  if (seconds <= 86400) return t("autodelete.1d");
-  if (seconds <= 604800) return t("autodelete.1w");
-  return t("autodelete.1m");
+function formatAutoDeleteLabel(seconds: number | null | undefined): string {
+  if (!seconds) return "Выкл.";
+  if (seconds < 60) return `${seconds} сек.`;
+  if (seconds < 3600) return `${Math.floor(seconds / 60)} мин.`;
+  if (seconds < 86400) return `${Math.floor(seconds / 3600)} ч.`;
+  if (seconds < 604800) return `${Math.floor(seconds / 86400)} д.`;
+  if (seconds < 2592000) return `${Math.floor(seconds / 604800)} нед.`;
+  return `${Math.floor(seconds / 2592000)} мес.`;
 }
 
 export function ChatWindow({ chatId }: ChatWindowProps) {
@@ -257,7 +263,7 @@ export function ChatWindow({ chatId }: ChatWindowProps) {
   const displayName = chat.type === "direct" ? (chat.otherUser?.displayName || chat.name || "Chat") : (chat.name || "Group");
   const avatarColor = chat.type === "direct" ? (chat.otherUser?.avatarColor || chat.avatarColor || "#333") : (chat.avatarColor || "#333");
   const isVerified = chat.type === "direct" && (chat.otherUser as any)?.isVerified;
-  const autoDeleteLabel = formatAutoDeleteLabel(autoDeleteTimer, t);
+  const autoDeleteLabel = formatAutoDeleteLabel(autoDeleteTimer);
 
   return (
     <div className="flex-1 flex flex-col h-full bg-background relative overflow-hidden">
@@ -375,6 +381,23 @@ export function ChatWindow({ chatId }: ChatWindowProps) {
                 </div>
                 <span className="text-xs text-muted-foreground ml-2">{autoDeleteLabel}</span>
               </DropdownMenuItem>
+              {(chat.type === "group" || chat.type === "channel") && (
+                <DropdownMenuItem
+                  className="text-orange-500 focus:text-orange-500"
+                  onClick={async () => {
+                    try {
+                      await fetch(`/api/chats/${chatId}/leave`, { method: "POST", headers: getCWAuthHeaders() });
+                      queryClient.invalidateQueries({ queryKey: getGetChatsQueryKey() });
+                      setSelectedChatId(null);
+                    } catch {
+                      toast({ title: "Ошибка", description: "Не удалось покинуть чат", variant: "destructive" });
+                    }
+                  }}
+                >
+                  <ArrowLeft size={16} className="mr-2" />
+                  Покинуть чат
+                </DropdownMenuItem>
+              )}
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 className="text-destructive focus:text-destructive"
@@ -529,7 +552,7 @@ export function ChatWindow({ chatId }: ChatWindowProps) {
                 >
                   <div className="flex items-center gap-2">
                     {opt.value ? <Flame size={15} className="text-orange-400" /> : <X size={15} className="text-muted-foreground" />}
-                    {t(opt.labelKey)}
+                    {opt.label}
                   </div>
                   {isActive && (
                     <div className="w-2 h-2 rounded-full bg-orange-400" />

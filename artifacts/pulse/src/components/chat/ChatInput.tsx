@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useSendMessage, getGetMessagesQueryKey, getGetChatsQueryKey, Message } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Paperclip, Mic, Smile, SendHorizontal, X, Square, Trash2, Images, Reply, Pencil } from "lucide-react";
+import { Paperclip, Mic, Smile, SendHorizontal, X, Square, Trash2, Images, Reply, Pencil, Clock } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 const EMOJI_CATEGORIES: { label: string; emojis: string[] }[] = [
@@ -66,6 +66,8 @@ export function ChatInput({ chatId, onMessageSent, replyTo, editMessage, onCance
   const [emojiCategory, setEmojiCategory] = useState(0);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [isSending, setIsSending] = useState(false);
+  const [scheduledAt, setScheduledAt] = useState<string>("");
+  const [showScheduler, setShowScheduler] = useState(false);
 
   const [isRecording, setIsRecording] = useState(false);
   const [recordSeconds, setRecordSeconds] = useState(0);
@@ -282,10 +284,86 @@ export function ChatInput({ chatId, onMessageSent, replyTo, editMessage, onCance
     if (!editMessage) localStorage.setItem(draftKey, e.target.value);
   };
 
+  // Scheduled messages: check every 30s and send due ones
+  useEffect(() => {
+    const schedKey = `pulse-scheduled-${chatId}`;
+    const check = async () => {
+      const raw = localStorage.getItem(schedKey);
+      if (!raw) return;
+      const items: { id: string; text: string; at: number }[] = JSON.parse(raw);
+      const now = Date.now();
+      const due = items.filter(m => m.at <= now);
+      if (!due.length) return;
+      const remaining = items.filter(m => m.at > now);
+      localStorage.setItem(schedKey, JSON.stringify(remaining));
+      for (const m of due) {
+        await sendMessage.mutateAsync({ data: { chatId, text: m.text, type: "text" } }).catch(() => {});
+      }
+      queryClient.invalidateQueries({ queryKey: getGetMessagesQueryKey({ chatId }) });
+      queryClient.invalidateQueries({ queryKey: getGetChatsQueryKey() });
+    };
+    check();
+    const id = setInterval(check, 30_000);
+    return () => clearInterval(id);
+  }, [chatId]);
+
+  const handleScheduledSend = () => {
+    if (!text.trim() || !scheduledAt) return;
+    const schedKey = `pulse-scheduled-${chatId}`;
+    const existing = JSON.parse(localStorage.getItem(schedKey) || "[]");
+    existing.push({ id: `${Date.now()}-${Math.random()}`, text: text.trim(), at: new Date(scheduledAt).getTime() });
+    localStorage.setItem(schedKey, JSON.stringify(existing));
+    setText("");
+    setScheduledAt("");
+    setShowScheduler(false);
+    if (textareaRef.current) textareaRef.current.style.height = "40px";
+  };
+
+  const minDatetime = new Date(Date.now() + 60_000).toISOString().slice(0, 16);
+
   const hasContent = text.trim().length > 0 || imagePreviews.length > 0;
 
   return (
     <div className="relative">
+      {/* Scheduler popover */}
+      <AnimatePresence>
+        {showScheduler && (
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 8 }}
+            className="absolute bottom-full mb-2 left-0 right-0 z-50 bg-card border border-border rounded-2xl p-4 shadow-2xl"
+          >
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2 text-sm font-semibold">
+                <Clock size={15} className="text-primary" />
+                Запланировать сообщение
+              </div>
+              <button onClick={() => setShowScheduler(false)} className="text-muted-foreground hover:text-foreground transition-colors">
+                <X size={16} />
+              </button>
+            </div>
+            <input
+              type="datetime-local"
+              value={scheduledAt}
+              min={minDatetime}
+              onChange={e => setScheduledAt(e.target.value)}
+              className="w-full bg-background border border-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-primary transition-colors mb-3"
+            />
+            <button
+              onClick={handleScheduledSend}
+              disabled={!text.trim() || !scheduledAt}
+              className="w-full py-2.5 bg-primary text-white rounded-xl text-sm font-semibold disabled:opacity-50 transition-colors"
+            >
+              Запланировать
+            </button>
+            {!text.trim() && (
+              <p className="text-xs text-muted-foreground mt-2 text-center">Сначала напишите сообщение</p>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Emoji Picker */}
       {showEmoji && (
         <div className="absolute bottom-full mb-2 left-0 right-0 z-50 bg-card border border-border rounded-2xl shadow-2xl overflow-hidden">
@@ -436,6 +514,16 @@ export function ChatInput({ chatId, onMessageSent, replyTo, editMessage, onCance
           />
 
           <div className="flex items-center gap-1 shrink-0">
+            {!editMessage && (
+              <button
+                type="button"
+                onClick={() => setShowScheduler(!showScheduler)}
+                title="Запланировать сообщение"
+                className={`p-1.5 transition-colors rounded-full ${showScheduler ? "text-primary bg-primary/10" : "text-muted-foreground hover:text-foreground"}`}
+              >
+                <Clock size={18} />
+              </button>
+            )}
             <button type="button" onClick={() => setShowEmoji(!showEmoji)}
               className={`p-1.5 transition-colors rounded-full ${showEmoji ? "text-primary bg-primary/10" : "text-muted-foreground hover:text-foreground"}`}>
               <Smile size={20} />

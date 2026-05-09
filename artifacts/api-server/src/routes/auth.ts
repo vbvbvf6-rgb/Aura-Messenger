@@ -5,10 +5,12 @@ import { createHash } from "node:crypto";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { JWT_SECRET } from "../app";
+import { generateTotpSecret, verifyTotp, buildTotpUri } from "../lib/totp";
 
 const router = Router();
 const SALT_ROUNDS = 12;
 const TOKEN_TTL = "30d";
+const PENDING_2FA_TTL = "5m";
 
 const sha256 = (pass: string) => createHash("sha256").update(pass).digest("hex");
 
@@ -16,8 +18,8 @@ function signToken(userId: number): string {
   return jwt.sign({ userId }, JWT_SECRET, { expiresIn: TOKEN_TTL });
 }
 
-function sanitizeUsername(u: string): string {
-  return u.trim().toLowerCase().replace(/[^a-z0-9_]/g, "");
+function signPending2faToken(userId: number): string {
+  return jwt.sign({ userId, pending2fa: true }, JWT_SECRET, { expiresIn: PENDING_2FA_TTL });
 }
 
 router.post("/auth/login", async (req, res) => {
@@ -33,7 +35,7 @@ router.post("/auth/login", async (req, res) => {
     const rows = await db.execute(
       sql`SELECT id, username, display_name, avatar_color, avatar_url, bio, status, status_text,
                  is_verified, is_bot, created_at, balance, password_hash,
-                 COALESCE(is_banned, false) as is_banned
+                 COALESCE(totp_enabled, false) as totp_enabled
           FROM users
           WHERE LOWER(username) = LOWER(${String(username).trim()})
              OR LOWER(display_name) = LOWER(${String(username).trim()})
@@ -43,9 +45,6 @@ router.post("/auth/login", async (req, res) => {
     const user = rows.rows[0] as any;
     if (!user) {
       return res.status(401).json({ error: "Неверное имя или пароль" });
-    }
-    if (user.is_banned) {
-      return res.status(403).json({ error: "Ваш аккаунт заблокирован. Обратитесь к администратору." });
     }
 
     const pass = String(password);
@@ -64,6 +63,20 @@ router.post("/auth/login", async (req, res) => {
 
     if (!passwordValid) {
       return res.status(401).json({ error: "Неверное имя или пароль" });
+    }
+
+    if (user.totp_enabled) {
+      const pendingToken = signPending2faToken(user.id);
+      return res.json({
+        requiresTwoFactor: true,
+        pendingToken,
+        user: {
+          id: user.id,
+          username: user.username,
+          displayName: user.display_name,
+          avatarColor: user.avatar_color,
+        },
+      });
     }
 
     const token = signToken(user.id);
@@ -85,6 +98,144 @@ router.post("/auth/login", async (req, res) => {
         createdAt: user.created_at,
       },
     });
+  } catch (err) {
+    req.log.error(err);
+    res.status(500).json({ error: "Ошибка сервера" });
+  }
+});
+
+router.post("/auth/2fa/complete", async (req, res) => {
+  try {
+    const { pendingToken, code } = req.body;
+    if (!pendingToken || !code) {
+      return res.status(400).json({ error: "Укажите токен и код" });
+    }
+
+    let payload: any;
+    try {
+      payload = jwt.verify(pendingToken, JWT_SECRET) as any;
+    } catch {
+      return res.status(401).json({ error: "Сессия истекла. Войдите заново." });
+    }
+
+    if (!payload.pending2fa) {
+      return res.status(400).json({ error: "Неверный токен" });
+    }
+
+    const rows = await db.execute(
+      sql`SELECT id, username, display_name, avatar_color, avatar_url, bio, status, status_text,
+                 is_verified, balance, created_at, totp_secret
+          FROM users WHERE id = ${payload.userId} LIMIT 1`
+    );
+    const user = rows.rows[0] as any;
+    if (!user || !user.totp_secret) {
+      return res.status(404).json({ error: "Пользователь не найден" });
+    }
+
+    if (!verifyTotp(user.totp_secret, String(code))) {
+      return res.status(401).json({ error: "Неверный код. Проверьте приложение аутентификации." });
+    }
+
+    const token = signToken(user.id);
+    res.json({
+      userId: user.id,
+      token,
+      user: {
+        id: user.id,
+        username: user.username,
+        displayName: user.display_name,
+        avatarColor: user.avatar_color,
+        avatarUrl: user.avatar_url,
+        bio: user.bio,
+        status: user.status,
+        statusText: user.status_text,
+        isVerified: user.is_verified,
+        balance: Number(user.balance ?? 0),
+        createdAt: user.created_at,
+      },
+    });
+  } catch (err) {
+    req.log.error(err);
+    res.status(500).json({ error: "Ошибка сервера" });
+  }
+});
+
+router.get("/auth/2fa/setup", async (req, res) => {
+  try {
+    const uid = req.currentUserId;
+    const rows = await db.execute(
+      sql`SELECT username, totp_enabled FROM users WHERE id = ${uid} LIMIT 1`
+    );
+    const user = rows.rows[0] as any;
+    if (!user) return res.status(404).json({ error: "Пользователь не найден" });
+    if (user.totp_enabled) {
+      return res.status(400).json({ error: "2FA уже включена" });
+    }
+
+    const secret = generateTotpSecret();
+    await db.execute(sql`UPDATE users SET totp_secret = ${secret} WHERE id = ${uid}`);
+
+    const uri = buildTotpUri(secret, user.username);
+    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(uri)}`;
+    res.json({ secret, uri, qrUrl });
+  } catch (err) {
+    req.log.error(err);
+    res.status(500).json({ error: "Ошибка сервера" });
+  }
+});
+
+router.post("/auth/2fa/enable", async (req, res) => {
+  try {
+    const uid = req.currentUserId;
+    const { code } = req.body;
+    if (!code) return res.status(400).json({ error: "Укажите код" });
+
+    const rows = await db.execute(
+      sql`SELECT totp_secret, totp_enabled FROM users WHERE id = ${uid} LIMIT 1`
+    );
+    const user = rows.rows[0] as any;
+    if (!user) return res.status(404).json({ error: "Пользователь не найден" });
+    if (user.totp_enabled) return res.status(400).json({ error: "2FA уже включена" });
+    if (!user.totp_secret) return res.status(400).json({ error: "Сначала получите настройки 2FA" });
+
+    if (!verifyTotp(user.totp_secret, String(code))) {
+      return res.status(401).json({ error: "Неверный код. Проверьте приложение аутентификации." });
+    }
+
+    await db.execute(sql`UPDATE users SET totp_enabled = true WHERE id = ${uid}`);
+    res.json({ success: true, message: "Двухфакторная аутентификация включена" });
+  } catch (err) {
+    req.log.error(err);
+    res.status(500).json({ error: "Ошибка сервера" });
+  }
+});
+
+router.post("/auth/2fa/disable", async (req, res) => {
+  try {
+    const uid = req.currentUserId;
+    const { password } = req.body;
+    if (!password) return res.status(400).json({ error: "Укажите пароль для отключения 2FA" });
+
+    const rows = await db.execute(
+      sql`SELECT password_hash, totp_enabled FROM users WHERE id = ${uid} LIMIT 1`
+    );
+    const user = rows.rows[0] as any;
+    if (!user) return res.status(404).json({ error: "Пользователь не найден" });
+    if (!user.totp_enabled) return res.status(400).json({ error: "2FA не включена" });
+
+    const storedHash: string = user.password_hash || "";
+    let valid = false;
+    if (storedHash.startsWith("$2")) {
+      valid = await bcrypt.compare(String(password), storedHash);
+    } else {
+      valid = storedHash === sha256(String(password));
+    }
+    if (!valid) return res.status(401).json({ error: "Неверный пароль" });
+
+    await db.execute(
+      sql`UPDATE users SET totp_enabled = false, totp_secret = NULL WHERE id = ${uid}`
+    );
+    res.json({ success: true, message: "Двухфакторная аутентификация отключена" });
   } catch (err) {
     req.log.error(err);
     res.status(500).json({ error: "Ошибка сервера" });

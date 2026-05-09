@@ -8,6 +8,7 @@ import { LanguageProvider } from "@/contexts/LanguageContext";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { AddAccountDialog } from "@/components/layout/AddAccountDialog";
 import { getSavedAccounts, saveAccount, removeAccount, SavedAccount } from "@/lib/accounts";
+import { ScreenLock } from "@/components/ScreenLock";
 
 import Home from "@/pages/Home";
 import Calls from "@/pages/Calls";
@@ -45,23 +46,25 @@ function MainApp({ onLogout, onSwitchAccount, onRemoveAccount, onOpenAddAccount 
       onOpenAddAccount={onOpenAddAccount}
     >
       <TooltipProvider>
-        <AppLayout>
-          <Switch>
-            <Route path="/" component={Home} />
-            <Route path="/calls" component={Calls} />
-            <Route path="/feed" component={Feed} />
-            <Route path="/contacts" component={Contacts} />
-            <Route path="/gifts" component={Gifts} />
-            <Route path="/stories" component={Stories} />
-            <Route path="/wallet" component={Wallet} />
-            <Route path="/admin" component={Admin} />
-            <Route path="/prime" component={Prime} />
-            <Route path="/profile" component={Profile} />
-            <Route path="/settings" component={Settings} />
-            <Route path="/user/:userId" component={UserProfile} />
-            <Route component={NotFound} />
-          </Switch>
-        </AppLayout>
+        <ScreenLock>
+          <AppLayout>
+            <Switch>
+              <Route path="/" component={Home} />
+              <Route path="/calls" component={Calls} />
+              <Route path="/feed" component={Feed} />
+              <Route path="/contacts" component={Contacts} />
+              <Route path="/gifts" component={Gifts} />
+              <Route path="/stories" component={Stories} />
+              <Route path="/wallet" component={Wallet} />
+              <Route path="/admin" component={Admin} />
+              <Route path="/prime" component={Prime} />
+              <Route path="/profile" component={Profile} />
+              <Route path="/settings" component={Settings} />
+              <Route path="/user/:userId" component={UserProfile} />
+              <Route component={NotFound} />
+            </Switch>
+          </AppLayout>
+        </ScreenLock>
         <Toaster />
       </TooltipProvider>
     </AppProvider>

@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db, giftsTable, giftItemsTable, usersTable } from "@workspace/db";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, sql } from "drizzle-orm";
 import { SendGiftBody } from "@workspace/api-zod";
 
 const router = Router();
@@ -54,6 +54,33 @@ router.post("/gifts/send", async (req, res) => {
   try {
     const uid = req.currentUserId;
     const body = SendGiftBody.parse(req.body);
+
+    const giftItem = await db.query.giftItemsTable.findFirst({
+      where: eq(giftItemsTable.id, body.giftItemId),
+    });
+    if (!giftItem) {
+      return res.status(404).json({ error: "Подарок не найден" });
+    }
+
+    const price = (giftItem as any).price ?? 0;
+
+    if (price > 0) {
+      const balanceRows = await db.execute(
+        sql`SELECT balance FROM users WHERE id = ${uid}`
+      );
+      const balance = Number((balanceRows.rows[0] as any)?.balance ?? 0);
+      if (balance < price) {
+        return res.status(400).json({
+          error: `Недостаточно Spark. Нужно ${price} ⚡, у вас ${balance} ⚡`,
+          required: price,
+          balance,
+        });
+      }
+      await db.execute(
+        sql`UPDATE users SET balance = balance - ${price} WHERE id = ${uid}`
+      );
+    }
+
     const [gift] = await db.insert(giftsTable).values({
       giftItemId: body.giftItemId,
       senderId: uid,
@@ -62,6 +89,7 @@ router.post("/gifts/send", async (req, res) => {
       isAnonymous: body.isAnonymous ?? false,
       chatId: body.chatId,
     }).returning();
+
     const built = await buildGift(gift);
     res.status(201).json(built);
   } catch (err) {
