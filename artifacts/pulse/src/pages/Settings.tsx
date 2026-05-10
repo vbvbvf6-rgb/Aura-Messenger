@@ -46,23 +46,133 @@ const STATUS_PRESETS = [
   { emoji: "🎧", ru: "Слушаю музыку",  en: "Listening to music" },
 ];
 
-const PRIME_THEMES = [
-  { id: "cyan",    name: "Cyan (по умолчанию)", primary: "199 89% 48%" },
-  { id: "violet",  name: "Фиолетовый",          primary: "258 90% 60%" },
-  { id: "rose",    name: "Розовый",              primary: "346 84% 58%" },
-  { id: "emerald", name: "Изумрудный",           primary: "152 76% 40%" },
-  { id: "amber",   name: "Золотой",              primary: "43 96% 48%"  },
-  { id: "orange",  name: "Оранжевый",            primary: "24 95% 53%"  },
+interface PrimeTheme {
+  id: string;
+  name: string;
+  emoji: string;
+  preview: string;
+  vars: Record<string, string>;
+}
+
+const PRIME_THEMES: PrimeTheme[] = [
+  {
+    id: "obsidian", name: "Тёплый обсидиан", emoji: "🔥", preview: "#1a0d07",
+    vars: {
+      "--background": "20 12% 6%", "--foreground": "40 15% 90%",
+      "--card": "20 12% 10%", "--card-foreground": "40 15% 90%", "--card-border": "20 10% 15%",
+      "--popover": "20 12% 10%", "--popover-foreground": "40 15% 90%", "--popover-border": "20 10% 15%",
+      "--primary": "16 100% 50%", "--primary-foreground": "0 0% 100%",
+      "--secondary": "20 10% 16%", "--secondary-foreground": "40 15% 90%",
+      "--muted": "20 10% 16%", "--muted-foreground": "30 10% 60%",
+      "--accent": "16 100% 50%", "--accent-foreground": "0 0% 100%",
+      "--border": "20 10% 15%", "--input": "20 10% 15%", "--ring": "16 100% 50%",
+    },
+  },
+  {
+    id: "midnight", name: "Полночь", emoji: "🌊", preview: "#060d1e",
+    vars: {
+      "--background": "222 47% 5%", "--foreground": "213 30% 92%",
+      "--card": "222 40% 9%", "--card-foreground": "213 30% 92%", "--card-border": "222 35% 14%",
+      "--popover": "222 40% 9%", "--popover-foreground": "213 30% 92%", "--popover-border": "222 35% 14%",
+      "--primary": "213 100% 62%", "--primary-foreground": "0 0% 100%",
+      "--secondary": "222 35% 14%", "--secondary-foreground": "213 30% 92%",
+      "--muted": "222 35% 14%", "--muted-foreground": "220 15% 55%",
+      "--accent": "213 100% 62%", "--accent-foreground": "0 0% 100%",
+      "--border": "222 35% 14%", "--input": "222 35% 14%", "--ring": "213 100% 62%",
+    },
+  },
+  {
+    id: "forest", name: "Лес", emoji: "🌿", preview: "#050f08",
+    vars: {
+      "--background": "150 30% 5%", "--foreground": "140 20% 90%",
+      "--card": "150 22% 9%", "--card-foreground": "140 20% 90%", "--card-border": "150 18% 14%",
+      "--popover": "150 22% 9%", "--popover-foreground": "140 20% 90%", "--popover-border": "150 18% 14%",
+      "--primary": "152 76% 45%", "--primary-foreground": "0 0% 100%",
+      "--secondary": "150 18% 14%", "--secondary-foreground": "140 20% 90%",
+      "--muted": "150 18% 14%", "--muted-foreground": "140 12% 55%",
+      "--accent": "152 76% 45%", "--accent-foreground": "0 0% 100%",
+      "--border": "150 18% 14%", "--input": "150 18% 14%", "--ring": "152 76% 45%",
+    },
+  },
+  {
+    id: "rose", name: "Роза", emoji: "🌸", preview: "#140608",
+    vars: {
+      "--background": "340 25% 5%", "--foreground": "340 20% 92%",
+      "--card": "340 18% 9%", "--card-foreground": "340 20% 92%", "--card-border": "340 15% 15%",
+      "--popover": "340 18% 9%", "--popover-foreground": "340 20% 92%", "--popover-border": "340 15% 15%",
+      "--primary": "346 84% 62%", "--primary-foreground": "0 0% 100%",
+      "--secondary": "340 15% 15%", "--secondary-foreground": "340 20% 92%",
+      "--muted": "340 15% 15%", "--muted-foreground": "330 10% 55%",
+      "--accent": "346 84% 62%", "--accent-foreground": "0 0% 100%",
+      "--border": "340 15% 15%", "--input": "340 15% 15%", "--ring": "346 84% 62%",
+    },
+  },
+  {
+    id: "violet", name: "Сумерки", emoji: "🔮", preview: "#0b0814",
+    vars: {
+      "--background": "260 35% 5%", "--foreground": "260 20% 92%",
+      "--card": "260 28% 9%", "--card-foreground": "260 20% 92%", "--card-border": "260 22% 15%",
+      "--popover": "260 28% 9%", "--popover-foreground": "260 20% 92%", "--popover-border": "260 22% 15%",
+      "--primary": "258 90% 68%", "--primary-foreground": "0 0% 100%",
+      "--secondary": "260 22% 15%", "--secondary-foreground": "260 20% 92%",
+      "--muted": "260 22% 15%", "--muted-foreground": "255 12% 56%",
+      "--accent": "258 90% 68%", "--accent-foreground": "0 0% 100%",
+      "--border": "260 22% 15%", "--input": "260 22% 15%", "--ring": "258 90% 68%",
+    },
+  },
+  {
+    id: "arctic", name: "Арктика", emoji: "❄️", preview: "#05111a",
+    vars: {
+      "--background": "200 40% 5%", "--foreground": "195 22% 92%",
+      "--card": "200 32% 9%", "--card-foreground": "195 22% 92%", "--card-border": "200 26% 15%",
+      "--popover": "200 32% 9%", "--popover-foreground": "195 22% 92%", "--popover-border": "200 26% 15%",
+      "--primary": "199 89% 55%", "--primary-foreground": "0 0% 100%",
+      "--secondary": "200 26% 15%", "--secondary-foreground": "195 22% 92%",
+      "--muted": "200 26% 15%", "--muted-foreground": "195 14% 55%",
+      "--accent": "199 89% 55%", "--accent-foreground": "0 0% 100%",
+      "--border": "200 26% 15%", "--input": "200 26% 15%", "--ring": "199 89% 55%",
+    },
+  },
+  {
+    id: "amber", name: "Золото", emoji: "✨", preview: "#110d02",
+    vars: {
+      "--background": "40 35% 5%", "--foreground": "40 20% 92%",
+      "--card": "40 25% 9%", "--card-foreground": "40 20% 92%", "--card-border": "40 20% 15%",
+      "--popover": "40 25% 9%", "--popover-foreground": "40 20% 92%", "--popover-border": "40 20% 15%",
+      "--primary": "43 96% 52%", "--primary-foreground": "40 35% 5%",
+      "--secondary": "40 20% 15%", "--secondary-foreground": "40 20% 92%",
+      "--muted": "40 20% 15%", "--muted-foreground": "35 12% 56%",
+      "--accent": "43 96% 52%", "--accent-foreground": "40 35% 5%",
+      "--border": "40 20% 15%", "--input": "40 20% 15%", "--ring": "43 96% 52%",
+    },
+  },
+  {
+    id: "crimson", name: "Кровавый", emoji: "🩸", preview: "#110305",
+    vars: {
+      "--background": "0 30% 5%", "--foreground": "0 15% 92%",
+      "--card": "0 22% 9%", "--card-foreground": "0 15% 92%", "--card-border": "0 18% 15%",
+      "--popover": "0 22% 9%", "--popover-foreground": "0 15% 92%", "--popover-border": "0 18% 15%",
+      "--primary": "0 90% 55%", "--primary-foreground": "0 0% 100%",
+      "--secondary": "0 18% 15%", "--secondary-foreground": "0 15% 92%",
+      "--muted": "0 18% 15%", "--muted-foreground": "0 8% 56%",
+      "--accent": "0 90% 55%", "--accent-foreground": "0 0% 100%",
+      "--border": "0 18% 15%", "--input": "0 18% 15%", "--ring": "0 90% 55%",
+    },
+  },
+];
+
+const CSS_VAR_KEYS = [
+  "--background","--foreground","--card","--card-foreground","--card-border",
+  "--popover","--popover-foreground","--popover-border","--primary","--primary-foreground",
+  "--secondary","--secondary-foreground","--muted","--muted-foreground",
+  "--accent","--accent-foreground","--border","--input","--ring",
 ];
 
 function applyPrimeTheme(themeId: string) {
   const theme = PRIME_THEMES.find(t => t.id === themeId);
+  CSS_VAR_KEYS.forEach(k => document.documentElement.style.removeProperty(k));
   if (theme) {
-    document.documentElement.style.setProperty("--primary", theme.primary);
-    document.documentElement.style.setProperty("--ring", theme.primary);
-  } else {
-    document.documentElement.style.removeProperty("--primary");
-    document.documentElement.style.removeProperty("--ring");
+    Object.entries(theme.vars).forEach(([k, v]) => document.documentElement.style.setProperty(k, v));
   }
 }
 
