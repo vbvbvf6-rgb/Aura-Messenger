@@ -5,6 +5,7 @@ export const botTokensTable = pgTable("bot_tokens", {
   ownerUserId: integer("owner_user_id").notNull(),
   botUserId: integer("bot_user_id").notNull(),
   token: text("token").notNull().unique(),
+  inlineCode: text("inline_code"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

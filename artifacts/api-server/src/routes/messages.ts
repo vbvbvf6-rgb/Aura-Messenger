@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { db, messagesTable, reactionsTable, usersTable, chatMembersTable, chatsTable } from "@workspace/db";
 import { eq, and, lt, desc, sql, lte } from "drizzle-orm";
+import { spawn } from "node:child_process";
 import { broadcastToChat, broadcastToUser } from "../lib/sse";
 import { SendMessageBody, EditMessageBody, AddReactionBody } from "@workspace/api-zod";
 
@@ -193,8 +194,9 @@ router.post("/messages", async (req, res) => {
           if (!bot) return;
 
           // Route to user-created bot via update queue
-          const tokenRow = await db.execute(sql`SELECT id FROM bot_tokens WHERE bot_user_id = ${bot.id}`);
+          const tokenRow = await db.execute(sql`SELECT id, inline_code FROM bot_tokens WHERE bot_user_id = ${bot.id}`);
           if ((tokenRow.rows as any[]).length > 0) {
+            const { inline_code } = tokenRow.rows[0] as any;
             const countRow = await db.execute(sql`SELECT COALESCE(MAX(update_id),0) as mx FROM bot_updates WHERE bot_user_id = ${bot.id}`);
             const nextId = Number((countRow.rows[0] as any)?.mx ?? 0) + 1;
             const senderRow = await db.execute(sql`SELECT id, username, display_name FROM users WHERE id = ${uid}`);
@@ -211,7 +213,54 @@ router.post("/messages", async (req, res) => {
               }
             };
             await db.execute(sql`INSERT INTO bot_updates (bot_user_id, update_id, payload) VALUES (${bot.id}, ${nextId}, ${JSON.stringify(payload)})`);
-            // Deliver to webhook if configured
+
+            // ── Inline Python execution ─────────────────────────────────
+            if (inline_code && typeof inline_code === "string" && inline_code.trim()) {
+              const harness = `import sys as _sys, json as _json
+_upd = _json.loads(_sys.stdin.read())
+message = _upd.get('message', {})
+text = message.get('text', '')
+chat_id = message.get('chat', {}).get('id', 0)
+sender = message.get('from', {})
+${inline_code}
+`;
+              const pyReply = await new Promise<string | null>((resolve) => {
+                let out = "";
+                let killed = false;
+                const py = spawn("python3", ["-c", harness]);
+                const timer = setTimeout(() => {
+                  killed = true;
+                  py.kill("SIGKILL");
+                  resolve(null);
+                }, 10000);
+                py.stdout.on("data", (d: Buffer) => { out += d.toString(); });
+                py.on("close", () => {
+                  if (!killed) {
+                    clearTimeout(timer);
+                    resolve(out.trim() || null);
+                  }
+                });
+                py.on("error", () => { clearTimeout(timer); resolve(null); });
+                try {
+                  py.stdin.write(JSON.stringify(payload));
+                  py.stdin.end();
+                } catch {}
+              });
+
+              if (pyReply) {
+                await new Promise(r => setTimeout(r, 300 + Math.random() * 500));
+                const [botMsg] = await db.insert(messagesTable).values({
+                  chatId: body.chatId,
+                  senderId: bot.id,
+                  text: pyReply,
+                  type: "text",
+                }).returning();
+                broadcastToChat(body.chatId, "new-message", { messageId: botMsg.id, chatId: body.chatId });
+              }
+              return;
+            }
+
+            // ── Webhook delivery (if no inline code) ────────────────────
             const wh = await db.execute(sql`SELECT url, secret_token FROM bot_webhooks WHERE bot_user_id = ${bot.id}`);
             if ((wh.rows as any[]).length > 0) {
               const { url, secret_token } = wh.rows[0] as any;

@@ -2,8 +2,9 @@ import React, { useState, useRef, useCallback } from "react";
 import { useGetChats, Chat } from "@workspace/api-client-react";
 import { formatDistanceToNow } from "date-fns";
 import { ru } from "date-fns/locale";
-import { Search, Pin, VolumeX, Users, Radio, Bot, HeadphonesIcon, Menu,
+import { Search, Pin, VolumeX, Users, Radio, Bot, HeadphonesIcon, Bug, Menu,
   SquarePen, Users2, Megaphone, X, ChevronRight, Check, UserPlus, ArrowLeft } from "lucide-react";
+import { useLocation } from "wouter";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAppContext } from "@/contexts/AppContext";
@@ -126,6 +127,7 @@ interface UserResult {
 export function ChatList({ onMenuClick }: { onMenuClick?: () => void }) {
   const { selectedChatId, setSelectedChatId, typingByChat } = useAppContext();
   const { t, lang } = useLanguage();
+  const [, navigate] = useLocation();
   const { data: chats, isLoading } = useGetChats();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -332,23 +334,40 @@ export function ChatList({ onMenuClick }: { onMenuClick?: () => void }) {
       </div>
 
       <div className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-thin">
-        {/* Support chat shortcut */}
+        {/* Support + Report Bug shortcuts */}
         {!search && folder === "all" && (
-          <button
-            onClick={openSupportChat}
-            className="w-full flex items-center gap-3 px-4 py-3 transition-colors text-left hover:bg-secondary border-b border-border/50"
-          >
-            <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-              <HeadphonesIcon size={22} className="text-primary" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex justify-between items-baseline mb-0.5">
-                <h3 className="font-semibold text-sm text-foreground">Поддержка</h3>
-                <span className="text-xs text-muted-foreground shrink-0">ИИ</span>
+          <>
+            <button
+              onClick={() => navigate("/support")}
+              className="w-full flex items-center gap-3 px-4 py-3 transition-colors text-left hover:bg-secondary"
+            >
+              <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                <HeadphonesIcon size={22} className="text-primary" />
               </div>
-              <p className="text-xs text-muted-foreground truncate">Задайте вопрос ИИ-помощнику</p>
-            </div>
-          </button>
+              <div className="flex-1 min-w-0">
+                <div className="flex justify-between items-baseline mb-0.5">
+                  <h3 className="font-semibold text-sm text-foreground">Поддержка</h3>
+                  <span className="text-xs text-muted-foreground shrink-0">24/7</span>
+                </div>
+                <p className="text-xs text-muted-foreground truncate">Связаться с командой поддержки</p>
+              </div>
+            </button>
+            <button
+              onClick={() => navigate("/support?tab=bugs")}
+              className="w-full flex items-center gap-3 px-4 py-3 transition-colors text-left hover:bg-secondary border-b border-border/50"
+            >
+              <div className="w-12 h-12 rounded-full bg-red-500/10 flex items-center justify-center shrink-0">
+                <Bug size={22} className="text-red-400" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex justify-between items-baseline mb-0.5">
+                  <h3 className="font-semibold text-sm text-foreground">Сообщить об ошибке</h3>
+                  <span className="text-xs text-muted-foreground shrink-0">Баг</span>
+                </div>
+                <p className="text-xs text-muted-foreground truncate">Нашли баг? Помогите нам его исправить</p>
+              </div>
+            </button>
+          </>
         )}
 
         {isLoading ? (

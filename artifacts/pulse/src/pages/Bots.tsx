@@ -48,6 +48,7 @@ interface BotRecord {
   avatar_url: string | null;
   token: string;
   webhook_url: string | null;
+  inline_code: string | null;
   created_at: string;
 }
 
@@ -683,6 +684,9 @@ export default function Bots() {
   const [editName, setEditName] = useState("");
   const [editDesc, setEditDesc] = useState("");
   const [uploadingAvatar, setUploadingAvatar] = useState<number | null>(null);
+  const [codeBot, setCodeBot] = useState<BotRecord | null>(null);
+  const [codeText, setCodeText] = useState("");
+  const [savingCode, setSavingCode] = useState(false);
   const [activeExample, setActiveExample] = useState<keyof typeof EXAMPLES>("echo");
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const avatarUploadBotRef = useRef<number | null>(null);
@@ -802,6 +806,29 @@ export default function Bots() {
     }
     setUploadingAvatar(null);
     e.target.value = "";
+  };
+
+  const handleSaveCode = async () => {
+    if (!codeBot) return;
+    setSavingCode(true);
+    try {
+      const res = await fetch(`/api/bots/${codeBot.bot_user_id}/code`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", ...getUserIdHeader() },
+        body: JSON.stringify({ code: codeText }),
+      });
+      if (res.ok) {
+        setBots(prev => prev.map(b => b.bot_user_id === codeBot.bot_user_id ? { ...b, inline_code: codeText.trim() || null } : b));
+        toast({ title: "Код сохранён", description: codeText.trim() ? "Бот будет выполнять этот код при получении сообщений" : "Встроенный код удалён" });
+        setCodeBot(null);
+      } else {
+        const d = await res.json();
+        toast({ title: "Ошибка", description: d.error, variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Ошибка сети", variant: "destructive" });
+    }
+    setSavingCode(false);
   };
 
   const handleStartChat = async (bot: BotRecord) => {
@@ -1023,12 +1050,26 @@ export default function Bots() {
                                 </button>
                               </div>
 
+                              {/* Inline code status */}
+                              {bot.inline_code && (
+                                <div className="flex items-center gap-2 px-3 py-2 bg-emerald-500/10 border border-emerald-500/20 rounded-xl">
+                                  <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+                                  <span className="text-xs text-emerald-400 font-medium">Встроенный Python-код активен — бот отвечает на сервере</span>
+                                </div>
+                              )}
+
                               <div className="flex flex-wrap gap-2 pt-1">
                                 <button onClick={() => handleStartChat(bot)} className="flex items-center gap-2 px-4 py-2.5 bg-primary/10 hover:bg-primary/15 border border-primary/20 rounded-xl text-sm font-medium text-primary transition-colors">
                                   <MessageCircle size={14} /> Написать
                                 </button>
                                 <button onClick={() => { setEditBot(bot); setEditName(bot.display_name); setEditDesc(bot.bio || ""); }} className="flex items-center gap-2 px-4 py-2.5 bg-secondary hover:bg-secondary/70 rounded-xl text-sm font-medium text-foreground transition-colors">
                                   <Pencil size={14} /> Изменить
+                                </button>
+                                <button
+                                  onClick={() => { setCodeBot(bot); setCodeText(bot.inline_code || ""); }}
+                                  className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${bot.inline_code ? "bg-emerald-500/10 hover:bg-emerald-500/15 border border-emerald-500/20 text-emerald-400" : "bg-violet-500/10 hover:bg-violet-500/15 border border-violet-500/20 text-violet-400"}`}
+                                >
+                                  <Code2 size={14} /> {bot.inline_code ? "Изменить код" : "Встроенный код"}
                                 </button>
                                 <button onClick={() => handleRegenerate(bot)} disabled={regenerating === bot.bot_user_id} className="flex items-center gap-2 px-4 py-2.5 bg-amber-500/10 hover:bg-amber-500/15 border border-amber-500/20 rounded-xl text-sm font-medium text-amber-400 transition-colors disabled:opacity-50">
                                   <RefreshCw size={14} className={regenerating === bot.bot_user_id ? "animate-spin" : ""} /> Новый токен
@@ -1329,6 +1370,69 @@ if __name__ == "__main__":
                   className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-violet-500 to-indigo-600 text-white text-sm font-bold hover:opacity-90 transition-all disabled:opacity-50"
                 >
                   {creating ? "Создаём..." : "Создать бота"}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Inline Code Editor Modal */}
+      <AnimatePresence>
+        {codeBot && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-end sm:items-center justify-center p-4"
+            onClick={e => { if (e.target === e.currentTarget) setCodeBot(null); }}
+          >
+            <motion.div initial={{ y: 40, opacity: 0, scale: 0.97 }} animate={{ y: 0, opacity: 1, scale: 1 }} exit={{ y: 20, opacity: 0 }}
+              className="bg-card rounded-2xl border border-border w-full max-w-2xl flex flex-col max-h-[90vh]"
+            >
+              <div className="flex items-center justify-between p-5 border-b border-border shrink-0">
+                <div>
+                  <h2 className="font-bold text-foreground flex items-center gap-2">
+                    <Code2 size={17} className="text-violet-400" /> Встроенный Python-код — @{codeBot.username}
+                  </h2>
+                  <p className="text-xs text-muted-foreground mt-0.5">Код выполняется на сервере при каждом входящем сообщении. Используйте <code className="font-mono text-emerald-400">print()</code> для отправки ответа.</p>
+                </div>
+                <button onClick={() => setCodeBot(null)} className="p-2 hover:bg-secondary rounded-xl transition-colors shrink-0"><X size={16} /></button>
+              </div>
+
+              <div className="p-4 bg-[#0d1117] border-b border-border/50 shrink-0">
+                <p className="text-xs text-white/40 font-mono mb-1"># Доступные переменные:</p>
+                <p className="text-xs font-mono"><span className="text-blue-400">text</span> <span className="text-white/40">=</span> <span className="text-amber-300">"текст сообщения"</span> <span className="text-white/30">  # str</span></p>
+                <p className="text-xs font-mono"><span className="text-blue-400">chat_id</span> <span className="text-white/40">=</span> <span className="text-green-300">42</span> <span className="text-white/30">  # int — id чата</span></p>
+                <p className="text-xs font-mono"><span className="text-blue-400">sender</span> <span className="text-white/40">=</span> <span className="text-white/60">{"{"}"id": 1, "username": "user"{"}"}</span> <span className="text-white/30">  # dict</span></p>
+                <p className="text-xs font-mono mt-1"><span className="text-purple-400">print</span><span className="text-white/60">(</span><span className="text-amber-300">"ответ"</span><span className="text-white/60">)</span> <span className="text-white/30">  # отправит это как ответ бота</span></p>
+              </div>
+
+              <div className="flex-1 overflow-hidden">
+                <textarea
+                  value={codeText}
+                  onChange={e => setCodeText(e.target.value)}
+                  spellCheck={false}
+                  placeholder={`# Пример: эхо-бот\nif text:\n    print(f"Вы написали: {text}")\nelse:\n    print("Привет! Напишите что-нибудь.")`}
+                  className="w-full h-64 bg-[#0d1117] text-green-300 font-mono text-sm p-4 focus:outline-none resize-none leading-relaxed placeholder:text-white/20"
+                />
+              </div>
+
+              <div className="flex gap-2 p-4 border-t border-border shrink-0">
+                {codeText.trim() && (
+                  <button
+                    onClick={() => setCodeText("")}
+                    className="px-4 py-2.5 rounded-xl border border-destructive/30 text-destructive text-sm font-medium hover:bg-destructive/10 transition-colors"
+                  >
+                    Удалить код
+                  </button>
+                )}
+                <button onClick={() => setCodeBot(null)} className="flex-1 py-2.5 rounded-xl border border-border text-sm font-medium text-muted-foreground hover:bg-secondary transition-colors">
+                  Отмена
+                </button>
+                <button
+                  onClick={handleSaveCode}
+                  disabled={savingCode}
+                  className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-violet-500 to-indigo-600 text-white text-sm font-bold hover:opacity-90 transition-all disabled:opacity-50"
+                >
+                  {savingCode ? "Сохраняем..." : "Сохранить и активировать"}
                 </button>
               </div>
             </motion.div>

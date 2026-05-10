@@ -5,6 +5,7 @@ import {
   CheckCircle2, Clock, X, RefreshCw, AlertCircle, Inbox, Crown, Zap
 } from "lucide-react";
 import { useGetMe } from "@workspace/api-client-react";
+import { useSearch } from "wouter";
 
 const getCurrentUserId = () => Number(localStorage.getItem("pulse-user-id") || "0");
 function getHeader(): Record<string, string> {
@@ -474,7 +475,10 @@ function SupportTickets() {
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function Support() {
-  const [tab, setTab] = useState<"bugs" | "tickets">("tickets");
+  const search = useSearch();
+  const params = new URLSearchParams(search);
+  const initialTab = params.get("tab") === "bugs" ? "bugs" : "tickets";
+  const [tab, setTab] = useState<"bugs" | "tickets">(initialTab);
   const { data: me } = useGetMe();
   const hasPrime = (me as any)?.hasPrime ?? false;
 

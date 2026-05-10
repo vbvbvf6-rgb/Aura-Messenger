@@ -22,7 +22,6 @@ import {
   Check,
   ChevronRight,
   Trash2,
-  Headphones,
   Bot,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -128,7 +127,6 @@ export function Sidebar({ mobileSidebarOpen, onMobileClose, onMobileOpen }: Side
     { href: "/bots",     icon: Bot,           label: "Боты" },
     { href: "/profile",  icon: UserCircle,    label: t("nav.profile") },
     { href: "/settings", icon: Settings,      label: t("nav.settings") },
-    { href: "/support",  icon: Headphones,    label: "Поддержка" },
   ];
 
   const AccountsSection = (
