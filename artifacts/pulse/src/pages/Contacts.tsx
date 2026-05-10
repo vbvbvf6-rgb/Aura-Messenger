@@ -119,18 +119,20 @@ export default function Contacts() {
               const isContact = contacts?.some(c => c.id === user.id) ?? false;
               return (
                 <div key={user.id} className="flex items-center gap-4 p-4 rounded-xl border border-border bg-card/50 hover:bg-card transition-colors group">
-                  <button
-                    onClick={() => setLocation(`/user/${user.id}`)}
-                    className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg overflow-hidden shrink-0 relative hover:opacity-90 transition-opacity"
-                    style={{ backgroundColor: user.avatarColor || "#333" }}
-                  >
-                    {user.avatarUrl ? (
-                      <img src={user.avatarUrl} alt={user.displayName} className="w-full h-full object-cover" />
-                    ) : (
-                      user.displayName[0].toUpperCase()
-                    )}
-                    <div className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-card ${user.status === "online" ? "bg-green-500" : user.status === "away" ? "bg-yellow-500" : "bg-gray-500"}`} />
-                  </button>
+                  <div className="relative shrink-0">
+                    <button
+                      onClick={() => setLocation(`/user/${user.id}`)}
+                      className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg overflow-hidden hover:opacity-90 transition-opacity"
+                      style={{ backgroundColor: user.avatarColor || "#333" }}
+                    >
+                      {user.avatarUrl ? (
+                        <img src={user.avatarUrl} alt={user.displayName} className="w-full h-full object-cover" />
+                      ) : (
+                        user.displayName[0].toUpperCase()
+                      )}
+                    </button>
+                    <span className={`absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-card z-10 ${user.status === "online" ? "bg-green-500" : user.status === "away" ? "bg-yellow-500" : "bg-gray-500"}`} />
+                  </div>
 
                   <button
                     onClick={() => setLocation(`/user/${user.id}`)}
