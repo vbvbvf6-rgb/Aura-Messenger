@@ -89,33 +89,14 @@ export default function Login({ onLogin }: LoginProps) {
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4 relative overflow-hidden">
-      {/* Animated background orbs */}
-      <motion.div
-        animate={{ x: [0, 30, 0], y: [0, -20, 0] }}
-        transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
-        className="absolute top-[-15%] left-[-10%] w-[55%] h-[55%] rounded-full blur-[140px] opacity-50"
+      {/* Static background orbs — no animation to keep performance smooth */}
+      <div
+        className="absolute top-[-15%] left-[-10%] w-[55%] h-[55%] rounded-full blur-[120px] opacity-40 pointer-events-none"
         style={{ background: "radial-gradient(circle, hsl(16 100% 50% / 0.18), transparent 70%)" }}
       />
-      <motion.div
-        animate={{ x: [0, -20, 0], y: [0, 25, 0] }}
-        transition={{ duration: 10, repeat: Infinity, ease: "easeInOut", delay: 2 }}
-        className="absolute bottom-[-15%] right-[-10%] w-[55%] h-[55%] rounded-full blur-[140px] opacity-40"
-        style={{ background: "radial-gradient(circle, hsl(30 100% 45% / 0.15), transparent 70%)" }}
-      />
-      <motion.div
-        animate={{ scale: [1, 1.1, 1], opacity: [0.3, 0.5, 0.3] }}
-        transition={{ duration: 6, repeat: Infinity, ease: "easeInOut", delay: 1 }}
-        className="absolute top-[40%] right-[20%] w-[30%] h-[30%] rounded-full blur-[100px]"
-        style={{ background: "radial-gradient(circle, hsl(280 80% 60% / 0.08), transparent 70%)" }}
-      />
-
-      {/* Subtle grid overlay */}
       <div
-        className="absolute inset-0 opacity-[0.015]"
-        style={{
-          backgroundImage: "linear-gradient(hsl(var(--foreground)) 1px, transparent 1px), linear-gradient(90deg, hsl(var(--foreground)) 1px, transparent 1px)",
-          backgroundSize: "60px 60px",
-        }}
+        className="absolute bottom-[-15%] right-[-10%] w-[55%] h-[55%] rounded-full blur-[120px] opacity-30 pointer-events-none"
+        style={{ background: "radial-gradient(circle, hsl(30 100% 45% / 0.15), transparent 70%)" }}
       />
 
       <motion.div
