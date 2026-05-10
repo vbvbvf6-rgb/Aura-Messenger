@@ -162,12 +162,51 @@ function FloatingParticles({ shimmer }: { shimmer: string }) {
   );
 }
 
-function GiftEmoji({ emoji, animationType, size = 64 }: {
+const GIFT_IMAGE_MAP: Record<string, string> = {
+  "Сердечко":       "/gifts/heart.png",
+  "Звёздочка":      "/gifts/star-42.png",
+  "Цветок сакуры":  "/gifts/sakura.png",
+  "Пончик":         "/gifts/donut.png",
+  "Котёнок":        "/gifts/kitten.png",
+  "Воздушный шар":  "/gifts/balloon.png",
+  "Четырёхлистник": "/gifts/clover.png",
+  "Пицца":          "/gifts/pizza.png",
+  "Торт":           "/gifts/birthday-cake.png",
+  "Луна":           "/gifts/moon.png",
+  "Корона":         "/gifts/crown.png",
+  "Корона Prime":   "/gifts/crown.png",
+  "Красная роза":   "/gifts/rose-in-glass.png",
+  "Бриллиант":      "/gifts/diamond-heart.png",
+  "Волшебство":     "/gifts/magic-crystal.png",
+  "Кристалл":       "/gifts/magic-crystal.png",
+  "Пульс":          "/gifts/confetti-box.png",
+  "Медведь":        "/gifts/teddy-bear.png",
+};
+
+function GiftVisual({ name, emoji, animationType, size = 64 }: {
+  name: string;
   emoji: string;
   animationType: string;
   size?: number;
 }) {
+  const imgSrc = GIFT_IMAGE_MAP[name];
   const anim = getEmojiAnimation(animationType);
+  if (imgSrc) {
+    return (
+      <motion.div
+        style={{ width: size, height: size }}
+        className="flex items-center justify-center"
+        {...(anim as any)}
+      >
+        <img
+          src={imgSrc}
+          alt={name}
+          style={{ width: size, height: size, objectFit: "contain", filter: `drop-shadow(0 ${Math.round(size * 0.06)}px ${Math.round(size * 0.18)}px rgba(0,0,0,0.45))` }}
+          draggable={false}
+        />
+      </motion.div>
+    );
+  }
   return (
     <motion.span
       className="select-none block leading-none"
@@ -216,7 +255,7 @@ function GiftCard({ item, onClick, hasPrime }: { item: GiftItem; onClick: () => 
         <div className="relative p-4 flex flex-col items-center text-center gap-2.5 min-h-[168px] justify-center">
           {hovered && isHighRarity && !isLocked && <FloatingParticles shimmer={cfg.shimmer} />}
           <div className="flex items-center justify-center" style={{ width: 72, height: 72 }}>
-            <GiftEmoji emoji={item.emoji} animationType={item.animationType} size={72} />
+            <GiftVisual name={item.name} emoji={item.emoji} animationType={item.animationType} size={72} />
           </div>
           <div>
             <h3 className="font-semibold text-sm leading-tight text-foreground">{item.name}</h3>
@@ -296,7 +335,7 @@ function CelebrationOverlay({ animationType, giftName, emoji, onDone }: { animat
       >
         <div className="bg-black/60 backdrop-blur-xl rounded-3xl p-8 border border-white/10 flex flex-col items-center">
           <div className="mb-4 flex items-center justify-center" style={{ width: 96, height: 96 }}>
-            <GiftEmoji emoji={emoji} animationType={animationType} size={96} />
+            <GiftVisual name={giftName} emoji={emoji} animationType={animationType} size={96} />
           </div>
           <div className="text-2xl font-black text-white">Подарок отправлен!</div>
           <div className="text-sm text-white/60 mt-1">{giftName} улетел к получателю ✨</div>
@@ -559,7 +598,8 @@ export default function Gifts() {
                       <div className={`absolute inset-0 bg-gradient-to-br ${cfg.cardBg} pointer-events-none`} />
                       <div className="relative bg-card/80 rounded-2xl p-4 flex items-center gap-4">
                         <div className="shrink-0 flex items-center justify-center" style={{ width: 52, height: 52 }}>
-                          <GiftEmoji
+                          <GiftVisual
+                            name={gift.giftItem?.name || ""}
                             emoji={gift.giftItem?.emoji || "🎁"}
                             animationType={gift.giftItem?.animationType || "sparkle"}
                             size={52}
@@ -600,7 +640,8 @@ export default function Gifts() {
                       <div className={`absolute inset-0 bg-gradient-to-br ${cfg.cardBg} pointer-events-none`} />
                       <div className="relative bg-card/80 rounded-2xl p-4 flex items-center gap-4">
                         <div className="shrink-0 flex items-center justify-center" style={{ width: 52, height: 52 }}>
-                          <GiftEmoji
+                          <GiftVisual
+                            name={gift.giftItem?.name || ""}
                             emoji={gift.giftItem?.emoji || "🎁"}
                             animationType={gift.giftItem?.animationType || "sparkle"}
                             size={52}
@@ -640,7 +681,8 @@ export default function Gifts() {
                   <div className={`absolute inset-0 bg-gradient-to-br ${getRarityColor(selectedGift.rarity).cardBg} pointer-events-none rounded-3xl`} />
                   <div className="relative bg-[hsl(222,47%,13%)] rounded-3xl p-5 flex flex-col items-center text-center">
                     <div className="mb-4 flex items-center justify-center" style={{ width: 96, height: 96 }}>
-                      <GiftEmoji
+                      <GiftVisual
+                        name={selectedGift.name}
                         emoji={selectedGift.emoji}
                         animationType={selectedGift.animationType}
                         size={96}

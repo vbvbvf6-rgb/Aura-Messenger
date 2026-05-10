@@ -51,6 +51,32 @@ interface GiftItem {
   primeOnly: boolean;
 }
 
+const ADMIN_GIFT_IMAGE_MAP: Record<string, string> = {
+  "Сердечко":       "/gifts/heart.png",
+  "Звёздочка":      "/gifts/star-42.png",
+  "Цветок сакуры":  "/gifts/sakura.png",
+  "Пончик":         "/gifts/donut.png",
+  "Котёнок":        "/gifts/kitten.png",
+  "Воздушный шар":  "/gifts/balloon.png",
+  "Четырёхлистник": "/gifts/clover.png",
+  "Пицца":          "/gifts/pizza.png",
+  "Торт":           "/gifts/birthday-cake.png",
+  "Луна":           "/gifts/moon.png",
+  "Корона":         "/gifts/crown.png",
+  "Корона Prime":   "/gifts/crown.png",
+  "Красная роза":   "/gifts/rose-in-glass.png",
+  "Бриллиант":      "/gifts/diamond-heart.png",
+  "Волшебство":     "/gifts/magic-crystal.png",
+  "Кристалл":       "/gifts/magic-crystal.png",
+  "Пульс":          "/gifts/confetti-box.png",
+};
+
+function AdminGiftThumb({ name, emoji, size = 40 }: { name: string; emoji: string; size?: number }) {
+  const src = ADMIN_GIFT_IMAGE_MAP[name];
+  if (src) return <img src={src} alt={name} style={{ width: size, height: size, objectFit: "contain" }} draggable={false} />;
+  return <span style={{ fontSize: size * 0.78, lineHeight: 1 }}>{emoji}</span>;
+}
+
 interface AdminPost {
   id: number;
   text: string;
@@ -1629,53 +1655,95 @@ export default function Admin() {
                   {/* Gifts tab */}
                   {activeTab === "gifts" && (
                     <div className="space-y-4">
-                      <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Выберите подарок для @{selectedUser.username}</p>
-                      {giftItemsLoading ? (
-                        <div className="grid grid-cols-4 gap-2">
-                          {Array.from({ length: 8 }).map((_, i) => (
-                            <div key={i} className="aspect-square rounded-xl bg-secondary/50 animate-pulse" />
+                      {/* Gift Prime Subscription */}
+                      <div className="rounded-2xl border border-amber-500/30 bg-gradient-to-br from-amber-500/10 via-yellow-400/5 to-orange-500/10 overflow-hidden">
+                        <div className="flex items-center gap-3 px-4 pt-4 pb-2">
+                          <Crown size={18} className="text-amber-400 shrink-0" />
+                          <div>
+                            <p className="text-sm font-bold text-amber-300">Подарить подписку Prime</p>
+                            <p className="text-[10px] text-amber-400/70">Выдаётся без оплаты — административно</p>
+                          </div>
+                        </div>
+                        <div className="px-4 pb-4 grid grid-cols-4 gap-2">
+                          {([1, 3, 6, 12] as const).map(months => (
+                            <motion.button
+                              key={months}
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
+                              onClick={() => handleTogglePrime(true, months)}
+                              disabled={primeLoading || !!selectedUser.has_prime}
+                              className="flex flex-col items-center gap-1 p-2.5 rounded-xl border border-amber-500/30 bg-amber-500/5 hover:bg-amber-500/15 transition-all disabled:opacity-40"
+                            >
+                              <img src="/gifts/crown.png" alt="crown" className="w-8 h-8 object-contain" draggable={false} />
+                              <span className="text-[10px] font-black text-amber-300">{months} мес.</span>
+                            </motion.button>
                           ))}
                         </div>
-                      ) : giftItems.length === 0 ? (
-                        <p className="text-sm text-muted-foreground text-center py-6">Каталог подарков пуст</p>
-                      ) : (
-                        <div className="grid grid-cols-4 gap-2 max-h-60 overflow-y-auto pr-1">
-                          {giftItems.map(gift => {
-                            const rarityColor =
-                              gift.rarity === "legendary" ? "border-amber-500/60 bg-amber-500/10" :
-                              gift.rarity === "epic" ? "border-purple-500/60 bg-purple-500/10" :
-                              gift.rarity === "rare" ? "border-blue-500/60 bg-blue-500/10" :
-                              "border-border bg-secondary/30";
-                            const isSelected = selectedGiftId === gift.id;
-                            return (
-                              <motion.button
-                                key={gift.id}
-                                whileHover={{ scale: 1.06 }}
-                                whileTap={{ scale: 0.94 }}
-                                onClick={() => setSelectedGiftId(isSelected ? null : gift.id)}
-                                className={`flex flex-col items-center gap-1 p-2 rounded-xl border-2 transition-all ${isSelected ? "border-primary bg-primary/10 ring-2 ring-primary/30" : rarityColor}`}
-                                title={gift.name}
-                              >
-                                <span className="text-2xl leading-none">{gift.emoji}</span>
-                                <span className="text-[9px] text-muted-foreground font-medium truncate w-full text-center leading-tight">{gift.name}</span>
-                                <span className="text-[8px] font-black text-primary">⭐ {gift.stars}</span>
-                              </motion.button>
-                            );
-                          })}
-                        </div>
-                      )}
+                        {selectedUser.has_prime && (
+                          <p className="text-center text-[10px] text-amber-400/60 pb-3">Prime уже активна у этого пользователя</p>
+                        )}
+                      </div>
+
+                      {/* Gift Catalog */}
+                      <div>
+                        <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">Выбрать подарок из каталога</p>
+                        {giftItemsLoading ? (
+                          <div className="grid grid-cols-3 gap-2">
+                            {Array.from({ length: 9 }).map((_, i) => (
+                              <div key={i} className="h-24 rounded-xl bg-secondary/50 animate-pulse" />
+                            ))}
+                          </div>
+                        ) : giftItems.length === 0 ? (
+                          <p className="text-sm text-muted-foreground text-center py-6">Каталог подарков пуст</p>
+                        ) : (
+                          <div className="grid grid-cols-3 gap-2 max-h-64 overflow-y-auto pr-1">
+                            {giftItems.map(gift => {
+                              const rarityBorder =
+                                gift.rarity === "cosmic" ? "border-violet-500/50 bg-violet-500/8" :
+                                gift.rarity === "legendary" ? "border-amber-500/50 bg-amber-500/8" :
+                                gift.rarity === "epic" ? "border-purple-500/50 bg-purple-500/8" :
+                                gift.rarity === "rare" ? "border-blue-500/40 bg-blue-500/6" :
+                                "border-border/60 bg-secondary/20";
+                              const isSelected = selectedGiftId === gift.id;
+                              return (
+                                <motion.button
+                                  key={gift.id}
+                                  whileHover={{ scale: 1.04, y: -2 }}
+                                  whileTap={{ scale: 0.95 }}
+                                  onClick={() => setSelectedGiftId(isSelected ? null : gift.id)}
+                                  className={`relative flex flex-col items-center gap-1.5 p-2.5 rounded-xl border-2 transition-all ${isSelected ? "border-primary bg-primary/10 ring-2 ring-primary/25 shadow-lg shadow-primary/20" : rarityBorder}`}
+                                  title={gift.name}
+                                >
+                                  <div className="w-10 h-10 flex items-center justify-center">
+                                    <AdminGiftThumb name={gift.name} emoji={gift.emoji} size={40} />
+                                  </div>
+                                  <span className="text-[9px] text-foreground/80 font-semibold truncate w-full text-center leading-tight">{gift.name}</span>
+                                  <span className="text-[8px] font-black text-yellow-400">⭐ {gift.stars}</span>
+                                  {isSelected && (
+                                    <div className="absolute top-1 right-1 w-3.5 h-3.5 rounded-full bg-primary flex items-center justify-center">
+                                      <svg width="8" height="8" viewBox="0 0 8 8" fill="none"><path d="M1.5 4l1.8 1.8L6.5 2.5" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                                    </div>
+                                  )}
+                                </motion.button>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
 
                       {selectedGiftId && (
                         <motion.div
                           initial={{ opacity: 0, y: 6 }}
                           animate={{ opacity: 1, y: 0 }}
-                          className="space-y-3"
+                          className="space-y-3 pt-1"
                         >
                           {(() => {
                             const g = giftItems.find(x => x.id === selectedGiftId);
                             return g ? (
-                              <div className="flex items-center gap-2 p-2.5 rounded-xl bg-primary/5 border border-primary/20">
-                                <span className="text-2xl">{g.emoji}</span>
+                              <div className="flex items-center gap-3 p-3 rounded-xl bg-primary/5 border border-primary/20">
+                                <div className="w-10 h-10 flex items-center justify-center shrink-0">
+                                  <AdminGiftThumb name={g.name} emoji={g.emoji} size={40} />
+                                </div>
                                 <div>
                                   <p className="text-sm font-bold">{g.name}</p>
                                   <p className="text-[10px] text-muted-foreground capitalize">{g.rarity} · ⭐ {g.stars}</p>
@@ -1706,7 +1774,7 @@ export default function Admin() {
                             className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-bold text-sm hover:bg-primary/90 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
                           >
                             <Gift size={16} />
-                            {giftLoading ? "Отправляем..." : `Подарить ${giftItems.find(x => x.id === selectedGiftId)?.emoji || ""} @${selectedUser.username}`}
+                            {giftLoading ? "Отправляем..." : `Подарить @${selectedUser.username}`}
                           </motion.button>
                         </motion.div>
                       )}
