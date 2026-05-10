@@ -1,61 +1,149 @@
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Phone, PhoneOff, Video } from "lucide-react";
 import { useAppContext } from "@/contexts/AppContext";
 
 export function IncomingCall() {
   const { activeCall, currentUserId, acceptCall, declineCall } = useAppContext();
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  if (!activeCall || activeCall.status !== "ringing" || activeCall.callerId === currentUserId) return null;
+  const visible =
+    !!activeCall &&
+    activeCall.status === "ringing" &&
+    activeCall.callerId !== currentUserId;
+
+  /* Play ringtone via oscillator so no file needed */
+  useEffect(() => {
+    if (!visible) return;
+
+    let ctx: AudioContext | null = null;
+    let stopped = false;
+
+    const ring = () => {
+      if (stopped) return;
+      ctx = new AudioContext();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = "sine";
+      osc.frequency.value = 660;
+      gain.gain.value = 0.08;
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.4);
+      osc.onended = () => {
+        ctx?.close();
+        ctx = null;
+        if (!stopped) setTimeout(ring, 1600);
+      };
+    };
+
+    const t = setTimeout(ring, 200);
+    return () => {
+      stopped = true;
+      clearTimeout(t);
+      ctx?.close();
+    };
+  }, [visible]);
+
+  if (!activeCall || !visible) return null;
 
   const isVideo = activeCall.type === "video";
   const caller = activeCall.caller;
+  const avatarBg = caller?.avatarColor || "#444";
 
   return (
     <AnimatePresence>
       <motion.div
-        initial={{ opacity: 0, y: -50 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: -50 }}
-        className="fixed top-6 left-1/2 -translate-x-1/2 z-[60] w-[90%] max-w-md bg-card/95 backdrop-blur-xl border border-border shadow-[0_10px_40px_rgba(0,0,0,0.5)] rounded-3xl overflow-hidden"
+        key="incoming"
+        initial={{ opacity: 0, y: "100%", scale: 0.95 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, y: "100%", scale: 0.95 }}
+        transition={{ type: "spring", stiffness: 380, damping: 32 }}
+        className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[70] w-[92%] max-w-sm"
       >
-        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary to-accent animate-pulse" />
+        <div
+          className="relative rounded-[28px] overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.7)]"
+          style={{
+            background: `linear-gradient(145deg, ${avatarBg}22 0%, #1a1a1a 60%)`,
+            borderTop: `1px solid ${avatarBg}55`,
+            borderLeft: `1px solid ${avatarBg}33`,
+            borderRight: `1px solid ${avatarBg}11`,
+            borderBottom: "1px solid rgba(255,255,255,0.06)",
+          }}
+        >
+          {/* Glow strip */}
+          <div
+            className="absolute top-0 left-0 right-0 h-[2px]"
+            style={{ background: `linear-gradient(90deg, transparent, ${avatarBg}cc, transparent)` }}
+          />
 
-        <div className="p-6 flex flex-col items-center text-center">
-          <div className="relative mb-4">
-            <div className="absolute inset-0 bg-primary/20 rounded-full animate-ping" />
-            <div
-              className="w-20 h-20 rounded-full flex items-center justify-center text-white font-bold text-2xl relative z-10 shadow-lg border-2 border-background overflow-hidden"
-              style={{ backgroundColor: caller?.avatarColor || "#333" }}
-            >
-              {caller?.avatarUrl ? (
-                <img src={caller.avatarUrl} alt="" className="w-full h-full object-cover" />
-              ) : (
-                caller?.displayName?.[0]?.toUpperCase()
-              )}
+          <div className="px-6 pt-6 pb-5 flex items-center gap-5">
+            {/* Avatar + pulse */}
+            <div className="relative shrink-0">
+              <motion.div
+                className="absolute inset-[-8px] rounded-full"
+                style={{ backgroundColor: avatarBg + "30" }}
+                animate={{ scale: [1, 1.35], opacity: [0.6, 0] }}
+                transition={{ duration: 1.6, repeat: Infinity }}
+              />
+              <motion.div
+                className="absolute inset-[-16px] rounded-full"
+                style={{ backgroundColor: avatarBg + "18" }}
+                animate={{ scale: [1, 1.5], opacity: [0.4, 0] }}
+                transition={{ duration: 1.6, repeat: Infinity, delay: 0.3 }}
+              />
+              <div
+                className="w-[60px] h-[60px] rounded-full flex items-center justify-center text-white font-bold text-2xl relative z-10 overflow-hidden shadow-lg"
+                style={{ backgroundColor: avatarBg }}
+              >
+                {caller?.avatarUrl ? (
+                  <img src={caller.avatarUrl} alt="" className="w-full h-full object-cover" />
+                ) : (
+                  caller?.displayName?.[0]?.toUpperCase() ?? "?"
+                )}
+              </div>
+            </div>
+
+            {/* Text */}
+            <div className="flex-1 min-w-0">
+              <p className="text-white font-bold text-[17px] truncate leading-tight">
+                {caller?.displayName ?? "Неизвестно"}
+              </p>
+              <div className="flex items-center gap-1.5 mt-1">
+                <motion.div
+                  animate={{ opacity: [1, 0.3, 1] }}
+                  transition={{ duration: 1.2, repeat: Infinity }}
+                  className="w-1.5 h-1.5 rounded-full bg-green-400"
+                />
+                <span className="text-white/60 text-[13px]">
+                  {isVideo ? "Входящий видеозвонок" : "Входящий звонок"}
+                </span>
+              </div>
             </div>
           </div>
 
-          <h3 className="text-xl font-bold text-foreground mb-1">{caller?.displayName}</h3>
-          <p className="text-muted-foreground flex items-center justify-center gap-2">
-            {isVideo ? <Video size={16} /> : <Phone size={16} />}
-            {isVideo ? "Входящий видеозвонок..." : "Входящий звонок..."}
-          </p>
+          {/* Buttons */}
+          <div className="flex gap-3 px-6 pb-6">
+            {/* Decline */}
+            <motion.button
+              whileTap={{ scale: 0.9 }}
+              onClick={() => declineCall()}
+              className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-red-500/20 text-red-400 hover:bg-red-500 hover:text-white transition-colors font-semibold text-sm"
+            >
+              <PhoneOff size={18} />
+              Отклонить
+            </motion.button>
 
-          <div className="flex items-center justify-center gap-8 mt-8 w-full">
-            <button onClick={() => declineCall()} className="flex flex-col items-center gap-2 group">
-              <div className="w-14 h-14 rounded-full bg-destructive/10 text-destructive flex items-center justify-center group-hover:bg-destructive group-hover:text-white transition-colors">
-                <PhoneOff size={24} />
-              </div>
-              <span className="text-xs font-medium text-muted-foreground">Отклонить</span>
-            </button>
-
-            <button onClick={() => acceptCall()} className="flex flex-col items-center gap-2 group">
-              <div className="w-14 h-14 rounded-full bg-green-500/10 text-green-500 flex items-center justify-center group-hover:bg-green-500 group-hover:text-white transition-colors shadow-[0_0_15px_rgba(34,197,94,0.3)] animate-pulse">
-                {isVideo ? <Video size={24} /> : <Phone size={24} className="animate-bounce" />}
-              </div>
-              <span className="text-xs font-medium text-muted-foreground">Принять</span>
-            </button>
+            {/* Accept */}
+            <motion.button
+              whileTap={{ scale: 0.9 }}
+              onClick={() => acceptCall()}
+              className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-green-500 text-white hover:bg-green-400 transition-colors font-semibold text-sm shadow-[0_0_20px_rgba(34,197,94,0.4)]"
+            >
+              {isVideo ? <Video size={18} /> : <Phone size={18} />}
+              Принять
+            </motion.button>
           </div>
         </div>
       </motion.div>
