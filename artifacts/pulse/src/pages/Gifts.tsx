@@ -324,6 +324,12 @@ const PRIME_PLANS = [
   { id: "yearly",   months: 12, label: "12 месяцев",emoji: "👑", price: 2388, stars: 2500, badge: "Лучшая цена" },
 ];
 
+const PLUS_GIFT_PLANS = [
+  { id: "monthly",  months: 1,  label: "1 месяц",  emoji: "💎", price: 599,  stars: 1200 },
+  { id: "halfyear", months: 6,  label: "6 месяцев", emoji: "✨", price: 2394, stars: 1800, badge: "Популярное" },
+  { id: "yearly",   months: 12, label: "12 месяцев",emoji: "🔮", price: 3588, stars: 3000, badge: "Лучшая цена" },
+];
+
 function RecipientPicker({ value, onChange, getUserIdHeader }: {
   value: UserSearchResult | null;
   onChange: (u: UserSearchResult | null) => void;
@@ -413,10 +419,13 @@ export default function Gifts() {
   const [isAnonymous, setIsAnonymous] = useState(false);
 
   const [showPrimeDialog, setShowPrimeDialog] = useState(false);
+  const [giftTier, setGiftTier] = useState<"prime" | "prime_plus">("prime");
   const [selectedPlan, setSelectedPlan] = useState(PRIME_PLANS[1]);
   const [primeRecipient, setPrimeRecipient] = useState<UserSearchResult | null>(null);
   const [isSendingPrime, setIsSendingPrime] = useState(false);
   const [primeError, setPrimeError] = useState<string | null>(null);
+
+  const activePlans = giftTier === "prime_plus" ? PLUS_GIFT_PLANS : PRIME_PLANS;
 
   const getUserIdHeader = useCallback((): Record<string, string> => {
     const token = localStorage.getItem("pulse-token");
@@ -490,7 +499,7 @@ export default function Gifts() {
       const res = await fetch("/api/prime/gift", {
         method: "POST",
         headers: { "Content-Type": "application/json", ...getUserIdHeader() },
-        body: JSON.stringify({ planId: selectedPlan.id, recipientId: primeRecipient.id }),
+        body: JSON.stringify({ planId: selectedPlan.id, recipientId: primeRecipient.id, tier: giftTier }),
       });
       const d = await res.json();
       if (!res.ok) { setPrimeError(d.error || "Ошибка"); setIsSendingPrime(false); return; }
@@ -498,7 +507,7 @@ export default function Gifts() {
       setShowPrimeDialog(false);
       setPrimeRecipient(null);
       setCelebrationAnim("stars");
-      setCelebrationGift(`Prime ${selectedPlan.label}`);
+      setCelebrationGift(`${giftTier === "prime_plus" ? "Prime+" : "Prime"} ${selectedPlan.label}`);
       setCelebrationEmoji(selectedPlan.emoji);
       setShowCelebration(true);
     } catch { setPrimeError("Ошибка сервера"); }
@@ -749,21 +758,47 @@ export default function Gifts() {
         {showPrimeDialog && (
           <Dialog open onOpenChange={() => { setShowPrimeDialog(false); setPrimeError(null); }}>
             <DialogContent className="sm:max-w-md border-none bg-transparent shadow-none p-0" aria-describedby={undefined}>
-              <DialogTitle className="sr-only">Подарить Prime</DialogTitle>
+              <DialogTitle className="sr-only">Подарить подписку</DialogTitle>
               <motion.div initial={{ scale: 0.85, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.85, opacity: 0 }} transition={{ type: "spring", stiffness: 300, damping: 25 }}>
-                <div className="rounded-3xl border border-amber-400/30 bg-[hsl(222,47%,10%)] p-5 flex flex-col items-center text-center">
+                <div className={`rounded-3xl border bg-[hsl(222,47%,10%)] p-5 flex flex-col items-center text-center ${giftTier === "prime_plus" ? "border-purple-500/40" : "border-amber-400/30"}`}>
                   <div className="text-5xl mb-3">{selectedPlan.emoji}</div>
-                  <h2 className="text-xl font-black mb-1 text-amber-200">Подарить Prime</h2>
-                  <p className="text-sm text-muted-foreground mb-5">Подписка на <span className="text-amber-300 font-bold">{selectedPlan.label}</span> — {selectedPlan.price} Монет</p>
+                  <h2 className={`text-xl font-black mb-1 ${giftTier === "prime_plus" ? "text-purple-300" : "text-amber-200"}`}>
+                    Подарить {giftTier === "prime_plus" ? "Prime+" : "Prime"}
+                  </h2>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Подписка на <span className={`font-bold ${giftTier === "prime_plus" ? "text-purple-300" : "text-amber-300"}`}>{selectedPlan.label}</span> — {selectedPlan.price} Монет
+                  </p>
+
+                  {/* Tier switcher */}
+                  <div className="flex w-full gap-1.5 mb-4 bg-black/30 p-1 rounded-xl border border-white/5">
+                    <button
+                      onClick={() => { setGiftTier("prime"); setSelectedPlan(PRIME_PLANS[1]); }}
+                      className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${giftTier === "prime" ? "bg-amber-500/20 border border-amber-400/50 text-amber-200" : "text-muted-foreground hover:text-foreground"}`}
+                    >
+                      👑 Prime
+                    </button>
+                    <button
+                      onClick={() => { setGiftTier("prime_plus"); setSelectedPlan(PLUS_GIFT_PLANS[1]); }}
+                      className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${giftTier === "prime_plus" ? "bg-purple-500/20 border border-purple-500/40 text-purple-300" : "text-muted-foreground hover:text-foreground"}`}
+                    >
+                      💎 Prime+
+                    </button>
+                  </div>
 
                   <div className="grid grid-cols-3 gap-2 w-full mb-5">
-                    {PRIME_PLANS.map(plan => (
+                    {activePlans.map(plan => (
                       <button key={plan.id} onClick={() => setSelectedPlan(plan)}
-                        className={`relative flex flex-col items-center gap-1 p-2.5 rounded-xl border transition-all text-xs ${selectedPlan.id === plan.id ? "bg-amber-500/20 border-amber-400/50 text-amber-200" : "bg-card/40 border-border text-muted-foreground hover:border-amber-400/30"}`}>
+                        className={`relative flex flex-col items-center gap-1 p-2.5 rounded-xl border transition-all text-xs ${
+                          selectedPlan.id === plan.id
+                            ? giftTier === "prime_plus"
+                              ? "bg-purple-500/20 border-purple-400/50 text-purple-200"
+                              : "bg-amber-500/20 border-amber-400/50 text-amber-200"
+                            : "bg-card/40 border-border text-muted-foreground hover:border-amber-400/30"
+                        }`}>
                         <span className="text-xl">{plan.emoji}</span>
                         <span className="font-bold">{plan.label}</span>
-                        <span className="text-yellow-400 font-bold">⭐ {plan.stars}</span>
-                        {plan.badge && <span className={`absolute -top-2 left-1/2 -translate-x-1/2 text-[8px] font-black uppercase px-1.5 py-0.5 rounded-full whitespace-nowrap ${plan.id === "yearly" ? "bg-violet-500/80 text-white" : "bg-amber-500/80 text-white"}`}>{plan.badge}</span>}
+                        <span className={`font-bold ${giftTier === "prime_plus" ? "text-purple-400" : "text-yellow-400"}`}>⭐ {plan.stars}</span>
+                        {plan.badge && <span className={`absolute -top-2 left-1/2 -translate-x-1/2 text-[8px] font-black uppercase px-1.5 py-0.5 rounded-full whitespace-nowrap ${plan.id === "yearly" ? "bg-violet-500/80 text-white" : giftTier === "prime_plus" ? "bg-purple-500/80 text-white" : "bg-amber-500/80 text-white"}`}>{plan.badge}</span>}
                       </button>
                     ))}
                   </div>
@@ -776,7 +811,7 @@ export default function Gifts() {
                   <div className="flex items-center justify-between w-full p-3.5 rounded-xl bg-black/30 border border-white/5 mb-3">
                     <div>
                       <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold mb-0.5">Стоимость</p>
-                      <div className="flex items-center gap-1.5 text-amber-400 font-black text-lg">⭐ {selectedPlan.stars} Монет</div>
+                      <div className={`flex items-center gap-1.5 font-black text-lg ${giftTier === "prime_plus" ? "text-purple-400" : "text-amber-400"}`}>⭐ {selectedPlan.stars} Монет</div>
                     </div>
                     <div className="text-right">
                       <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold mb-0.5">Ваш баланс</p>
@@ -792,8 +827,14 @@ export default function Gifts() {
 
                   <motion.button whileHover={primeRecipient && balance >= selectedPlan.stars ? { scale: 1.03 } : {}} whileTap={primeRecipient && balance >= selectedPlan.stars ? { scale: 0.97 } : {}}
                     onClick={handleGiftPrime} disabled={!primeRecipient || balance < selectedPlan.stars || isSendingPrime}
-                    className={`w-full py-3.5 rounded-xl font-black text-base transition-all ${primeRecipient && balance >= selectedPlan.stars ? "bg-gradient-to-r from-amber-500 to-yellow-500 text-black hover:opacity-90 shadow-[0_0_25px_rgba(245,158,11,0.4)]" : "bg-secondary text-muted-foreground cursor-not-allowed opacity-60"}`}>
-                    {isSendingPrime ? "Отправляем..." : !primeRecipient ? "Выберите получателя" : balance < selectedPlan.stars ? "Недостаточно Монет" : `Подарить Prime ${selectedPlan.label}`}
+                    className={`w-full py-3.5 rounded-xl font-black text-base transition-all ${
+                      primeRecipient && balance >= selectedPlan.stars
+                        ? giftTier === "prime_plus"
+                          ? "bg-gradient-to-r from-purple-500 to-fuchsia-500 text-white hover:opacity-90 shadow-[0_0_25px_rgba(168,85,247,0.4)]"
+                          : "bg-gradient-to-r from-amber-500 to-yellow-500 text-black hover:opacity-90 shadow-[0_0_25px_rgba(245,158,11,0.4)]"
+                        : "bg-secondary text-muted-foreground cursor-not-allowed opacity-60"
+                    }`}>
+                    {isSendingPrime ? "Отправляем..." : !primeRecipient ? "Выберите получателя" : balance < selectedPlan.stars ? "Недостаточно Монет" : `Подарить ${giftTier === "prime_plus" ? "Prime+" : "Prime"} ${selectedPlan.label}`}
                   </motion.button>
                 </div>
               </motion.div>
