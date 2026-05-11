@@ -172,7 +172,6 @@ function MainAppInner({ onLogout, onSwitchAccount, onRemoveAccount, onOpenAddAcc
   }, []);
 
   return (
-    <LanguageProvider>
     <AppProvider
       onLogout={onLogout}
       onSwitchAccount={onSwitchAccount}
@@ -205,7 +204,6 @@ function MainAppInner({ onLogout, onSwitchAccount, onRemoveAccount, onOpenAddAcc
         <Toaster />
       </TooltipProvider>
     </AppProvider>
-    </LanguageProvider>
   );
 }
 
@@ -334,27 +332,29 @@ function App() {
   };
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-        {userId ? (
-          <>
-            <MainApp
-              onLogout={handleLogout}
-              onSwitchAccount={handleSwitchAccount}
-              onRemoveAccount={handleRemoveAccount}
-              onOpenAddAccount={() => setAddingAccount(true)}
-            />
-            <AddAccountDialog
-              open={addingAccount}
-              onClose={() => setAddingAccount(false)}
-              onAccountAdded={handleAccountAdded}
-            />
-          </>
-        ) : (
-          <AuthPages onLogin={handleLogin} />
-        )}
-      </WouterRouter>
-    </QueryClientProvider>
+    <LanguageProvider>
+      <QueryClientProvider client={queryClient}>
+        <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+          {userId ? (
+            <>
+              <MainApp
+                onLogout={handleLogout}
+                onSwitchAccount={handleSwitchAccount}
+                onRemoveAccount={handleRemoveAccount}
+                onOpenAddAccount={() => setAddingAccount(true)}
+              />
+              <AddAccountDialog
+                open={addingAccount}
+                onClose={() => setAddingAccount(false)}
+                onAccountAdded={handleAccountAdded}
+              />
+            </>
+          ) : (
+            <AuthPages onLogin={handleLogin} />
+          )}
+        </WouterRouter>
+      </QueryClientProvider>
+    </LanguageProvider>
   );
 }
 

@@ -18,16 +18,17 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
   const setLang = (newLang: Lang) => {
     localStorage.setItem("pulse-language", newLang);
     setLangState(newLang);
-    window.dispatchEvent(new CustomEvent("pulse-language-changed", { detail: newLang }));
   };
 
+  // Sync language when changed in another tab (storage event)
   useEffect(() => {
-    const handler = (e: Event) => {
-      const newLang = (e as CustomEvent<Lang>).detail;
-      if (newLang === "ru" || newLang === "en") setLangState(newLang);
+    const handler = (e: StorageEvent) => {
+      if (e.key === "pulse-language" && (e.newValue === "ru" || e.newValue === "en")) {
+        setLangState(e.newValue);
+      }
     };
-    window.addEventListener("pulse-language-changed", handler);
-    return () => window.removeEventListener("pulse-language-changed", handler);
+    window.addEventListener("storage", handler);
+    return () => window.removeEventListener("storage", handler);
   }, []);
 
   const t = (key: TranslationKey): string => {

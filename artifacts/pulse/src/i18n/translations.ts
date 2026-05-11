@@ -12,6 +12,7 @@ const translations = {
     "nav.wallet": "Кошелёк",
     "nav.profile": "Профиль",
     "nav.settings": "Настройки",
+    "nav.bots": "Боты",
     "nav.prime": "Pulse Prime",
     "nav.admin": "Админ-панель",
 
@@ -234,6 +235,7 @@ const translations = {
     "nav.wallet": "Wallet",
     "nav.profile": "Profile",
     "nav.settings": "Settings",
+    "nav.bots": "Bots",
     "nav.prime": "Pulse Prime",
     "nav.admin": "Admin Panel",
 

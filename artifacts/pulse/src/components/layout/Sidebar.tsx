@@ -123,7 +123,7 @@ export function Sidebar({ mobileSidebarOpen, onMobileClose, onMobileOpen }: Side
     { href: "/gifts",    icon: Gift,          label: t("nav.gifts") },
     { href: "/stories",  icon: History,       label: t("nav.stories") },
     { href: "/wallet",   icon: Wallet,        label: t("nav.wallet") },
-    { href: "/bots",     icon: Bot,           label: "Боты" },
+    { href: "/bots",     icon: Bot,           label: t("nav.bots") },
     { href: "/profile",  icon: UserCircle,    label: t("nav.profile") },
     { href: "/settings", icon: Settings,      label: t("nav.settings") },
   ];
