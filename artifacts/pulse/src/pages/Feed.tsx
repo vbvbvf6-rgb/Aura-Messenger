@@ -74,7 +74,7 @@ function AppealModal({ post, onClose, onSubmitted }: { post: any; onClose: () =>
     try {
       const res = await fetch(`/api/posts/${post.id}/appeal`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", "x-user-id": String(currentUserId) },
+        headers: { "Content-Type": "application/json", ...(sessionStorage.getItem("pulse-token") ? { "Authorization": `Bearer ${sessionStorage.getItem("pulse-token")}` } : {}) },
         body: JSON.stringify({ appealText: text.trim() }),
       });
       const data = await res.json();
@@ -267,7 +267,7 @@ function PostCard({ post, onAppealSubmitted }: { post: Post & { appeal?: any; mo
     try {
       await fetch(`/api/posts/${post.id}`, {
         method: "DELETE",
-        headers: { "x-user-id": String(currentUserId) },
+        headers: sessionStorage.getItem("pulse-token") ? { "Authorization": `Bearer ${sessionStorage.getItem("pulse-token")}` } : {},
       });
       queryClient.invalidateQueries({ queryKey: ["/api/posts"] });
     } catch {}

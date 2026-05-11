@@ -82,8 +82,7 @@ export function AppProvider({ children, onLogout, onSwitchAccount, onRemoveAccou
 
   const getUserHeaders = useCallback((): Record<string, string> => {
     const token = sessionStorage.getItem("pulse-token");
-    if (token) return { "Content-Type": "application/json", "Authorization": `Bearer ${token}` };
-    return { "Content-Type": "application/json", "x-user-id": String(currentUserIdRef.current) };
+    return { "Content-Type": "application/json", ...(token ? { "Authorization": `Bearer ${token}` } : {}) };
   }, []);
 
   const cleanupCall = useCallback(() => {

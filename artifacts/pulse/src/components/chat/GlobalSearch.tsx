@@ -26,9 +26,7 @@ interface GlobalSearchProps {
 
 function getAuthHeaders(): Record<string, string> {
   const token = sessionStorage.getItem("pulse-token");
-  if (token) return { Authorization: `Bearer ${token}` };
-  const uid = sessionStorage.getItem("pulse-user-id");
-  return uid ? { "x-user-id": uid } : {};
+  return token ? { "Authorization": `Bearer ${token}` } : {};
 }
 
 export function GlobalSearch({ onClose }: GlobalSearchProps) {

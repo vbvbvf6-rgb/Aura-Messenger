@@ -282,8 +282,7 @@ export default function Prime() {
     setLoading(true);
     try {
       const _token = sessionStorage.getItem("pulse-token");
-      const _uid   = sessionStorage.getItem("pulse-user-id");
-      const _auth: Record<string, string> = _token ? { "Authorization": `Bearer ${_token}` } : _uid ? { "x-user-id": _uid } : {};
+      const _auth: Record<string, string> = _token ? { "Authorization": `Bearer ${_token}` } : {};
       const res = await fetch("/api/prime/subscribe", {
         method: "POST",
         headers: { "Content-Type": "application/json", ..._auth },

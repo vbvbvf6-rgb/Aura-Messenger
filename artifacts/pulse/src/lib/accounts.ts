@@ -44,10 +44,6 @@ export function setActiveToken(token: string | null) {
 }
 
 export function getAuthHeaders(): Record<string, string> {
-  const token = getActiveToken();
-  if (token) {
-    return { "Authorization": `Bearer ${token}` };
-  }
-  const uid = sessionStorage.getItem("pulse-user-id");
-  return uid ? { "x-user-id": uid } : {};
+  const token = getActiveToken() || sessionStorage.getItem("pulse-token");
+  return token ? { "Authorization": `Bearer ${token}` } : {};
 }

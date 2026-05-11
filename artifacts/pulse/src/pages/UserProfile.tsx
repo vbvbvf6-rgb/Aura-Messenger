@@ -110,7 +110,7 @@ export default function UserProfile() {
     try {
       const res = await fetch("/api/chats/direct", {
         method: "POST",
-        headers: { "Content-Type": "application/json", ...(uid ? { "x-user-id": uid } : {}) },
+        headers: { "Content-Type": "application/json", ...(token ? { "Authorization": `Bearer ${token}` } : {}) },
         body: JSON.stringify({ userId }),
       });
       if (res.ok) {

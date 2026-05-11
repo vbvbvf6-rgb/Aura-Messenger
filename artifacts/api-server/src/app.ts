@@ -53,49 +53,58 @@ const authLimiter = rateLimit({
 app.use("/api/auth/login", authLimiter);
 app.use("/api/auth/register", authLimiter);
 
+// Routes that do NOT require a valid session
+const PUBLIC_API_PATHS = [
+  "/auth/login",
+  "/auth/register",
+  "/auth/2fa/complete",
+  "/auth/security-question",
+  "/auth/reset-password",
+  "/health",
+];
+
 app.use((req: Request, _res: Response, next: NextFunction) => {
   // 1. JWT from Authorization header (normal API calls)
   const authHeader = req.headers["authorization"];
   if (authHeader?.startsWith("Bearer ")) {
     const token = authHeader.slice(7);
     try {
-      const payload = jwt.verify(token, JWT_SECRET) as { userId: number };
-      if (Number.isFinite(payload.userId) && payload.userId > 0) {
+      const payload = jwt.verify(token, JWT_SECRET) as { userId: number; pending2fa?: boolean };
+      if (!payload.pending2fa && Number.isFinite(payload.userId) && payload.userId > 0) {
         req.currentUserId = payload.userId;
         return next();
       }
     } catch {}
   }
 
-  // 2. JWT from _token query param (EventSource / SSE — can't send headers)
-  const queryToken = req.query._token as string | undefined;
+  // 2. JWT from _token query param (EventSource / SSE — browsers can't send custom headers)
+  const queryToken = (req.query._token as string | undefined) || (req.query.token as string | undefined);
   if (queryToken) {
     try {
-      const payload = jwt.verify(queryToken, JWT_SECRET) as { userId: number };
-      if (Number.isFinite(payload.userId) && payload.userId > 0) {
+      const payload = jwt.verify(queryToken, JWT_SECRET) as { userId: number; pending2fa?: boolean };
+      if (!payload.pending2fa && Number.isFinite(payload.userId) && payload.userId > 0) {
         req.currentUserId = payload.userId;
         return next();
       }
     } catch {}
   }
 
-  // 3. x-user-id header fallback
-  const headerVal = req.headers["x-user-id"];
-  const parsed = headerVal ? Number(headerVal) : NaN;
-  if (Number.isFinite(parsed) && parsed > 0) {
-    req.currentUserId = parsed;
-    return next();
-  }
-
-  // 4. _uid query param fallback (legacy)
-  const queryUid = req.query._uid as string | undefined;
-  const parsedUid = queryUid ? Number(queryUid) : NaN;
-  req.currentUserId = Number.isFinite(parsedUid) && parsedUid > 0 ? parsedUid : 1;
+  // Not authenticated
+  req.currentUserId = 0;
   next();
 });
 
 app.get("/api/health", (_req: Request, res: Response) => {
   res.json({ ok: true, ts: Date.now() });
+});
+
+// Require authentication for all API routes except public ones
+app.use("/api", (req: Request, res: Response, next: NextFunction) => {
+  const isPublic = PUBLIC_API_PATHS.some(p => req.path === p || req.path.startsWith(p + "/"));
+  if (!isPublic && req.currentUserId === 0) {
+    return res.status(401).json({ error: "Требуется авторизация" });
+  }
+  next();
 });
 
 app.use("/api", router);

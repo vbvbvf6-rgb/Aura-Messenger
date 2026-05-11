@@ -10,9 +10,7 @@ import { useSearch } from "wouter";
 const getCurrentUserId = () => Number(sessionStorage.getItem("pulse-user-id") || "0");
 function getHeader(): Record<string, string> {
   const token = sessionStorage.getItem("pulse-token");
-  if (token) return { "Content-Type": "application/json", "Authorization": `Bearer ${token}` };
-  const uid = sessionStorage.getItem("pulse-user-id");
-  return uid ? { "Content-Type": "application/json", "x-user-id": uid } : { "Content-Type": "application/json" };
+  return { "Content-Type": "application/json", ...(token ? { "Authorization": `Bearer ${token}` } : {}) };
 }
 
 const BUG_CATEGORIES = [

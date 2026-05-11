@@ -463,9 +463,7 @@ export function ChatWindow({ chatId }: ChatWindowProps) {
 
   const getCWAuthHeaders = (json?: boolean): Record<string, string> => {
     const token = sessionStorage.getItem("pulse-token");
-    const base: Record<string, string> = token
-      ? { "Authorization": `Bearer ${token}` }
-      : (() => { const uid = sessionStorage.getItem("pulse-user-id"); return uid ? { "x-user-id": uid } : ({} as Record<string, string>); })();
+    const base: Record<string, string> = token ? { "Authorization": `Bearer ${token}` } : {};
     return json ? { "Content-Type": "application/json", ...base } : base;
   };
 

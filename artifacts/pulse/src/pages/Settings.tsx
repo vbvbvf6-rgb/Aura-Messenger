@@ -242,9 +242,7 @@ function TwoFaSection({ user, toast, lang }: { user: any; toast: any; lang: stri
 
   const getHeaders = (): Record<string, string> => {
     const token = sessionStorage.getItem("pulse-token");
-    if (token) return { "Authorization": `Bearer ${token}` };
-    const uid = sessionStorage.getItem("pulse-user-id");
-    return uid ? { "x-user-id": uid } : {};
+    return token ? { "Authorization": `Bearer ${token}` } : {};
   };
 
   const handleSetupOpen = async () => {
@@ -489,10 +487,8 @@ function SecurityQuestionSection({ lang, toast }: { lang: string; toast: any }) 
     setStatus("loading");
     try {
       const token = sessionStorage.getItem("pulse-token");
-      const uid = sessionStorage.getItem("pulse-user-id");
       const headers: Record<string, string> = {};
       if (token) headers["Authorization"] = `Bearer ${token}`;
-      else if (uid) headers["x-user-id"] = uid;
       const res = await fetch("/api/users/me/security-question/check", { headers });
       const data = await res.json();
       setHasQuestion(!!data.hasQuestion);
@@ -516,10 +512,8 @@ function SecurityQuestionSection({ lang, toast }: { lang: string; toast: any }) 
     setErr("");
     try {
       const token = sessionStorage.getItem("pulse-token");
-      const uid = sessionStorage.getItem("pulse-user-id");
       const headers: Record<string, string> = { "Content-Type": "application/json" };
       if (token) headers["Authorization"] = `Bearer ${token}`;
-      else if (uid) headers["x-user-id"] = uid;
       const res = await fetch("/api/users/me/security-question", {
         method: "PUT",
         headers,
@@ -762,7 +756,7 @@ export default function Settings() {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          ...(uid ? { "x-user-id": uid } : {}),
+          ...(token ? { "Authorization": `Bearer ${token}` } : {}),
         },
         body: JSON.stringify({ avatarUrl: compressed }),
       })
@@ -781,10 +775,10 @@ export default function Settings() {
   const handleCancelPrime = async () => {
     setCancelPrimeLoading(true);
     try {
-      const uid = sessionStorage.getItem("pulse-user-id");
+      const token = sessionStorage.getItem("pulse-token");
       const res = await fetch("/api/prime/cancel", {
         method: "POST",
-        headers: uid ? { "x-user-id": uid } : {},
+        headers: token ? { "Authorization": `Bearer ${token}` } : {},
       });
       if (res.ok) {
         queryClient.invalidateQueries({ queryKey: ["/api/users/me"] });
@@ -911,7 +905,7 @@ export default function Settings() {
       const uid = sessionStorage.getItem("pulse-user-id");
       const res = await fetch("/api/auth/change-password", {
         method: "POST",
-        headers: { "Content-Type": "application/json", ...(uid ? { "x-user-id": uid } : {}) },
+        headers: { "Content-Type": "application/json", ...(token ? { "Authorization": `Bearer ${token}` } : {}) },
         body: JSON.stringify({ currentPassword, newPassword }),
       });
       const data = await res.json();
@@ -941,8 +935,8 @@ export default function Settings() {
 
   const handleExportData = async () => {
     try {
-      const uid = sessionStorage.getItem("pulse-user-id");
-      const headers: Record<string, string> = uid ? { "x-user-id": uid } : {};
+      const token = sessionStorage.getItem("pulse-token");
+      const headers: Record<string, string> = token ? { "Authorization": `Bearer ${token}` } : {};
       const [profileRes, statsRes] = await Promise.all([
         fetch("/api/users/me", { headers }),
         fetch("/api/stats/me", { headers }),
@@ -989,7 +983,7 @@ export default function Settings() {
       const uid = sessionStorage.getItem("pulse-user-id");
       const res = await fetch("/api/users/me/username", {
         method: "PUT",
-        headers: { "Content-Type": "application/json", ...(uid ? { "x-user-id": uid } : {}) },
+        headers: { "Content-Type": "application/json", ...(token ? { "Authorization": `Bearer ${token}` } : {}) },
         body: JSON.stringify({ username: trimmed }),
       });
       const data = await res.json();

@@ -33,7 +33,8 @@ A Telegram-inspired messenger app called Pulse, featuring real-time-style chats,
 
 ## Architecture decisions
 
-- Current user is hardcoded to user ID 1 (no auth system yet). All routes use `CURRENT_USER_ID = 1`.
+- **Auth**: Full JWT auth system. Tokens stored in `sessionStorage` (`pulse-token`). All frontend requests send `Authorization: Bearer <token>`. Account list stored in `localStorage` (`pulse-accounts`) for cross-tab account switching. Each browser tab owns its session independently (`pulse-tab-owned` in sessionStorage). Token TTL: 30 days, bcrypt SALT_ROUNDS=12.
+- **Registration**: Open to all — `/auth/register` is a public path, no invite codes needed.
 - Direct chat names are derived from `otherUser.displayName` on the frontend (the API returns `otherUser` for direct chats).
 - Gift animations use Framer Motion with different animation types per gift rarity.
 - Call flow is simulated (no WebRTC) — call state is managed in AppContext and persisted via API.

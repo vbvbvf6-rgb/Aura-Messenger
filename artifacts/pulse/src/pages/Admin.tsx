@@ -108,9 +108,7 @@ interface Leaderboard {
 
 function getHeader(): Record<string, string> {
   const token = sessionStorage.getItem("pulse-token");
-  if (token) return { "Authorization": `Bearer ${token}` };
-  const uid = sessionStorage.getItem("pulse-user-id");
-  return uid ? { "x-user-id": uid } : {};
+  return token ? { "Authorization": `Bearer ${token}` } : {};
 }
 
 function StatCard({ icon, label, value, color }: { icon: React.ReactNode; label: string; value: string | number; color: string }) {

@@ -358,16 +358,12 @@ export async function customFetch<T = unknown>(
     }
   }
 
-  // Attach JWT bearer token or fallback x-user-id for auth
+  // Attach JWT bearer token from sessionStorage (tab-isolated)
   if (!headers.has("authorization")) {
-    const token = typeof localStorage !== "undefined" ? localStorage.getItem("pulse-token") : null;
+    const storage = typeof sessionStorage !== "undefined" ? sessionStorage : null;
+    const token = storage?.getItem("pulse-token");
     if (token) {
       headers.set("authorization", `Bearer ${token}`);
-    } else {
-      const userId = typeof localStorage !== "undefined" ? localStorage.getItem("pulse-user-id") : null;
-      if (userId) {
-        headers.set("x-user-id", userId);
-      }
     }
   }
 
@@ -376,6 +372,10 @@ export async function customFetch<T = unknown>(
   const response = await fetch(input, { ...init, method, headers });
 
   if (!response.ok) {
+    // Dispatch a global event so the app can redirect to login on session expiry
+    if (response.status === 401 && typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("pulse:unauthorized"));
+    }
     const errorData = await parseErrorBody(response, method);
     throw new ApiError(response, errorData, requestInfo);
   }

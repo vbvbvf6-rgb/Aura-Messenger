@@ -4,9 +4,7 @@ export type NotificationPermission = "default" | "granted" | "denied";
 
 function getAuthHeaders(): Record<string, string> {
   const token = sessionStorage.getItem("pulse-token");
-  if (token) return { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" };
-  const uid = sessionStorage.getItem("pulse-user-id");
-  return uid ? { "x-user-id": uid, "Content-Type": "application/json" } : { "Content-Type": "application/json" };
+  return { "Content-Type": "application/json", ...(token ? { "Authorization": `Bearer ${token}` } : {}) };
 }
 
 async function registerPushSubscription(): Promise<void> {

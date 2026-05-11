@@ -105,7 +105,8 @@ function GlobalNotificationListener() {
     }
 
     const token = sessionStorage.getItem("pulse-token");
-    const es = new EventSource(`/api/users/me/events${token ? `?token=${token}` : `?_uid=${uid}`}`);
+    if (!token) return; // No token — don't open SSE (auth guard will reject it anyway)
+    const es = new EventSource(`/api/users/me/events?_token=${encodeURIComponent(token)}`);
     sseRef.current = es;
 
     es.addEventListener("new-message", (e: MessageEvent) => {
@@ -133,11 +134,8 @@ function MainAppInner({ onLogout, onSwitchAccount, onRemoveAccount, onOpenAddAcc
   useEffect(() => {
     const checkScheduled = async () => {
       const token = sessionStorage.getItem("pulse-token");
-      const uid = sessionStorage.getItem("pulse-user-id");
-      if (!token && !uid) return;
-      const headers: Record<string, string> = { "Content-Type": "application/json" };
-      if (token) headers["Authorization"] = `Bearer ${token}`;
-      else if (uid) headers["x-user-id"] = uid;
+      if (!token) return;
+      const headers: Record<string, string> = { "Content-Type": "application/json", "Authorization": `Bearer ${token}` };
 
       const now = Date.now();
       const keysToProcess: string[] = [];
@@ -258,6 +256,21 @@ function App() {
     return id;
   });
   const [addingAccount, setAddingAccount] = useState(false);
+
+  // Global handler: when any API call returns 401 (expired/invalid token),
+  // clear this tab's session and return to login screen
+  useEffect(() => {
+    const handleUnauthorized = () => {
+      sessionStorage.removeItem("pulse-user-id");
+      sessionStorage.removeItem("pulse-user");
+      sessionStorage.removeItem("pulse-token");
+      sessionStorage.removeItem("pulse-tab-owned");
+      queryClient.clear();
+      setUserId(null);
+    };
+    window.addEventListener("pulse:unauthorized", handleUnauthorized);
+    return () => window.removeEventListener("pulse:unauthorized", handleUnauthorized);
+  }, []);
 
   const persistAndSwitch = (id: number) => {
     queryClient.clear();
