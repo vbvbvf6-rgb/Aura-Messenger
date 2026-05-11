@@ -84,6 +84,39 @@ router.get("/gifts/top-senders/:userId", async (req, res) => {
   }
 });
 
+router.get("/gifts/leaderboard", async (req, res) => {
+  try {
+    const limit = Math.min(Number(req.query.limit) || 50, 100);
+    const rows = await db.execute(sql`
+      SELECT
+        u.id                                    AS "userId",
+        u.username                              AS "username",
+        u.display_name                          AS "displayName",
+        u.avatar_color                          AS "avatarColor",
+        u.avatar_url                            AS "avatarUrl",
+        u.has_prime                             AS "hasPrime",
+        u.prime_tier                            AS "primeTier",
+        u.is_verified                           AS "isVerified",
+        COUNT(g.id)::int                        AS "giftCount",
+        COALESCE(SUM(gi.stars), 0)::int         AS "totalStars",
+        COALESCE(SUM(gi.price), 0)::int         AS "totalValue",
+        MAX(g.created_at)                       AS "lastGiftAt"
+      FROM gifts g
+      JOIN users u ON u.id = g.receiver_id
+      JOIN gift_items gi ON gi.id = g.gift_item_id
+      WHERE u.is_bot = false
+      GROUP BY u.id, u.username, u.display_name, u.avatar_color, u.avatar_url,
+               u.has_prime, u.prime_tier, u.is_verified
+      ORDER BY "totalValue" DESC, "giftCount" DESC
+      LIMIT ${limit}
+    `);
+    res.json(rows.rows);
+  } catch (err) {
+    req.log.error(err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 router.post("/gifts/send", async (req, res) => {
   try {
     const uid = req.currentUserId;

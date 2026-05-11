@@ -22,6 +22,7 @@ import {
   Check,
   Trash2,
   Bot,
+  Trophy,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAppContext } from "@/contexts/AppContext";
@@ -123,8 +124,9 @@ export function Sidebar({ mobileSidebarOpen, onMobileClose, onMobileOpen }: Side
     { href: "/gifts",    icon: Gift,          label: t("nav.gifts") },
     { href: "/stories",  icon: History,       label: t("nav.stories") },
     { href: "/wallet",   icon: Wallet,        label: t("nav.wallet") },
-    { href: "/bots",     icon: Bot,           label: t("nav.bots") },
-    { href: "/profile",  icon: UserCircle,    label: t("nav.profile") },
+    { href: "/bots",         icon: Bot,           label: t("nav.bots") },
+    { href: "/leaderboard",  icon: Trophy,        label: t("nav.leaderboard") },
+    { href: "/profile",      icon: UserCircle,    label: t("nav.profile") },
     { href: "/settings", icon: Settings,      label: t("nav.settings") },
   ];
 
