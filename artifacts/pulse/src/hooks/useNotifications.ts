@@ -3,9 +3,9 @@ import { useState, useCallback, useEffect } from "react";
 export type NotificationPermission = "default" | "granted" | "denied";
 
 function getAuthHeaders(): Record<string, string> {
-  const token = localStorage.getItem("pulse-token");
+  const token = sessionStorage.getItem("pulse-token");
   if (token) return { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" };
-  const uid = localStorage.getItem("pulse-user-id");
+  const uid = sessionStorage.getItem("pulse-user-id");
   return uid ? { "x-user-id": uid, "Content-Type": "application/json" } : { "Content-Type": "application/json" };
 }
 

@@ -35,9 +35,9 @@ interface TxEntry {
 }
 
 function getUserIdHeader(): Record<string, string> {
-  const token = localStorage.getItem("pulse-token");
+  const token = sessionStorage.getItem("pulse-token");
   if (token) return { "Authorization": `Bearer ${token}` };
-  const uid = localStorage.getItem("pulse-user-id");
+  const uid = sessionStorage.getItem("pulse-user-id");
   return uid ? { "x-user-id": uid } : {};
 }
 
@@ -116,7 +116,7 @@ export default function Wallet() {
   const [buyingPackage, setBuyingPackage] = useState<string | null>(null);
   const [boughtPackage, setBoughtPackage] = useState<string | null>(null);
 
-  const uid = Number(localStorage.getItem("pulse-user-id") || "0");
+  const uid = Number(sessionStorage.getItem("pulse-user-id") || "0");
   const isAdmin = (me as any)?.isAdmin === true;
   const hasPrime = (me as any)?.hasPrime === true;
   const primeTier = (me as any)?.primeTier ?? null;

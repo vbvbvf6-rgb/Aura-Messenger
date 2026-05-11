@@ -107,9 +107,9 @@ interface Leaderboard {
 }
 
 function getHeader(): Record<string, string> {
-  const token = localStorage.getItem("pulse-token");
+  const token = sessionStorage.getItem("pulse-token");
   if (token) return { "Authorization": `Bearer ${token}` };
-  const uid = localStorage.getItem("pulse-user-id");
+  const uid = sessionStorage.getItem("pulse-user-id");
   return uid ? { "x-user-id": uid } : {};
 }
 
@@ -128,7 +128,7 @@ function StatCard({ icon, label, value, color }: { icon: React.ReactNode; label:
 }
 
 export default function Admin() {
-  const userId = Number(localStorage.getItem("pulse-user-id") || "0");
+  const userId = Number(sessionStorage.getItem("pulse-user-id") || "0");
   const [accessChecked, setAccessChecked] = useState(false);
   const [hasAccess, setHasAccess] = useState(false);
 

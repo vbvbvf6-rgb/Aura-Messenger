@@ -64,10 +64,10 @@ interface ChatInfoPanelProps {
 }
 
 function getAuthHeaders(json?: boolean): Record<string, string> {
-  const token = localStorage.getItem("pulse-token");
+  const token = sessionStorage.getItem("pulse-token");
   const base: Record<string, string> = token
     ? { "Authorization": `Bearer ${token}` }
-    : (() => { const uid = localStorage.getItem("pulse-user-id"); return uid ? { "x-user-id": uid } : ({} as Record<string, string>); })();
+    : (() => { const uid = sessionStorage.getItem("pulse-user-id"); return uid ? { "x-user-id": uid } : ({} as Record<string, string>); })();
   return json ? { "Content-Type": "application/json", ...base } : base;
 }
 

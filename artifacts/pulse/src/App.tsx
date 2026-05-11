@@ -92,7 +92,7 @@ function GlobalNotificationListener() {
   const sseRef = useRef<EventSource | null>(null);
 
   useEffect(() => {
-    const uid = localStorage.getItem("pulse-user-id");
+    const uid = sessionStorage.getItem("pulse-user-id");
     if (!uid) return;
 
     // Request permission + register push on first visit
@@ -104,7 +104,7 @@ function GlobalNotificationListener() {
       }
     }
 
-    const token = localStorage.getItem("pulse-token");
+    const token = sessionStorage.getItem("pulse-token");
     const es = new EventSource(`/api/users/me/events${token ? `?token=${token}` : `?_uid=${uid}`}`);
     sseRef.current = es;
 
@@ -132,8 +132,8 @@ function GlobalNotificationListener() {
 function MainAppInner({ onLogout, onSwitchAccount, onRemoveAccount, onOpenAddAccount }: MainAppProps) {
   useEffect(() => {
     const checkScheduled = async () => {
-      const token = localStorage.getItem("pulse-token");
-      const uid = localStorage.getItem("pulse-user-id");
+      const token = sessionStorage.getItem("pulse-token");
+      const uid = sessionStorage.getItem("pulse-user-id");
       if (!token && !uid) return;
       const headers: Record<string, string> = { "Content-Type": "application/json" };
       if (token) headers["Authorization"] = `Bearer ${token}`;
@@ -228,12 +228,12 @@ function AuthPages({ onLogin }: { onLogin: (userId: number) => void }) {
 
 function App() {
   const [userId, setUserId] = useState<number | null>(() => {
-    const stored = localStorage.getItem("pulse-user-id");
+    const stored = sessionStorage.getItem("pulse-user-id");
     if (!stored) return null;
     const id = Number(stored);
     const accounts = getSavedAccounts();
     if (!accounts.some(a => a.userId === id)) {
-      const user = (() => { try { return JSON.parse(localStorage.getItem("pulse-user") || "{}"); } catch { return {}; } })();
+      const user = (() => { try { return JSON.parse(sessionStorage.getItem("pulse-user") || "{}"); } catch { return {}; } })();
       if (user.displayName || user.username) {
         saveAccount({
           userId: id,
@@ -254,7 +254,7 @@ function App() {
   };
 
   const handleLogin = (id: number) => {
-    const user = (() => { try { return JSON.parse(localStorage.getItem("pulse-user") || "{}"); } catch { return {}; } })();
+    const user = (() => { try { return JSON.parse(sessionStorage.getItem("pulse-user") || "{}"); } catch { return {}; } })();
     saveAccount({
       userId: id,
       displayName: user.displayName || "User",
@@ -270,12 +270,12 @@ function App() {
     const acc = accounts.find(a => a.userId === id);
     if (!acc) return;
     if (acc.token) {
-      localStorage.setItem("pulse-token", acc.token);
+      sessionStorage.setItem("pulse-token", acc.token);
     } else {
-      localStorage.removeItem("pulse-token");
+      sessionStorage.removeItem("pulse-token");
     }
-    localStorage.setItem("pulse-user-id", String(id));
-    localStorage.setItem("pulse-user", JSON.stringify({
+    sessionStorage.setItem("pulse-user-id", String(id));
+    sessionStorage.setItem("pulse-user", JSON.stringify({
       id: acc.userId,
       displayName: acc.displayName,
       username: acc.username,
@@ -292,9 +292,9 @@ function App() {
       if (remaining.length > 0) {
         handleSwitchAccount(remaining[0].userId);
       } else {
-        localStorage.removeItem("pulse-user-id");
-        localStorage.removeItem("pulse-user");
-        localStorage.removeItem("pulse-token");
+        sessionStorage.removeItem("pulse-user-id");
+        sessionStorage.removeItem("pulse-user");
+        sessionStorage.removeItem("pulse-token");
         queryClient.clear();
         setUserId(null);
       }
@@ -304,17 +304,17 @@ function App() {
   const handleLogout = () => {
     const currentId = userId;
     if (currentId) removeAccount(currentId);
-    localStorage.removeItem("pulse-user-id");
-    localStorage.removeItem("pulse-user");
-    localStorage.removeItem("pulse-token");
+    sessionStorage.removeItem("pulse-user-id");
+    sessionStorage.removeItem("pulse-user");
+    sessionStorage.removeItem("pulse-token");
     const remaining = getSavedAccounts();
     if (remaining.length > 0) {
       const acc = remaining[0];
       if (acc.token) {
-        localStorage.setItem("pulse-token", acc.token);
+        sessionStorage.setItem("pulse-token", acc.token);
       }
-      localStorage.setItem("pulse-user-id", String(acc.userId));
-      localStorage.setItem("pulse-user", JSON.stringify({
+      sessionStorage.setItem("pulse-user-id", String(acc.userId));
+      sessionStorage.setItem("pulse-user", JSON.stringify({
         id: acc.userId,
         displayName: acc.displayName,
         username: acc.username,

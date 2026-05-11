@@ -45,9 +45,9 @@ export default function Login({ onLogin }: LoginProps) {
         setStep("2fa");
         return;
       }
-      if (data.token) localStorage.setItem("pulse-token", data.token);
-      localStorage.setItem("pulse-user-id", String(data.userId));
-      localStorage.setItem("pulse-user", JSON.stringify(data.user));
+      if (data.token) sessionStorage.setItem("pulse-token", data.token);
+      sessionStorage.setItem("pulse-user-id", String(data.userId));
+      sessionStorage.setItem("pulse-user", JSON.stringify(data.user));
       onLogin(data.userId);
     } catch {
       setError("Ошибка подключения к серверу");
@@ -76,9 +76,9 @@ export default function Login({ onLogin }: LoginProps) {
         setTwoFaError(data.error || "Неверный код");
         return;
       }
-      if (data.token) localStorage.setItem("pulse-token", data.token);
-      localStorage.setItem("pulse-user-id", String(data.userId));
-      localStorage.setItem("pulse-user", JSON.stringify(data.user));
+      if (data.token) sessionStorage.setItem("pulse-token", data.token);
+      sessionStorage.setItem("pulse-user-id", String(data.userId));
+      sessionStorage.setItem("pulse-user", JSON.stringify(data.user));
       onLogin(data.userId);
     } catch {
       setTwoFaError("Ошибка подключения к серверу");

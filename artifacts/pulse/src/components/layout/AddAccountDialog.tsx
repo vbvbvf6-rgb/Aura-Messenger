@@ -66,9 +66,9 @@ export function AddAccountDialog({ open, onClose, onAccountAdded }: AddAccountDi
         avatarColor: data.user?.avatarColor || "#3B82F6",
         token: data.token,
       });
-      if (data.token) localStorage.setItem("pulse-token", data.token);
-      localStorage.setItem("pulse-user-id", String(data.userId));
-      localStorage.setItem("pulse-user", JSON.stringify(data.user));
+      if (data.token) sessionStorage.setItem("pulse-token", data.token);
+      sessionStorage.setItem("pulse-user-id", String(data.userId));
+      sessionStorage.setItem("pulse-user", JSON.stringify(data.user));
       resetForm();
       setMode("login");
       onAccountAdded(data.userId);
@@ -103,9 +103,9 @@ export function AddAccountDialog({ open, onClose, onAccountAdded }: AddAccountDi
         avatarColor: data.user?.avatarColor || "#3B82F6",
         token: data.token,
       });
-      if (data.token) localStorage.setItem("pulse-token", data.token);
-      localStorage.setItem("pulse-user-id", String(data.userId));
-      localStorage.setItem("pulse-user", JSON.stringify(data.user));
+      if (data.token) sessionStorage.setItem("pulse-token", data.token);
+      sessionStorage.setItem("pulse-user-id", String(data.userId));
+      sessionStorage.setItem("pulse-user", JSON.stringify(data.user));
       resetForm();
       setMode("login");
       onAccountAdded(data.userId);

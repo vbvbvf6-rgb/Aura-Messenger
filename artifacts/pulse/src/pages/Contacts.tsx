@@ -27,7 +27,7 @@ export default function Contacts() {
       {
         onSuccess: async () => {
           queryClient.invalidateQueries({ queryKey: getGetContactsQueryKey() });
-          const uid = localStorage.getItem("pulse-user-id");
+          const uid = sessionStorage.getItem("pulse-user-id");
           try {
             const res = await fetch("/api/chats/direct", {
               method: "POST",
@@ -51,7 +51,7 @@ export default function Contacts() {
   };
 
   const handleMessage = async (userId: number) => {
-    const uid = localStorage.getItem("pulse-user-id");
+    const uid = sessionStorage.getItem("pulse-user-id");
     try {
       const res = await fetch("/api/chats/direct", {
         method: "POST",

@@ -328,7 +328,7 @@ export function ChatWindow({ chatId }: ChatWindowProps) {
 
   useEffect(() => {
     if (!chatId) return;
-    const uid = localStorage.getItem("pulse-user-id") || "1";
+    const uid = sessionStorage.getItem("pulse-user-id") || "1";
     const es = new EventSource(`/api/chats/${chatId}/events?_uid=${uid}`);
     sseRef.current = es;
 
@@ -336,7 +336,7 @@ export function ChatWindow({ chatId }: ChatWindowProps) {
       queryClient.refetchQueries({ queryKey: getGetMessagesQueryKey({ chatId }) }).then(() => {
         const msgs = queryClient.getQueryData<Message[]>(getGetMessagesQueryKey({ chatId }));
         const last = msgs?.[msgs.length - 1];
-        if (last && last.senderId !== Number(localStorage.getItem("pulse-user-id") || "1")) {
+        if (last && last.senderId !== Number(sessionStorage.getItem("pulse-user-id") || "1")) {
           const chatData = queryClient.getQueryData<any>(["getGetChatById", chatId]) ?? null;
           const chatName = chatData?.otherUser?.displayName ?? chatData?.name ?? "Pulse";
           const senderName = last.sender?.displayName || chatName;
@@ -357,7 +357,7 @@ export function ChatWindow({ chatId }: ChatWindowProps) {
 
     es.addEventListener("typing", (e: MessageEvent) => {
       try {
-        const currentUid = Number(localStorage.getItem("pulse-user-id") || "1");
+        const currentUid = Number(sessionStorage.getItem("pulse-user-id") || "1");
         const data = JSON.parse(e.data) as { userId: number; displayName: string; typing: boolean };
         if (data.userId === currentUid) return;
         setTypingUsers(prev => {
@@ -462,10 +462,10 @@ export function ChatWindow({ chatId }: ChatWindowProps) {
   };
 
   const getCWAuthHeaders = (json?: boolean): Record<string, string> => {
-    const token = localStorage.getItem("pulse-token");
+    const token = sessionStorage.getItem("pulse-token");
     const base: Record<string, string> = token
       ? { "Authorization": `Bearer ${token}` }
-      : (() => { const uid = localStorage.getItem("pulse-user-id"); return uid ? { "x-user-id": uid } : ({} as Record<string, string>); })();
+      : (() => { const uid = sessionStorage.getItem("pulse-user-id"); return uid ? { "x-user-id": uid } : ({} as Record<string, string>); })();
     return json ? { "Content-Type": "application/json", ...base } : base;
   };
 

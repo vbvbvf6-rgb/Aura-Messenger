@@ -168,9 +168,9 @@ export function ChatList({ onMenuClick }: { onMenuClick?: () => void }) {
   const memberSearchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   function getAuthHeaders(): Record<string, string> {
-    const token = localStorage.getItem("pulse-token");
+    const token = sessionStorage.getItem("pulse-token");
     if (token) return { Authorization: `Bearer ${token}` };
-    const uid = localStorage.getItem("pulse-user-id");
+    const uid = sessionStorage.getItem("pulse-user-id");
     return uid ? { "x-user-id": uid } : {};
   }
 
@@ -191,7 +191,7 @@ export function ChatList({ onMenuClick }: { onMenuClick?: () => void }) {
       const res = await fetch(`/api/users/search?q=${encodeURIComponent(q)}&limit=20`, { headers: getAuthHeaders() });
       if (res.ok) {
         const data = await res.json();
-        const uid = Number(localStorage.getItem("pulse-user-id") || "0");
+        const uid = Number(sessionStorage.getItem("pulse-user-id") || "0");
         setMemberResults((data.users || data || []).filter((u: UserResult) => u.id !== uid));
       }
     } catch {}

@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
 
-const getCurrentUserId = () => Number(localStorage.getItem("pulse-user-id") || "0");
+const getCurrentUserId = () => Number(sessionStorage.getItem("pulse-user-id") || "0");
 
 function VerifiedBadge() {
   return (

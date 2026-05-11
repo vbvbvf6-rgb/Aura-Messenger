@@ -32,14 +32,14 @@ export function removeAccount(userId: number) {
 }
 
 export function getActiveToken(): string | null {
-  return localStorage.getItem("pulse-token");
+  return sessionStorage.getItem("pulse-token");
 }
 
 export function setActiveToken(token: string | null) {
   if (token) {
-    localStorage.setItem("pulse-token", token);
+    sessionStorage.setItem("pulse-token", token);
   } else {
-    localStorage.removeItem("pulse-token");
+    sessionStorage.removeItem("pulse-token");
   }
 }
 
@@ -48,6 +48,6 @@ export function getAuthHeaders(): Record<string, string> {
   if (token) {
     return { "Authorization": `Bearer ${token}` };
   }
-  const uid = localStorage.getItem("pulse-user-id");
+  const uid = sessionStorage.getItem("pulse-user-id");
   return uid ? { "x-user-id": uid } : {};
 }

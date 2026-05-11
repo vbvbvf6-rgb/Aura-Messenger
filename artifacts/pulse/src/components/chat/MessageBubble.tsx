@@ -117,9 +117,9 @@ export function MessageBubble({ message, onReply, onEdit, ownBubbleStyle }: Mess
   const bubbleRef = useRef<HTMLDivElement>(null);
 
   const getAuthHeaders = (): Record<string, string> => {
-    const token = localStorage.getItem("pulse-token");
+    const token = sessionStorage.getItem("pulse-token");
     if (token) return { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" };
-    const uid = localStorage.getItem("pulse-user-id");
+    const uid = sessionStorage.getItem("pulse-user-id");
     return uid ? { "x-user-id": uid, "Content-Type": "application/json" } : { "Content-Type": "application/json" };
   };
   const headers = getAuthHeaders();

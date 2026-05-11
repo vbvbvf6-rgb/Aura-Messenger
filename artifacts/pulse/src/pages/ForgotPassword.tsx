@@ -68,7 +68,7 @@ export default function ForgotPassword() {
       });
       const data = await res.json();
       if (!res.ok) { setResetError(data.error || "Ошибка сброса пароля"); return; }
-      if (data.token) localStorage.setItem("pulse-token", data.token);
+      if (data.token) sessionStorage.setItem("pulse-token", data.token);
       setStep("success");
     } catch {
       setResetError("Ошибка подключения к серверу");

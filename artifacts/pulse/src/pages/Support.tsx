@@ -7,11 +7,11 @@ import {
 import { useGetMe } from "@workspace/api-client-react";
 import { useSearch } from "wouter";
 
-const getCurrentUserId = () => Number(localStorage.getItem("pulse-user-id") || "0");
+const getCurrentUserId = () => Number(sessionStorage.getItem("pulse-user-id") || "0");
 function getHeader(): Record<string, string> {
-  const token = localStorage.getItem("pulse-token");
+  const token = sessionStorage.getItem("pulse-token");
   if (token) return { "Content-Type": "application/json", "Authorization": `Bearer ${token}` };
-  const uid = localStorage.getItem("pulse-user-id");
+  const uid = sessionStorage.getItem("pulse-user-id");
   return uid ? { "Content-Type": "application/json", "x-user-id": uid } : { "Content-Type": "application/json" };
 }
 

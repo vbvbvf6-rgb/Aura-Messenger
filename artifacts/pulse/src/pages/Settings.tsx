@@ -241,9 +241,9 @@ function TwoFaSection({ user, toast, lang }: { user: any; toast: any; lang: stri
   useEffect(() => { setEnabled(!!(user as any)?.totpEnabled); }, [user]);
 
   const getHeaders = (): Record<string, string> => {
-    const token = localStorage.getItem("pulse-token");
+    const token = sessionStorage.getItem("pulse-token");
     if (token) return { "Authorization": `Bearer ${token}` };
-    const uid = localStorage.getItem("pulse-user-id");
+    const uid = sessionStorage.getItem("pulse-user-id");
     return uid ? { "x-user-id": uid } : {};
   };
 
@@ -488,8 +488,8 @@ function SecurityQuestionSection({ lang, toast }: { lang: string; toast: any }) 
     if (status === "loading" || status === "loaded") return;
     setStatus("loading");
     try {
-      const token = localStorage.getItem("pulse-token");
-      const uid = localStorage.getItem("pulse-user-id");
+      const token = sessionStorage.getItem("pulse-token");
+      const uid = sessionStorage.getItem("pulse-user-id");
       const headers: Record<string, string> = {};
       if (token) headers["Authorization"] = `Bearer ${token}`;
       else if (uid) headers["x-user-id"] = uid;
@@ -515,8 +515,8 @@ function SecurityQuestionSection({ lang, toast }: { lang: string; toast: any }) 
     setSaving(true);
     setErr("");
     try {
-      const token = localStorage.getItem("pulse-token");
-      const uid = localStorage.getItem("pulse-user-id");
+      const token = sessionStorage.getItem("pulse-token");
+      const uid = sessionStorage.getItem("pulse-user-id");
       const headers: Record<string, string> = { "Content-Type": "application/json" };
       if (token) headers["Authorization"] = `Bearer ${token}`;
       else if (uid) headers["x-user-id"] = uid;
@@ -757,7 +757,7 @@ export default function Settings() {
       const compressed = canvas.toDataURL("image/jpeg", 0.75);
       setAvatarUrl(compressed);
       // Auto-save avatar immediately
-      const uid = localStorage.getItem("pulse-user-id");
+      const uid = sessionStorage.getItem("pulse-user-id");
       fetch("/api/users/me", {
         method: "PUT",
         headers: {
@@ -781,7 +781,7 @@ export default function Settings() {
   const handleCancelPrime = async () => {
     setCancelPrimeLoading(true);
     try {
-      const uid = localStorage.getItem("pulse-user-id");
+      const uid = sessionStorage.getItem("pulse-user-id");
       const res = await fetch("/api/prime/cancel", {
         method: "POST",
         headers: uid ? { "x-user-id": uid } : {},
@@ -908,7 +908,7 @@ export default function Settings() {
     }
     setPwLoading(true);
     try {
-      const uid = localStorage.getItem("pulse-user-id");
+      const uid = sessionStorage.getItem("pulse-user-id");
       const res = await fetch("/api/auth/change-password", {
         method: "POST",
         headers: { "Content-Type": "application/json", ...(uid ? { "x-user-id": uid } : {}) },
@@ -941,7 +941,7 @@ export default function Settings() {
 
   const handleExportData = async () => {
     try {
-      const uid = localStorage.getItem("pulse-user-id");
+      const uid = sessionStorage.getItem("pulse-user-id");
       const headers: Record<string, string> = uid ? { "x-user-id": uid } : {};
       const [profileRes, statsRes] = await Promise.all([
         fetch("/api/users/me", { headers }),
@@ -986,7 +986,7 @@ export default function Settings() {
     setUsernameLoading(true);
     setUsernameError("");
     try {
-      const uid = localStorage.getItem("pulse-user-id");
+      const uid = sessionStorage.getItem("pulse-user-id");
       const res = await fetch("/api/users/me/username", {
         method: "PUT",
         headers: { "Content-Type": "application/json", ...(uid ? { "x-user-id": uid } : {}) },

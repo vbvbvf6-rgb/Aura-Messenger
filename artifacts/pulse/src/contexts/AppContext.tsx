@@ -54,7 +54,7 @@ export function AppProvider({ children, onLogout, onSwitchAccount, onRemoveAccou
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
 
-  const currentUserId = Number(localStorage.getItem("pulse-user-id") || "1");
+  const currentUserId = Number(sessionStorage.getItem("pulse-user-id") || "1");
   const currentUserIdRef = useRef(currentUserId);
   currentUserIdRef.current = currentUserId;
 
@@ -81,7 +81,7 @@ export function AppProvider({ children, onLogout, onSwitchAccount, onRemoveAccou
   const logout = () => { onLogout(); };
 
   const getUserHeaders = useCallback((): Record<string, string> => {
-    const token = localStorage.getItem("pulse-token");
+    const token = sessionStorage.getItem("pulse-token");
     if (token) return { "Content-Type": "application/json", "Authorization": `Bearer ${token}` };
     return { "Content-Type": "application/json", "x-user-id": String(currentUserIdRef.current) };
   }, []);
@@ -303,7 +303,7 @@ export function AppProvider({ children, onLogout, onSwitchAccount, onRemoveAccou
     const connect = () => {
       if (dead) return;
       const uid = currentUserIdRef.current;
-      const token = localStorage.getItem("pulse-token");
+      const token = sessionStorage.getItem("pulse-token");
       const sseUrl = token
         ? `/api/users/me/events?_token=${encodeURIComponent(token)}`
         : `/api/users/me/events?_uid=${uid}`;
