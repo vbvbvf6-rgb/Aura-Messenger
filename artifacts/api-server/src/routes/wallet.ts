@@ -87,9 +87,11 @@ router.post("/wallet/daily-bonus", async (req, res) => {
     if ((claimed.rows as any[]).length > 0) {
       return res.status(409).json({ error: "Бонус уже получен сегодня. Возвращайся завтра!" });
     }
-    const primeRow = await db.execute(sql`SELECT has_prime FROM users WHERE id = ${uid}`);
-    const hasPrime = (primeRow.rows[0] as any)?.has_prime === true || (primeRow.rows[0] as any)?.has_prime === "t";
-    const BONUS = hasPrime ? 25 : 10;
+    const primeRow = await db.execute(sql`SELECT has_prime, prime_tier FROM users WHERE id = ${uid}`);
+    const row0 = primeRow.rows[0] as any;
+    const hasPrime = row0?.has_prime === true || row0?.has_prime === "t";
+    const primeTier = row0?.prime_tier ?? null;
+    const BONUS = hasPrime ? (primeTier === "prime_plus" ? 50 : 25) : 10;
     await db.execute(sql`INSERT INTO user_daily_bonus (user_id, bonus_date) VALUES (${uid}, ${today}) ON CONFLICT DO NOTHING`);
     await db.execute(sql`UPDATE users SET balance = balance + ${BONUS} WHERE id = ${uid}`);
     const rows = await db.execute(sql`SELECT balance FROM users WHERE id = ${uid}`);

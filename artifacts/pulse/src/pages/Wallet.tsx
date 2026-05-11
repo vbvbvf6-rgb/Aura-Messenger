@@ -119,9 +119,11 @@ export default function Wallet() {
   const uid = Number(localStorage.getItem("pulse-user-id") || "0");
   const isAdmin = (me as any)?.isAdmin === true;
   const hasPrime = (me as any)?.hasPrime === true;
+  const primeTier = (me as any)?.primeTier ?? null;
+  const taskMultiplier = primeTier === "prime_plus" ? 3 : hasPrime ? 2 : 1;
 
   const effectiveTasks = BASE_TASKS.map(t =>
-    t.id === "daily_login" ? t : { ...t, reward: hasPrime ? t.reward * 2 : t.reward }
+    t.id === "daily_login" ? t : { ...t, reward: t.reward * taskMultiplier }
   );
 
   const tasksKey = `pulse-completed-tasks-${uid}`;
