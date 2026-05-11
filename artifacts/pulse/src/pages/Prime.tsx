@@ -4,7 +4,9 @@ import {
   Crown, Zap, Check, Star, Shield, MessageCircle, Gift, Image,
   Infinity as InfinityIcon, X, AlertTriangle, Palette, RefreshCw, TrendingUp,
   ShoppingCart, Bell, Clock, Lock, CalendarClock, RotateCcw, Flame,
-  Sparkles, Mic, Video, Brush, Layers, ChevronDown, ChevronUp
+  Sparkles, Mic, Video, Brush, Layers, ChevronDown, ChevronUp,
+  Radio, Eye, Smile, Pin, Bot, Users, Music, Package, Globe,
+  BarChart3, QrCode, Fingerprint, Headphones, Wand2, Trash2
 } from "lucide-react";
 import { useGetMe, getGetMeQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -44,18 +46,52 @@ const PRIME_FEATURES = [
 ];
 
 const PLUS_EXCLUSIVE = [
-  { icon: Sparkles,     text: "Алмазное анимированное кольцо вместо золотого",    color: "text-purple-400", bg: "bg-purple-500/10" },
-  { icon: Star,         text: "Значок PRIME+ 💎 с градиентом у имени",            color: "text-purple-400", bg: "bg-purple-500/10" },
-  { icon: TrendingUp,   text: "3× Spark вместо 2× за ежедневные задания",         color: "text-fuchsia-400",bg: "bg-fuchsia-500/10"},
-  { icon: Zap,          text: "Ежедневный бонус 50 ⚡ вместо 25 ⚡",              color: "text-fuchsia-400",bg: "bg-fuchsia-500/10"},
-  { icon: Brush,        text: "Кастомный цвет имени: градиентный текст",          color: "text-purple-400", bg: "bg-purple-500/10" },
-  { icon: Palette,      text: "Полная палитра тем + анимированный фон профиля",   color: "text-purple-400", bg: "bg-purple-500/10" },
-  { icon: Mic,          text: "Транскрипция голосовых сообщений в текст",         color: "text-fuchsia-400",bg: "bg-fuchsia-500/10"},
-  { icon: Video,        text: "Видео-аватар профиля",                             color: "text-fuchsia-400",bg: "bg-fuchsia-500/10"},
-  { icon: Layers,       text: "Эксклюзивный пак стикеров Prime+",                color: "text-purple-400", bg: "bg-purple-500/10" },
-  { icon: Shield,       text: "VIP+ метка в группах и каналах",                  color: "text-purple-400", bg: "bg-purple-500/10" },
-  { icon: Gift,         text: "100 ⚡ Spark бонус при оформлении",                color: "text-fuchsia-400",bg: "bg-fuchsia-500/10"},
-  { icon: MessageCircle,text: "Приоритет в очереди AI-ассистента",                color: "text-fuchsia-400",bg: "bg-fuchsia-500/10"},
+  { icon: Sparkles,     text: "Алмазное анимированное кольцо вместо золотого",        color: "text-purple-400", bg: "bg-purple-500/10" },
+  { icon: Star,         text: "Значок PRIME+ 💎 с градиентом у имени",                color: "text-purple-400", bg: "bg-purple-500/10" },
+  { icon: TrendingUp,   text: "3× Spark вместо 2× за ежедневные задания",             color: "text-fuchsia-400",bg: "bg-fuchsia-500/10"},
+  { icon: Zap,          text: "Ежедневный бонус 50 ⚡ вместо 25 ⚡",                  color: "text-fuchsia-400",bg: "bg-fuchsia-500/10"},
+  { icon: Brush,        text: "Кастомный цвет имени: градиентный текст",              color: "text-purple-400", bg: "bg-purple-500/10" },
+  { icon: Palette,      text: "Полная палитра тем + анимированный фон профиля",       color: "text-purple-400", bg: "bg-purple-500/10" },
+  { icon: Mic,          text: "Транскрипция голосовых сообщений в текст (AI)",        color: "text-fuchsia-400",bg: "bg-fuchsia-500/10"},
+  { icon: Video,        text: "Видео-аватар профиля",                                 color: "text-fuchsia-400",bg: "bg-fuchsia-500/10"},
+  { icon: Layers,       text: "Эксклюзивный пак стикеров Prime+",                    color: "text-purple-400", bg: "bg-purple-500/10" },
+  { icon: Shield,       text: "VIP+ метка в группах и каналах",                      color: "text-purple-400", bg: "bg-purple-500/10" },
+  { icon: Gift,         text: "100 ⚡ Spark бонус при оформлении",                    color: "text-fuchsia-400",bg: "bg-fuchsia-500/10"},
+  { icon: MessageCircle,text: "Приоритет в очереди AI-ассистента",                    color: "text-fuchsia-400",bg: "bg-fuchsia-500/10"},
+  { icon: Radio,        text: "Голосовые сообщения без ограничений длины",            color: "text-violet-400", bg: "bg-violet-500/10" },
+  { icon: Trash2,       text: "Просмотр удалённых сообщений — 48 часов",             color: "text-violet-400", bg: "bg-violet-500/10" },
+  { icon: Globe,        text: "Кастомный анимированный статус профиля",               color: "text-violet-400", bg: "bg-violet-500/10" },
+  { icon: Pin,          text: "Закрепление до 10 сообщений в чате",                   color: "text-fuchsia-400",bg: "bg-fuchsia-500/10"},
+  { icon: Smile,        text: "Двойные реакции: отправляй ×2 реакции на сообщение",  color: "text-fuchsia-400",bg: "bg-fuchsia-500/10"},
+  { icon: Bot,          text: "AI-генерация аватара: новый стиль каждый месяц",       color: "text-violet-400", bg: "bg-violet-500/10" },
+  { icon: Users,        text: "Увеличенный лимит контактов до 10 000",                color: "text-violet-400", bg: "bg-violet-500/10" },
+  { icon: Music,        text: "Кастомные звуки и рингтоны уведомлений",               color: "text-purple-400", bg: "bg-purple-500/10" },
+  { icon: Package,      text: "Ежемесячный эпический подарок бесплатно",              color: "text-fuchsia-400",bg: "bg-fuchsia-500/10"},
+  { icon: Wand2,        text: "Эффекты отправки: конфетти, снег, огонь в чате",       color: "text-purple-400", bg: "bg-purple-500/10" },
+  { icon: QrCode,       text: "QR-код профиля с кастомным дизайном Prime+",           color: "text-violet-400", bg: "bg-violet-500/10" },
+  { icon: BarChart3,    text: "Детальная статистика трат Spark и активности",          color: "text-violet-400", bg: "bg-violet-500/10" },
+  { icon: Fingerprint,  text: "Сквозное шифрование E2E+ для секретных чатов",         color: "text-violet-400", bg: "bg-violet-500/10" },
+  { icon: Headphones,   text: "Эксклюзивный доступ к Prime+ Lounge — закрытому чату", color: "text-fuchsia-400",bg: "bg-fuchsia-500/10"},
+];
+
+// ─── Comparison table ─────────────────────────────────────────────────────────
+
+const COMPARISON_ROWS = [
+  { label: "Значок у имени",           prime: "⭐ Prime",       plus: "💎 Prime+ градиент" },
+  { label: "Кольцо аватара",           prime: "Золотое",         plus: "Алмазное анимированное" },
+  { label: "Ежедневный Spark бонус",   prime: "25 ⚡",           plus: "50 ⚡" },
+  { label: "Множитель заданий",        prime: "2×",              plus: "3×" },
+  { label: "Бонус при старте",         prime: "50 ⚡",           plus: "100 ⚡" },
+  { label: "Темы оформления",          prime: "3 темы",          plus: "Все темы + анимация" },
+  { label: "Транскрипция голосовых",   prime: "—",               plus: "✓ AI" },
+  { label: "Видео-аватар",             prime: "—",               plus: "✓" },
+  { label: "Голосовые без лимита",     prime: "—",               plus: "✓" },
+  { label: "Ежемесячный подарок",      prime: "—",               plus: "Эпический 🎁" },
+  { label: "Цвет имени",              prime: "—",               plus: "Градиент на выбор" },
+  { label: "Закреп. сообщений",        prime: "1",               plus: "10" },
+  { label: "Лимит контактов",          prime: "5 000",           plus: "10 000" },
+  { label: "E2E+ шифрование",          prime: "—",               plus: "✓" },
+  { label: "Prime+ Lounge",            prime: "—",               plus: "✓ Эксклюзив" },
 ];
 
 // ─── Countdown ────────────────────────────────────────────────────────────────
@@ -587,8 +623,75 @@ export default function Prime() {
               <div className="flex items-center gap-3 p-3.5 rounded-2xl border border-yellow-500/20 bg-yellow-500/5">
                 <Crown size={18} className="text-yellow-400 shrink-0" />
                 <p className="text-xs text-muted-foreground leading-relaxed">
-                  <span className="font-semibold text-foreground">Prime+</span> включает <span className="font-semibold text-foreground">все возможности Prime</span> и добавляет 12 эксклюзивных функций
+                  <span className="font-semibold text-foreground">Prime+</span> включает <span className="font-semibold text-foreground">все возможности Prime</span> и добавляет{" "}
+                  <span className="font-semibold text-purple-400">{PLUS_EXCLUSIVE.length} эксклюзивных функций</span>
                 </p>
+              </div>
+
+              {/* Comparison table */}
+              <div className="bg-card border border-border rounded-2xl overflow-hidden">
+                <div className="px-4 py-3 border-b border-border flex items-center gap-2">
+                  <BarChart3 size={14} className="text-purple-400" />
+                  <span className="text-sm font-bold text-foreground">Prime vs Prime+</span>
+                </div>
+                <div className="divide-y divide-border">
+                  {COMPARISON_ROWS.map((row, i) => (
+                    <div key={i} className="grid grid-cols-3 text-xs">
+                      <div className="px-3 py-2.5 text-muted-foreground font-medium flex items-center">{row.label}</div>
+                      <div className="px-3 py-2.5 text-center text-muted-foreground border-x border-border flex items-center justify-center">
+                        {row.prime === "—" ? (
+                          <span className="text-muted-foreground/40">—</span>
+                        ) : (
+                          <span className="text-yellow-400 font-semibold">{row.prime}</span>
+                        )}
+                      </div>
+                      <div className="px-3 py-2.5 text-center flex items-center justify-center">
+                        <span className="font-semibold" style={{ background: "linear-gradient(90deg, #a855f7, #d946ef)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
+                          {row.plus}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="grid grid-cols-3 bg-secondary/30 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                  <div className="px-3 py-2">Функция</div>
+                  <div className="px-3 py-2 text-center text-yellow-500 border-x border-border">Prime ⭐</div>
+                  <div className="px-3 py-2 text-center text-purple-400">Prime+ 💎</div>
+                </div>
+              </div>
+
+              {/* Monthly gift highlight */}
+              <div className="relative rounded-2xl overflow-hidden border border-fuchsia-500/30 p-4"
+                style={{ background: "linear-gradient(135deg, rgba(217,70,239,0.1), rgba(168,85,247,0.05))" }}
+              >
+                <div className="absolute top-0 right-0 w-24 h-24 bg-fuchsia-500/10 rounded-full blur-2xl pointer-events-none" />
+                <div className="flex items-center gap-3 relative z-10">
+                  <motion.div
+                    animate={{ scale: [1, 1.12, 1], rotate: [0, 5, -5, 0] }}
+                    transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                    className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl border border-fuchsia-500/30 shrink-0"
+                    style={{ background: "rgba(217,70,239,0.15)" }}
+                  >
+                    🎁
+                  </motion.div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold text-foreground">Ежемесячный эпический подарок</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">Каждый месяц на ваш счёт начисляется эпический подарок стоимостью от 500 ⚡ — бесплатно</p>
+                  </div>
+                </div>
+                <div className="mt-3 flex gap-2 relative z-10">
+                  {["💎", "🌸", "👑", "⭐", "🔥"].map((emoji, i) => (
+                    <motion.div key={i}
+                      animate={{ y: [0, -4, 0] }}
+                      transition={{ duration: 2, repeat: Infinity, delay: i * 0.3, ease: "easeInOut" }}
+                      className="w-9 h-9 rounded-xl border border-fuchsia-500/20 flex items-center justify-center text-base"
+                      style={{ background: "rgba(168,85,247,0.1)" }}
+                    >
+                      {emoji}
+                    </motion.div>
+                  ))}
+                  <div className="w-9 h-9 rounded-xl border border-border flex items-center justify-center text-xs text-muted-foreground font-bold">+∞</div>
+                </div>
               </div>
 
               {/* Plan picker */}
