@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Sparkles } from "lucide-react";
+import { emojiToTwemojiUrl, GIFT_LOCAL_PNG } from "@/lib/twemoji";
 
 interface ShowcaseGift {
   id: number;
@@ -28,50 +29,7 @@ const RARITY_ORBS: Record<string, { inner: string; outer: string }> = {
   common:    { inner: "radial-gradient(circle at 35% 30%, #e2e8f0, #94a3b8 55%, #475569)", outer: "rgba(148,163,184,0.3)" },
 };
 
-const GIFT_PNG_MAP: Record<string, string> = {
-  "Сердечко":           "/gifts/gen/heart.png",
-  "Звёздочка":          "/gifts/gen/star.png",
-  "Мыльный пузырь":     "/gifts/gen/bubble.png",
-  "Конфета":            "/gifts/gen/candy.png",
-  "Клубника":           "/gifts/gen/strawberry.png",
-  "Леденец":            "/gifts/gen/lollipop.png",
-  "Ромашка":            "/gifts/gen/daisy.png",
-  "Цветок сакуры":      "/gifts/gen/sakura.png",
-  "Пончик":             "/gifts/gen/donut.png",
-  "Мороженое":          "/gifts/gen/icecream.png",
-  "Рыбка":              "/gifts/fish.png",
-  "Подсолнух":          "/gifts/sunflower.png",
-  "Чашка кофе":         "/gifts/coffee.png",
-  "Луна":               "/gifts/moon.png",
-  "Четырёхлистник":     "/gifts/clover.png",
-  "Бабочка":            "/gifts/butterfly.png",
-  "Котёнок":            "/gifts/kitten.png",
-  "Воздушный шар":      "/gifts/balloon.png",
-  "Ретро-телефон":      "/gifts/retro-phone.png",
-  "Пицца":              "/gifts/pizza.png",
-  "Медвежонок":         "/gifts/teddy-bear.png",
-  "Торт":               "/gifts/birthday-cake.png",
-  "Игровая приставка":  "/gifts/gaming-console.png",
-  "Корона":             "/gifts/crown.png",
-  "Красная роза":       "/gifts/rose-in-glass.png",
-  "Бриллиант":          "/gifts/diamond-heart.png",
-  "Золотая монета":     "/gifts/gold-coin.png",
-  "Морская звезда":     "/gifts/star-42.png",
-  "Горящее сердце":     "/gifts/rose-in-glass.png",
-  "Волшебство":         "/gifts/magic-crystal.png",
-  "Кристалл":           "/gifts/magic-crystal.png",
-  "Магический гриб":    "/gifts/magic-crystal.png",
-  "Сапфировый кулон":   "/gifts/magic-crystal.png",
-  "Хрустальное сердце": "/gifts/diamond-heart.png",
-  "Золотая рыбка":      "/gifts/fish.png",
-  "Пульс":              "/gifts/confetti-box.png",
-  "Легендарная звезда": "/gifts/star-42.png",
-  "Звёздная колесница": "/gifts/star-small.png",
-  "Корона Prime":       "/gifts/crown.png",
-  "Пульс Сердца":       "/gifts/confetti-box.png",
-  "Звезда Prime":       "/gifts/star-42.png",
-  "Единый трон":        "/gifts/crown.png",
-};
+import { emojiToTwemojiUrl, GIFT_LOCAL_PNG } from "@/lib/twemoji";
 
 function getAnimation(animationType: string) {
   switch (animationType) {
@@ -94,7 +52,8 @@ function getAnimation(animationType: string) {
 }
 
 function GiftOrb({ gift, size }: { gift: ShowcaseGift; size: number }) {
-  const pngSrc = GIFT_PNG_MAP[gift.name];
+  const [failed, setFailed] = useState(false);
+  const imgSrc = GIFT_LOCAL_PNG[gift.name] ?? emojiToTwemojiUrl(gift.emoji);
   const cfg = RARITY_CONFIG[gift.rarity] || RARITY_CONFIG.common;
   const orb = RARITY_ORBS[gift.rarity] || RARITY_ORBS.common;
   const anim = getAnimation(gift.animation_type);
@@ -105,14 +64,7 @@ function GiftOrb({ gift, size }: { gift: ShowcaseGift; size: number }) {
     <div style={{ position: "relative", width: size, height: size }}>
       {isHigh && (
         <motion.div
-          style={{
-            position: "absolute",
-            inset: -Math.round(size * 0.18),
-            borderRadius: "50%",
-            background: cfg.glow,
-            filter: `blur(${Math.round(size * 0.3)}px)`,
-            zIndex: 0,
-          }}
+          style={{ position: "absolute", inset: -Math.round(size * 0.18), borderRadius: "50%", background: cfg.glow, filter: `blur(${Math.round(size * 0.3)}px)`, zIndex: 0 }}
           animate={{ opacity: [0.2, 0.65, 0.2], scale: [0.88, 1.12, 0.88] }}
           transition={{ duration: isTop ? 1.7 : 2.3, repeat: Infinity, ease: "easeInOut" }}
         />
@@ -121,14 +73,17 @@ function GiftOrb({ gift, size }: { gift: ShowcaseGift; size: number }) {
         {...(anim as any)}
         style={{ position: "relative", zIndex: 1, width: size, height: size, display: "flex", alignItems: "center", justifyContent: "center" }}
       >
-        {pngSrc ? (
+        {failed ? (
+          <div style={{ width: size, height: size, borderRadius: Math.round(size * 0.22), background: orb.inner, boxShadow: `0 0 ${Math.round(size*0.3)}px ${orb.outer}, 0 0 ${Math.round(size*0.55)}px ${cfg.glow}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: Math.round(size * 0.52), lineHeight: 1, overflow: "hidden", position: "relative" }}>
+            <span style={{ filter: "drop-shadow(0 0 6px rgba(255,255,255,0.5))" }}>{gift.emoji}</span>
+          </div>
+        ) : (
           <img
-            src={pngSrc}
+            src={imgSrc}
             alt={gift.name}
+            onError={() => setFailed(true)}
             style={{
-              width: size,
-              height: size,
-              objectFit: "contain",
+              width: size, height: size, objectFit: "contain",
               filter: isTop
                 ? `drop-shadow(0 0 ${Math.round(size*0.22)}px ${cfg.glow}) drop-shadow(0 0 ${Math.round(size*0.1)}px ${cfg.glow})`
                 : isHigh
@@ -137,37 +92,11 @@ function GiftOrb({ gift, size }: { gift: ShowcaseGift; size: number }) {
             }}
             draggable={false}
           />
-        ) : (
-          <div
-            style={{
-              width: size,
-              height: size,
-              borderRadius: Math.round(size * 0.22),
-              background: orb.inner,
-              boxShadow: `0 0 ${Math.round(size*0.3)}px ${orb.outer}, 0 0 ${Math.round(size*0.55)}px ${cfg.glow}`,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: Math.round(size * 0.52),
-              lineHeight: 1,
-              overflow: "hidden",
-              position: "relative",
-            }}
-          >
-            <span style={{ filter: "drop-shadow(0 0 6px rgba(255,255,255,0.5))" }}>{gift.emoji}</span>
-          </div>
         )}
       </motion.div>
       {isHigh && (
         <motion.div
-          style={{
-            position: "absolute",
-            inset: -2,
-            borderRadius: Math.round(size * 0.22) + 2,
-            border: `${isTop ? 2 : 1.5}px solid ${cfg.border}`,
-            zIndex: 2,
-            pointerEvents: "none",
-          }}
+          style={{ position: "absolute", inset: -2, borderRadius: Math.round(size * 0.22) + 2, border: `${isTop ? 2 : 1.5}px solid ${cfg.border}`, zIndex: 2, pointerEvents: "none" }}
           animate={{ opacity: [0.3, 1, 0.3], scale: [0.96, 1.04, 0.96] }}
           transition={{ duration: isTop ? 1.4 : 2, repeat: Infinity, ease: "easeInOut" }}
         />

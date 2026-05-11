@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { formatDistanceToNow } from "date-fns";
 import { useQueryClient } from "@tanstack/react-query";
+import { emojiToTwemojiUrl, GIFT_LOCAL_PNG } from "@/lib/twemoji";
 
 const RARITY_BG: Record<string, string> = {
   cosmic:    "bg-violet-500/20 border-violet-400/15",
@@ -79,58 +80,6 @@ function getEmojiAnimation(animationType: string) {
   }
 }
 
-// PNG image map — generated AI images + existing hand-crafted PNGs
-// Priority: /gifts/gen/ (AI-generated, transparent bg) > /gifts/ (existing)
-const GIFT_PNG_MAP: Record<string, string> = {
-  // ── AI-generated (transparent background) ────────────────────────────────
-  "Сердечко":           "/gifts/gen/heart.png",
-  "Звёздочка":          "/gifts/gen/star.png",
-  "Мыльный пузырь":     "/gifts/gen/bubble.png",
-  "Конфета":            "/gifts/gen/candy.png",
-  "Клубника":           "/gifts/gen/strawberry.png",
-  "Леденец":            "/gifts/gen/lollipop.png",
-  "Ромашка":            "/gifts/gen/daisy.png",
-  "Цветок сакуры":      "/gifts/gen/sakura.png",
-  "Пончик":             "/gifts/gen/donut.png",
-  "Мороженое":          "/gifts/gen/icecream.png",
-  // ── Existing PNGs (common) ───────────────────────────────────────────────
-  "Рыбка":              "/gifts/fish.png",
-  "Подсолнух":          "/gifts/sunflower.png",
-  "Чашка кофе":         "/gifts/coffee.png",
-  "Луна":               "/gifts/moon.png",
-  "Четырёхлистник":     "/gifts/clover.png",
-  "Бабочка":            "/gifts/butterfly.png",
-  "Котёнок":            "/gifts/kitten.png",
-  "Воздушный шар":      "/gifts/balloon.png",
-  "Ретро-телефон":      "/gifts/retro-phone.png",
-  "Пицца":              "/gifts/pizza.png",
-  "Медвежонок":         "/gifts/teddy-bear.png",
-  "Торт":               "/gifts/birthday-cake.png",
-  "Игровая приставка":  "/gifts/gaming-console.png",
-  // ── Existing PNGs (rare) ─────────────────────────────────────────────────
-  "Корона":             "/gifts/crown.png",
-  "Красная роза":       "/gifts/rose-in-glass.png",
-  "Бриллиант":          "/gifts/diamond-heart.png",
-  "Золотая монета":     "/gifts/gold-coin.png",
-  "Морская звезда":     "/gifts/star-42.png",
-  "Горящее сердце":     "/gifts/rose-in-glass.png",
-  // ── Existing PNGs (epic/legendary/cosmic shared) ─────────────────────────
-  "Волшебство":         "/gifts/magic-crystal.png",
-  "Кристалл":           "/gifts/magic-crystal.png",
-  "Магический гриб":    "/gifts/magic-crystal.png",
-  "Сапфировый кулон":   "/gifts/magic-crystal.png",
-  "Хрустальное сердце": "/gifts/diamond-heart.png",
-  "Золотая рыбка":      "/gifts/fish.png",
-  "Пульс":              "/gifts/confetti-box.png",
-  "Легендарная звезда": "/gifts/star-42.png",
-  "Звёздная колесница": "/gifts/star-small.png",
-  // ── Prime exclusive ───────────────────────────────────────────────────────
-  "Корона Prime":       "/gifts/crown.png",
-  "Пульс Сердца":       "/gifts/confetti-box.png",
-  "Звезда Prime":       "/gifts/star-42.png",
-  "Единый трон":        "/gifts/crown.png",
-};
-
 const RARITY_ORBS: Record<string, { inner: string; outer: string; glow: string }> = {
   cosmic:    { inner: "radial-gradient(circle at 35% 30%, #c084fc, #7c3aed 55%, #4c1d95)", outer: "rgba(139,92,246,0.5)", glow: "0 0 28px rgba(139,92,246,0.9), 0 0 60px rgba(139,92,246,0.4)" },
   legendary: { inner: "radial-gradient(circle at 35% 30%, #fde68a, #f59e0b 55%, #92400e)", outer: "rgba(245,158,11,0.5)", glow: "0 0 28px rgba(251,191,36,0.9), 0 0 60px rgba(245,158,11,0.4)" },
@@ -147,25 +96,29 @@ const RARITY_GLOW_COLORS: Record<string, string> = {
   common:    "rgba(148,163,184,0.25)",
 };
 
-function GiftImage({ src, name, size, glowColor, rarity = "common" }: {
-  src: string; name: string; size: number; glowColor: string; rarity?: string;
+function GiftImage({ src, name, emoji, size, glowColor, rarity = "common", orbStyle }: {
+  src: string; name: string; emoji: string; size: number; glowColor: string;
+  rarity?: string; orbStyle: { inner: string; outer: string; glow: string };
 }) {
+  const [failed, setFailed] = useState(false);
   const isHighRarity = ["epic", "legendary", "cosmic"].includes(rarity);
   const isTopRarity = ["legendary", "cosmic"].includes(rarity);
+  const orbSize = Math.round(size * 1.35);
+
+  if (failed) {
+    return (
+      <div style={{ width: orbSize, height: orbSize, borderRadius: Math.round(orbSize * 0.22), background: orbStyle.inner, boxShadow: orbStyle.glow, display: "flex", alignItems: "center", justifyContent: "center", fontSize: size * 0.56, lineHeight: 1, position: "relative", overflow: "hidden" }}>
+        <div className="absolute inset-0 rounded-full opacity-60" style={{ background: orbStyle.outer, filter: "blur(8px)", transform: "scale(1.15)" }} />
+        <span className="relative z-10 select-none" style={{ fontFamily: '"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif', filter: "drop-shadow(0 2px 6px rgba(0,0,0,0.6))" }}>{emoji}</span>
+      </div>
+    );
+  }
 
   return (
     <div style={{ position: "relative", width: size, height: size, display: "flex", alignItems: "center", justifyContent: "center" }}>
       {isHighRarity && (
         <motion.div
-          style={{
-            position: "absolute",
-            width: size * 0.9,
-            height: size * 0.9,
-            borderRadius: "50%",
-            background: glowColor,
-            filter: `blur(${Math.round(size * 0.28)}px)`,
-            zIndex: 0,
-          }}
+          style={{ position: "absolute", width: size * 0.9, height: size * 0.9, borderRadius: "50%", background: glowColor, filter: `blur(${Math.round(size * 0.28)}px)`, zIndex: 0 }}
           animate={{ opacity: [0.25, 0.7, 0.25], scale: [0.85, 1.15, 0.85] }}
           transition={{ duration: isTopRarity ? 1.7 : 2.3, repeat: Infinity, ease: "easeInOut" }}
         />
@@ -173,12 +126,9 @@ function GiftImage({ src, name, size, glowColor, rarity = "common" }: {
       <img
         src={src}
         alt={name}
+        onError={() => setFailed(true)}
         style={{
-          position: "relative",
-          zIndex: 1,
-          width: size,
-          height: size,
-          objectFit: "contain",
+          position: "relative", zIndex: 1, width: size, height: size, objectFit: "contain",
           filter: isTopRarity
             ? `drop-shadow(0 0 ${Math.round(size * 0.22)}px ${glowColor}) drop-shadow(0 0 ${Math.round(size * 0.1)}px ${glowColor})`
             : isHighRarity
@@ -189,14 +139,7 @@ function GiftImage({ src, name, size, glowColor, rarity = "common" }: {
       />
       {isHighRarity && (
         <motion.div
-          style={{
-            position: "absolute",
-            inset: -2,
-            borderRadius: Math.round(size * 0.22) + 2,
-            border: `${isTopRarity ? 2 : 1.5}px solid ${glowColor}`,
-            zIndex: 2,
-            pointerEvents: "none",
-          }}
+          style={{ position: "absolute", inset: -2, borderRadius: Math.round(size * 0.22) + 2, border: `${isTopRarity ? 2 : 1.5}px solid ${glowColor}`, zIndex: 2, pointerEvents: "none" }}
           animate={{ opacity: [0.25, 0.9, 0.25], scale: [0.96, 1.04, 0.96] }}
           transition={{ duration: isTopRarity ? 1.4 : 2, repeat: Infinity, ease: "easeInOut" }}
         />
@@ -262,63 +205,21 @@ function FloatingParticles({ animationType, size, rarity }: { animationType: str
 function GiftVisual({ name, emoji, animationType, size = 56, rarity = "common" }: {
   name: string; emoji: string; animationType: string; size?: number; rarity?: string;
 }) {
-  const pngSrc = GIFT_PNG_MAP[name];
+  const imgSrc = GIFT_LOCAL_PNG[name] ?? emojiToTwemojiUrl(emoji);
   const anim = getEmojiAnimation(animationType);
   const orb = RARITY_ORBS[rarity] || RARITY_ORBS.common;
   const glowColor = RARITY_GLOW_COLORS[rarity] || RARITY_GLOW_COLORS.common;
-  const orbSize = Math.round(size * 1.35);
   const isHighRarity = ["epic", "legendary", "cosmic"].includes(rarity);
   const wrapSize = size + (isHighRarity ? Math.round(size * 0.5) : 0);
 
-  if (pngSrc) {
-    return (
-      <div style={{ position: "relative", width: wrapSize, height: wrapSize, display: "flex", alignItems: "center", justifyContent: "center" }}>
-        {isHighRarity && <FloatingParticles animationType={animationType} size={size} rarity={rarity} />}
-        <motion.div
-          style={{ position: "relative", zIndex: 1, width: size, height: size, display: "flex", alignItems: "center", justifyContent: "center" }}
-          {...(anim as any)}
-        >
-          <GiftImage src={pngSrc} name={name} size={size} glowColor={glowColor} rarity={rarity} />
-        </motion.div>
-      </div>
-    );
-  }
-
-  // Emoji orb fallback for gifts without a PNG
   return (
     <div style={{ position: "relative", width: wrapSize, height: wrapSize, display: "flex", alignItems: "center", justifyContent: "center" }}>
       {isHighRarity && <FloatingParticles animationType={animationType} size={size} rarity={rarity} />}
       <motion.div
-        className="flex items-center justify-center relative"
-        style={{ width: orbSize, height: orbSize }}
+        style={{ position: "relative", zIndex: 1, width: size, height: size, display: "flex", alignItems: "center", justifyContent: "center" }}
         {...(anim as any)}
       >
-        <div
-          className="absolute inset-0 rounded-full opacity-60"
-          style={{ background: orb.outer, filter: "blur(8px)", transform: "scale(1.15)" }}
-        />
-        <div
-          className="absolute inset-0 rounded-full"
-          style={{ background: orb.inner, boxShadow: orb.glow }}
-        />
-        <div
-          className="absolute rounded-full"
-          style={{
-            width: "42%", height: "35%", top: "10%", left: "14%",
-            background: "radial-gradient(ellipse, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0.1) 60%, transparent 100%)",
-          }}
-        />
-        <span
-          className="relative z-10 select-none leading-none block"
-          style={{
-            fontSize: size * 0.56,
-            fontFamily: '"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif',
-            lineHeight: 1,
-            filter: "drop-shadow(0 2px 6px rgba(0,0,0,0.6))",
-          }}
-        >
-          {emoji}
-        </span>
+        <GiftImage src={imgSrc} name={name} emoji={emoji} size={size} glowColor={glowColor} rarity={rarity} orbStyle={orb} />
       </motion.div>
     </div>
   );
