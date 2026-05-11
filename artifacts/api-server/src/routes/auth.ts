@@ -415,6 +415,25 @@ router.post("/auth/register", async (req, res) => {
   }
 });
 
+router.post("/auth/verify-password", async (req, res) => {
+  try {
+    const uid = req.currentUserId;
+    const { password } = req.body;
+    if (!password) return res.status(400).json({ error: "Пароль обязателен" });
+    const rows = await db.execute(sql`SELECT password_hash FROM users WHERE id = ${uid}`);
+    if (!rows.rows.length) return res.status(404).json({ error: "Пользователь не найден" });
+    const user = rows.rows[0] as any;
+    const storedHash: string = user.password_hash || "";
+    let valid = false;
+    try { valid = await bcrypt.compare(String(password), storedHash); } catch {}
+    if (!valid) return res.status(401).json({ error: "Неверный пароль" });
+    res.json({ ok: true });
+  } catch (err) {
+    req.log.error(err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 router.post("/auth/change-password", async (req, res) => {
   try {
     const uid = req.currentUserId;
