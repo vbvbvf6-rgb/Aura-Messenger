@@ -5,7 +5,7 @@ import { useAppContext } from "@/contexts/AppContext";
 import { useQueryClient } from "@tanstack/react-query";
 import { getGetMessagesQueryKey, getGetChatsQueryKey } from "@workspace/api-client-react";
 import { cn } from "@/lib/utils";
-import { Check, CheckCheck, X, Info, Play, Pause, Mic, Reply, Pencil, Trash2, Copy, SmilePlus, Languages, Pin, PinOff, BarChart2, Eye, Crown, Wand2 } from "lucide-react";
+import { Check, CheckCheck, Clock, X, Info, Play, Pause, Mic, Reply, Pencil, Trash2, Copy, SmilePlus, Languages, Pin, PinOff, BarChart2, Eye, Crown, Wand2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   AlertDialog,
@@ -289,6 +289,23 @@ export function MessageBubble({ message, onReply, onEdit, ownBubbleStyle, onPin,
   const [showTranslation, setShowTranslation] = useState(false);
   const longPressRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const bubbleRef = useRef<HTMLDivElement>(null);
+
+  // Pending state — show clock for ~3s after a new outgoing message appears
+  const [isPending, setIsPending] = useState<boolean>(() => {
+    if (!isMine) return false;
+    const age = Date.now() - new Date(message.createdAt).getTime();
+    return age < 3500;
+  });
+
+  useEffect(() => {
+    if (!isMine) return;
+    const age = Date.now() - new Date(message.createdAt).getTime();
+    const remaining = 3500 - age;
+    if (remaining > 0) {
+      const t = setTimeout(() => setIsPending(false), remaining);
+      return () => clearTimeout(t);
+    }
+  }, [message.createdAt, isMine]);
 
   // Play effect if message is recent (within 20s) and effect hasn't played yet this session
   const [effectPlaying, setEffectPlaying] = useState<boolean>(() => {
@@ -640,7 +657,10 @@ export function MessageBubble({ message, onReply, onEdit, ownBubbleStyle, onPin,
         )}>
           {!isMine && (
             <div
-              className="w-8 h-8 rounded-full shrink-0 flex items-center justify-center text-[13px] font-black text-white mb-6 overflow-hidden shadow-sm"
+              className={cn(
+                "w-8 h-8 rounded-full shrink-0 flex items-center justify-center text-[13px] font-black text-white overflow-hidden shadow-sm",
+                message.type === "audio" ? "self-center" : "mb-6"
+              )}
               style={{ backgroundColor: message.sender?.avatarColor || "#555" }}
             >
               {message.sender?.avatarUrl ? (
@@ -733,7 +753,11 @@ export function MessageBubble({ message, onReply, onEdit, ownBubbleStyle, onPin,
                 )}
                 <span>{formatTime(message.createdAt)}</span>
                 {isMine && (
-                  message.isRead ? <CheckCheck size={16} strokeWidth={3} /> : <Check size={16} strokeWidth={3} />
+                  isPending
+                    ? <Clock size={13} className="opacity-55" />
+                    : message.isRead
+                      ? <CheckCheck size={15} strokeWidth={2.5} className="text-blue-200/90" />
+                      : <Check size={15} strokeWidth={2.5} className="opacity-70" />
                 )}
               </div>
             </div>
