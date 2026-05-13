@@ -435,13 +435,6 @@ ${inline_code}
 
           let reply: string | undefined;
 
-          const tryWithTimeout = async (fn: () => Promise<string | undefined>, ms = 12000) => {
-            return Promise.race([
-              fn(),
-              new Promise<undefined>((_, reject) => setTimeout(() => reject(new Error("timeout")), ms)),
-            ]).catch(() => undefined);
-          };
-
           const callPollinations = async (model: string) => {
             const conversationText = historyMessages
               .map((m: any) => `${m.role === "assistant" ? "Assistant" : "User"}: ${m.content}`)
@@ -450,14 +443,14 @@ ${inline_code}
               ? `${conversationText}\nUser: ${body.text}\nAssistant:`
               : body.text;
             const url = `https://text.pollinations.ai/${encodeURIComponent(fullPrompt || "")}?model=${model}&system=${encodeURIComponent(systemPrompt)}&seed=${Math.floor(Math.random() * 99999)}`;
-            const r = await fetch(url, { method: "GET" });
+            const r = await fetch(url, { method: "GET", signal: AbortSignal.timeout(60000) });
             if (!r.ok) return undefined;
             const text = await r.text();
             return text?.trim() || undefined;
           };
 
           if (process.env.OPENROUTER_API_KEY) {
-            reply = await tryWithTimeout(async () => {
+            try {
               const r = await fetch("https://openrouter.ai/api/v1/chat/completions", {
                 method: "POST",
                 headers: {
@@ -467,19 +460,20 @@ ${inline_code}
                   "X-Title": "Pulse Messenger",
                 },
                 body: JSON.stringify({ model: aiModel, messages: chatPayload, max_tokens: 500 }),
+                signal: AbortSignal.timeout(60000),
               });
               const data = await r.json() as any;
-              return data.choices?.[0]?.message?.content as string | undefined;
-            });
+              reply = data.choices?.[0]?.message?.content as string | undefined;
+            } catch {}
           }
 
           if (!reply && !isImageMessage) {
-            const settled = await Promise.allSettled([
-              tryWithTimeout(() => callPollinations("openai"), 7000),
-              tryWithTimeout(() => callPollinations("mistral"), 7000),
-            ]);
-            for (const r of settled) {
-              if (r.status === "fulfilled" && r.value) { reply = r.value; break; }
+            // Try Pollinations models sequentially (first winner wins)
+            for (const model of ["openai", "mistral"]) {
+              try {
+                const r = await callPollinations(model);
+                if (r) { reply = r; break; }
+              } catch {}
             }
           }
 

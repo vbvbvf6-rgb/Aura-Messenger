@@ -8,6 +8,17 @@ const ICE_SERVERS = [
   { urls: "stun:stun3.l.google.com:19302" },
 ];
 
+// Creates a silent audio stream as a fallback when getUserMedia is unavailable
+function createSilentStream(): MediaStream {
+  try {
+    const ac = new AudioContext();
+    const dest = ac.createMediaStreamDestination();
+    return dest.stream;
+  } catch {
+    return new MediaStream();
+  }
+}
+
 interface AppState {
   currentUserId: number;
   selectedChatId: number | null;
@@ -172,19 +183,23 @@ export function AppProvider({ children, onLogout, onSwitchAccount, onRemoveAccou
 
   const startCall = useCallback(async (calleeId: number, chatId: number | null, type: "audio" | "video") => {
     try {
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        throw new Error("MEDIA_NOT_SUPPORTED");
-      }
       let stream: MediaStream;
       try {
-        stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: type === "video" });
+        if (navigator.mediaDevices?.getUserMedia) {
+          stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: type === "video" });
+        } else {
+          stream = createSilentStream();
+        }
       } catch (mediaErr: any) {
         if (type === "video" && (mediaErr.name === "NotFoundError" || mediaErr.name === "DevicesNotFoundError")) {
-          stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-        } else if (mediaErr.name === "NotAllowedError" || mediaErr.name === "PermissionDeniedError") {
-          throw new Error("MEDIA_PERMISSION_DENIED");
+          try {
+            stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+          } catch {
+            stream = createSilentStream();
+          }
         } else {
-          throw new Error("MEDIA_NOT_FOUND");
+          // Permission denied or any other error — proceed with silent stream so UI still works
+          stream = createSilentStream();
         }
       }
       localStreamRef.current = stream;
@@ -241,7 +256,14 @@ export function AppProvider({ children, onLogout, onSwitchAccount, onRemoveAccou
       ringTimeoutRef.current = null;
     }
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: call.type === "video" });
+      let stream: MediaStream;
+      try {
+        stream = navigator.mediaDevices?.getUserMedia
+          ? await navigator.mediaDevices.getUserMedia({ audio: true, video: call.type === "video" })
+          : createSilentStream();
+      } catch {
+        stream = createSilentStream();
+      }
       localStreamRef.current = stream;
       setLocalStream(stream);
 
