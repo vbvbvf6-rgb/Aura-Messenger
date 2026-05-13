@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, memo } from "react";
 import { emojiToTwemojiUrl } from "@/lib/twemoji";
 import { useSendMessage, useGetMe, getGetMessagesQueryKey, getGetChatsQueryKey, Message } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Paperclip, Mic, SendHorizontal, X, Square, Trash2, Images, Reply, Pencil, Clock, BarChart2, Plus, Minus, SmilePlus } from "lucide-react";
+import { Paperclip, Mic, SendHorizontal, X, Square, Trash2, Images, Reply, Pencil, Clock, BarChart2, Plus, Minus, SmilePlus, Wand2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 const STICKERS = [
@@ -106,6 +106,10 @@ export function ChatInput({ chatId, onMessageSent, replyTo, editMessage, onCance
   const [pollSending, setPollSending] = useState(false);
   const [pollError, setPollError] = useState("");
   const [showStickerPanel, setShowStickerPanel] = useState(false);
+  const [selectedEffect, setSelectedEffect] = useState<string | null>(null);
+  const [showEffectPicker, setShowEffectPicker] = useState(false);
+
+  const isPrimePlus = !!(me as any)?.hasPrime && (me as any)?.primeTier === "prime_plus";
 
   const queryClient = useQueryClient();
   const sendMessage = useSendMessage();
@@ -277,7 +281,19 @@ export function ChatInput({ chatId, onMessageSent, replyTo, editMessage, onCance
         setImagePreviews([]);
         setText("");
       } else {
-        await sendMessage.mutateAsync({ data: { chatId, text, type: "text", replyToId: replyTo?.id } });
+        if (selectedEffect) {
+          const token = sessionStorage.getItem("pulse-token");
+          const hdrs: Record<string, string> = { "Content-Type": "application/json" };
+          if (token) hdrs["Authorization"] = `Bearer ${token}`;
+          await fetch("/api/messages", {
+            method: "POST",
+            headers: hdrs,
+            body: JSON.stringify({ chatId, text, type: "text", replyToId: replyTo?.id, effect: selectedEffect }),
+          });
+          setSelectedEffect(null);
+        } else {
+          await sendMessage.mutateAsync({ data: { chatId, text, type: "text", replyToId: replyTo?.id } });
+        }
         setText("");
         if (textareaRef.current) textareaRef.current.style.height = "52px";
       }
@@ -730,6 +746,49 @@ export function ChatInput({ chatId, onMessageSent, replyTo, editMessage, onCance
                       className={`w-12 h-12 flex items-center justify-center rounded-full transition-colors shrink-0 mb-[2px] ${showStickerPanel ? "bg-primary/15 text-primary" : "text-muted-foreground hover:bg-secondary hover:text-foreground"}`}>
                       <SmilePlus size={20} />
                     </button>
+                    {isPrimePlus && (
+                      <div className="relative">
+                        <button
+                          type="button"
+                          onClick={() => setShowEffectPicker(v => !v)}
+                          className={`w-12 h-12 flex items-center justify-center rounded-full transition-colors shrink-0 mb-[2px] ${showEffectPicker || selectedEffect ? "bg-purple-500/20 text-purple-400" : "text-muted-foreground hover:bg-secondary hover:text-foreground"}`}
+                          title="Эффект отправки"
+                        >
+                          <Wand2 size={20} />
+                        </button>
+                        <AnimatePresence>
+                          {showEffectPicker && (
+                            <motion.div
+                              initial={{ opacity: 0, scale: 0.9, y: 8 }}
+                              animate={{ opacity: 1, scale: 1, y: 0 }}
+                              exit={{ opacity: 0, scale: 0.9, y: 8 }}
+                              className="absolute bottom-14 left-1/2 -translate-x-1/2 bg-card border border-border rounded-2xl p-2 shadow-xl z-50 flex gap-1.5"
+                            >
+                              {[
+                                { id: null, label: "Нет", icon: "✖" },
+                                { id: "confetti", label: "Конфетти", icon: "🎊" },
+                                { id: "snow", label: "Снег", icon: "❄️" },
+                                { id: "fire", label: "Огонь", icon: "🔥" },
+                              ].map(eff => (
+                                <button
+                                  key={String(eff.id)}
+                                  type="button"
+                                  onClick={() => { setSelectedEffect(eff.id); setShowEffectPicker(false); }}
+                                  className={`flex flex-col items-center gap-1 px-3 py-2 rounded-xl transition-all text-center ${
+                                    selectedEffect === eff.id
+                                      ? "bg-purple-500/20 text-purple-400 ring-1 ring-purple-500/40"
+                                      : "hover:bg-secondary text-foreground"
+                                  }`}
+                                >
+                                  <span className="text-lg leading-none">{eff.icon}</span>
+                                  <span className="text-[10px] font-bold leading-none">{eff.label}</span>
+                                </button>
+                              ))}
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </div>
+                    )}
                   </>
                 )}
 

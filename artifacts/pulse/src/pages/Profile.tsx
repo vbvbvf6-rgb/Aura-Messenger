@@ -1,25 +1,293 @@
-import React from "react";
+import React, { useState } from "react";
 import { useGetMyStats, useGetMe } from "@workspace/api-client-react";
 import { GiftShowcase } from "@/components/GiftShowcase";
 import { GiftLeaderboard } from "@/components/GiftLeaderboard";
 import { Skeleton } from "@/components/ui/skeleton";
-import { MessageSquare, Phone, Gift, Users, Clock, CalendarDays, Settings, BadgeCheck, Crown, Zap } from "lucide-react";
+import { MessageSquare, Phone, Gift, Users, Clock, CalendarDays, Settings, BadgeCheck, Crown, Zap, QrCode, Sparkles, Activity, TrendingUp, Star, Share2 } from "lucide-react";
 import { format } from "date-fns";
 import { Link } from "wouter";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
+
+const ANIMATED_STATUSES = [
+  { id: null, label: "Нет", preview: "" },
+  { id: "typing", label: "Печатает...", preview: "💬" },
+  { id: "fire", label: "В огне", preview: "🔥" },
+  { id: "star", label: "Звезда", preview: "⭐" },
+  { id: "rocket", label: "Запуск", preview: "🚀" },
+  { id: "music", label: "Слушает", preview: "🎵" },
+  { id: "gaming", label: "Играет", preview: "🎮" },
+  { id: "coffee", label: "Пьёт кофе", preview: "☕" },
+];
+
+function QRCodeSection({ user }: { user: any }) {
+  const [copied, setCopied] = useState(false);
+  const profileUrl = `https://pulse.app/user/${user?.username || user?.id}`;
+  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(profileUrl)}&color=7c3aed&bgcolor=ffffff`;
+
+  const handleShare = () => {
+    if (navigator.share) {
+      navigator.share({ title: `Pulse — ${user?.displayName}`, url: profileUrl }).catch(() => {});
+    } else {
+      navigator.clipboard.writeText(profileUrl).then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      }).catch(() => {});
+    }
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="rounded-3xl border border-purple-500/30 overflow-hidden"
+      style={{ background: "linear-gradient(135deg, rgba(124,58,237,0.08), rgba(6,182,212,0.05))" }}
+    >
+      <div className="p-5">
+        <div className="flex items-center gap-2.5 mb-4">
+          <div className="w-9 h-9 rounded-xl flex items-center justify-center"
+            style={{ background: "linear-gradient(135deg, rgba(168,85,247,0.2), rgba(6,182,212,0.2))" }}
+          >
+            <QrCode size={18} className="text-purple-400" />
+          </div>
+          <div>
+            <h3 className="font-black text-base text-foreground">QR-код профиля</h3>
+            <p className="text-xs text-muted-foreground">Поделитесь своим профилем</p>
+          </div>
+          <span className="ml-auto text-[10px] font-black px-2 py-1 rounded-full bg-purple-500/15 text-purple-400 border border-purple-500/25">Prime+</span>
+        </div>
+
+        <div className="flex gap-4 items-center">
+          <div className="relative shrink-0">
+            <div className="absolute inset-0 rounded-2xl blur-lg"
+              style={{ background: "linear-gradient(135deg, rgba(168,85,247,0.4), rgba(6,182,212,0.4))" }}
+            />
+            <div className="relative bg-white rounded-2xl p-3 shadow-xl border-4 border-purple-500/30">
+              <img
+                src={qrUrl}
+                alt="QR код профиля"
+                className="w-[100px] h-[100px] block"
+                onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+              />
+            </div>
+            <div className="absolute -bottom-2 -right-2 w-8 h-8 rounded-full border-2 border-background flex items-center justify-center text-sm"
+              style={{ background: "linear-gradient(135deg, #7c3aed, #06b6d4)" }}
+            >
+              {user?.avatarUrl ? (
+                <img src={user.avatarUrl} alt="" className="w-full h-full rounded-full object-cover" />
+              ) : (
+                <span className="text-white font-black text-xs">{(user?.displayName || "U")[0]}</span>
+              )}
+            </div>
+          </div>
+
+          <div className="flex-1 min-w-0 space-y-3">
+            <div>
+              <p className="text-[11px] text-muted-foreground font-medium mb-0.5">Ваш профиль</p>
+              <p className="text-sm font-bold text-foreground truncate">@{user?.username}</p>
+              <p className="text-[11px] text-muted-foreground truncate">{profileUrl}</p>
+            </div>
+            <motion.button
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.97 }}
+              onClick={handleShare}
+              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl font-bold text-[13px] text-white"
+              style={{ background: "linear-gradient(135deg, #7c3aed, #06b6d4)" }}
+            >
+              <Share2 size={14} />
+              {copied ? "Скопировано!" : "Поделиться"}
+            </motion.button>
+          </div>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+function AnimatedStatusPicker({ user }: { user: any }) {
+  const [selected, setSelected] = useState<string | null>((user as any)?.statusAnimation || null);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  const handleSave = async (statusId: string | null) => {
+    setSelected(statusId);
+    setSaving(true);
+    try {
+      const token = sessionStorage.getItem("pulse-token");
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+      await fetch("/api/users/me", {
+        method: "PATCH",
+        headers,
+        body: JSON.stringify({ statusAnimation: statusId }),
+      });
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } catch {}
+    setSaving(false);
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="bg-card border border-border rounded-3xl overflow-hidden"
+    >
+      <div className="p-5">
+        <div className="flex items-center gap-2.5 mb-4">
+          <div className="w-9 h-9 rounded-xl bg-purple-500/15 flex items-center justify-center">
+            <Sparkles size={18} className="text-purple-400" />
+          </div>
+          <div>
+            <h3 className="font-black text-base text-foreground">Анимированный статус</h3>
+            <p className="text-xs text-muted-foreground">Выберите анимацию для вашего профиля</p>
+          </div>
+          {saved && <span className="ml-auto text-xs font-bold text-green-400">Сохранено ✓</span>}
+        </div>
+
+        <div className="grid grid-cols-4 gap-2">
+          {ANIMATED_STATUSES.map(s => (
+            <motion.button
+              key={String(s.id)}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => handleSave(s.id)}
+              className={`flex flex-col items-center gap-1.5 p-3 rounded-2xl border-2 transition-all ${
+                selected === s.id
+                  ? "border-purple-500/60 bg-purple-500/15"
+                  : "border-border bg-secondary/30 hover:border-purple-500/30"
+              }`}
+            >
+              {s.id ? (
+                <motion.span
+                  className="text-2xl"
+                  animate={s.id === "fire" ? { scale: [1, 1.2, 1] } :
+                    s.id === "star" ? { rotate: [0, 360] } :
+                    s.id === "rocket" ? { y: [0, -4, 0] } :
+                    s.id === "typing" ? { opacity: [1, 0.5, 1] } :
+                    {}}
+                  transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+                >
+                  {s.preview}
+                </motion.span>
+              ) : (
+                <span className="text-2xl opacity-40">—</span>
+              )}
+              <span className="text-[10px] font-bold text-muted-foreground leading-none text-center">{s.label}</span>
+              {selected === s.id && (
+                <span className="w-1.5 h-1.5 rounded-full bg-purple-400" />
+              )}
+            </motion.button>
+          ))}
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+function SparkActivityLog() {
+  const [activities, setActivities] = useState<any[]>([]);
+  const [summary, setSummary] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  React.useEffect(() => {
+    const load = async () => {
+      try {
+        const token = sessionStorage.getItem("pulse-token");
+        const headers: Record<string, string> = {};
+        if (token) headers["Authorization"] = `Bearer ${token}`;
+        const res = await fetch("/api/wallet/activity?limit=20", { headers });
+        if (res.ok) {
+          const data = await res.json();
+          setActivities(data.activities || []);
+          setSummary(data.summary || null);
+        }
+      } catch {}
+      setLoading(false);
+    };
+    load();
+  }, []);
+
+  const typeLabel = (type: string) => {
+    const map: Record<string, string> = {
+      earned: "Заработано",
+      sent: "Отправлено",
+      received: "Получено",
+      daily_bonus: "Ежедневный бонус",
+      monthly_gift: "Ежемесячный подарок",
+      subscription: "Подписка",
+      subscription_bonus: "Бонус подписки",
+      purchase: "Пополнение",
+      message_sent: "Сообщение",
+    };
+    return map[type] || type;
+  };
+
+  if (loading) return (
+    <div className="space-y-2">
+      {[1, 2, 3].map(i => <Skeleton key={i} className="h-12 rounded-xl" />)}
+    </div>
+  );
+
+  if (!activities.length) return (
+    <p className="text-sm text-muted-foreground text-center py-4">Нет данных активности</p>
+  );
+
+  return (
+    <div className="space-y-2">
+      {summary && (
+        <div className="grid grid-cols-2 gap-2 mb-4">
+          <div className="bg-green-500/10 border border-green-500/20 rounded-xl p-3 text-center">
+            <p className="text-lg font-black text-green-400">+{Number(summary.total_earned).toLocaleString()}</p>
+            <p className="text-[11px] text-muted-foreground">Получено ⚡</p>
+          </div>
+          <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3 text-center">
+            <p className="text-lg font-black text-red-400">-{Number(summary.total_spent).toLocaleString()}</p>
+            <p className="text-[11px] text-muted-foreground">Потрачено ⚡</p>
+          </div>
+        </div>
+      )}
+      {activities.slice(0, 15).map((act: any) => (
+        <div key={act.id} className="flex items-center gap-3 px-3 py-2.5 bg-secondary/30 rounded-xl border border-border">
+          <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 text-sm ${
+            Number(act.amount) > 0 ? "bg-green-500/15" : Number(act.amount) < 0 ? "bg-red-500/15" : "bg-secondary"
+          }`}>
+            {act.type === "daily_bonus" ? "🎁" :
+             act.type === "monthly_gift" ? "💎" :
+             act.type === "subscription" ? "👑" :
+             act.type === "sent" ? "📤" :
+             act.type === "received" ? "📥" :
+             act.type === "message_sent" ? "💬" : "⚡"}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-[13px] font-bold text-foreground truncate">{typeLabel(act.type)}</p>
+            {act.description && <p className="text-[11px] text-muted-foreground truncate">{act.description}</p>}
+          </div>
+          {act.amount !== 0 && (
+            <span className={`text-sm font-black shrink-0 ${Number(act.amount) > 0 ? "text-green-400" : "text-red-400"}`}>
+              {Number(act.amount) > 0 ? "+" : ""}{act.amount} ⚡
+            </span>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
 
 export default function Profile() {
   const { data: user, isLoading: userLoading } = useGetMe();
   const { data: stats, isLoading: statsLoading } = useGetMyStats();
+  const isPrimePlus = (user as any)?.hasPrime && (user as any)?.primeTier === "prime_plus";
+  const hasPrime = (user as any)?.hasPrime;
+  const [showSparkLog, setShowSparkLog] = useState(false);
 
   return (
     <div className="flex-1 flex flex-col h-full bg-background overflow-hidden relative">
       <header className="h-16 border-b border-border flex items-center px-6 justify-between bg-card/80 backdrop-blur-md z-10 shrink-0">
-        <h1 className="text-xl font-bold">My Profile</h1>
+        <h1 className="text-xl font-bold">Мой профиль</h1>
         <Link href="/settings">
           <button className="flex items-center gap-2 px-4 py-2 bg-secondary hover:bg-secondary/80 rounded-xl text-sm font-medium transition-colors">
             <Settings size={16} className="text-primary" />
-            Edit Profile
+            Настройки
           </button>
         </Link>
       </header>
@@ -100,7 +368,7 @@ export default function Profile() {
                   }`} />
                 </div>
               </div>
-              
+
               <div className="flex items-center gap-2 mb-1 relative z-10 flex-wrap justify-center">
                 <h2
                   className="text-3xl font-bold text-foreground"
@@ -144,19 +412,25 @@ export default function Profile() {
                 )}
               </div>
               <p className="text-primary font-medium mb-1 relative z-10">@{user?.username}</p>
-              
+
               {(user as any)?.statusText && (
                 <p className="text-sm text-muted-foreground mb-2 relative z-10">{(user as any).statusText}</p>
               )}
-              
+
               {user?.bio && (
                 <p className="text-muted-foreground max-w-md relative z-10 text-sm italic">"{user.bio}"</p>
               )}
-              
+
               <div className="flex items-center gap-2 mt-4 text-xs text-muted-foreground uppercase tracking-wider font-semibold relative z-10 bg-black/20 px-4 py-2 rounded-full backdrop-blur-md">
                 <CalendarDays size={14} /> Joined {user?.createdAt ? format(new Date(user.createdAt), "MMMM yyyy") : "Unknown"}
               </div>
             </div>
+
+            {/* Prime+ Exclusive: QR Code */}
+            {isPrimePlus && user && <QRCodeSection user={user} />}
+
+            {/* Prime+: Animated Status */}
+            {isPrimePlus && user && <AnimatedStatusPicker user={user} />}
 
             {/* Gift Showcase */}
             {user && <GiftShowcase userId={(user as any).id} />}
@@ -166,58 +440,77 @@ export default function Profile() {
 
             {/* Stats Section */}
             <div>
-              <h3 className="text-lg font-semibold mb-4 px-2">Your Activity</h3>
+              <h3 className="text-lg font-semibold mb-4 px-2">Активность</h3>
               {statsLoading ? (
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                   {[1, 2, 3, 4, 5, 6].map(i => <Skeleton key={i} className="h-28 rounded-2xl" />)}
                 </div>
               ) : (
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  <StatCard 
-                    icon={<MessageSquare className="text-blue-500" />} 
-                    label="Messages" 
-                    value={stats?.messagesSent?.toLocaleString() || "0"} 
-                    color="bg-blue-500/10 border-blue-500/20" 
+                  <StatCard
+                    icon={<MessageSquare className="text-blue-500" />}
+                    label="Сообщений"
+                    value={stats?.messagesSent?.toLocaleString() || "0"}
+                    color="bg-blue-500/10 border-blue-500/20"
                   />
-                  <StatCard 
-                    icon={<Phone className="text-green-500" />} 
-                    label="Calls Made" 
-                    value={stats?.callsMade?.toLocaleString() || "0"} 
-                    color="bg-green-500/10 border-green-500/20" 
+                  <StatCard
+                    icon={<Phone className="text-green-500" />}
+                    label="Звонков"
+                    value={stats?.callsMade?.toLocaleString() || "0"}
+                    color="bg-green-500/10 border-green-500/20"
                   />
-                  <StatCard 
-                    icon={<Clock className="text-orange-500" />} 
-                    label="Call Time" 
-                    value={stats?.callDurationSeconds ? `${Math.floor(stats.callDurationSeconds / 60)}m` : "0m"} 
-                    color="bg-orange-500/10 border-orange-500/20" 
+                  <StatCard
+                    icon={<Gift className="text-purple-500" />}
+                    label="Подарков"
+                    value={stats?.giftsSent?.toLocaleString() || "0"}
+                    color="bg-purple-500/10 border-purple-500/20"
                   />
-                  <StatCard 
-                    icon={<Gift className="text-purple-500" />} 
-                    label="Gifts Sent" 
-                    value={stats?.giftsSent?.toLocaleString() || "0"} 
-                    color="bg-purple-500/10 border-purple-500/20" 
+                  <StatCard
+                    icon={<Gift className="text-pink-500" />}
+                    label="Получено"
+                    value={stats?.giftsReceived?.toLocaleString() || "0"}
+                    color="bg-pink-500/10 border-pink-500/20"
                   />
-                  <StatCard 
-                    icon={<Gift className="text-pink-500" />} 
-                    label="Gifts Received" 
-                    value={stats?.giftsReceived?.toLocaleString() || "0"} 
-                    color="bg-pink-500/10 border-pink-500/20" 
+                  <StatCard
+                    icon={<Users className="text-primary" />}
+                    label="Контактов"
+                    value={stats?.contactsCount?.toLocaleString() || "0"}
+                    color="bg-primary/10 border-primary/20"
                   />
-                  <StatCard 
-                    icon={<Users className="text-primary" />} 
-                    label="Contacts" 
-                    value={stats?.contactsCount?.toLocaleString() || "0"} 
-                    color="bg-primary/10 border-primary/20" 
-                  />
-                  <StatCard 
-                    icon={<Zap className="text-yellow-400" />} 
-                    label="Популярность" 
-                    value={(user as any)?.popularity ? `${Number((user as any).popularity).toLocaleString()} ⚡` : "0 ⚡"} 
-                    color="bg-yellow-500/10 border-yellow-500/20" 
+                  <StatCard
+                    icon={<Zap className="text-yellow-400" />}
+                    label="Spark"
+                    value={(user as any)?.balance ? `${Number((user as any).balance).toLocaleString()} ⚡` : "0 ⚡"}
+                    color="bg-yellow-500/10 border-yellow-500/20"
                   />
                 </div>
               )}
             </div>
+
+            {/* Detailed Spark Activity Log (Prime+) */}
+            {hasPrime && (
+              <div>
+                <button
+                  onClick={() => setShowSparkLog(v => !v)}
+                  className="flex items-center gap-2 text-sm font-bold text-foreground mb-3 hover:text-primary transition-colors"
+                >
+                  <Activity size={16} className="text-primary" />
+                  {isPrimePlus ? "Подробный журнал Spark" : "Журнал Spark"}
+                  <span className="ml-auto text-xs text-muted-foreground">{showSparkLog ? "Скрыть" : "Показать"}</span>
+                </button>
+                <AnimatePresence>
+                  {showSparkLog && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                    >
+                      <SparkActivityLog />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            )}
           </div>
         )}
       </div>

@@ -10,3 +10,5 @@ export * from "./daily_bonus";
 export * from "./support";
 export * from "./bots";
 export * from "./push_subscriptions";
+export * from "./pinned_messages";
+export * from "./spark_activity";

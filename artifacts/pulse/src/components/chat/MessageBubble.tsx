@@ -1,11 +1,11 @@
-import React, { useState, useRef, useEffect, useCallback } from "react";
-import { Message } from "@workspace/api-client-react";
+import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
+import { Message, useGetMe } from "@workspace/api-client-react";
 import { format } from "date-fns";
 import { useAppContext } from "@/contexts/AppContext";
 import { useQueryClient } from "@tanstack/react-query";
 import { getGetMessagesQueryKey, getGetChatsQueryKey } from "@workspace/api-client-react";
 import { cn } from "@/lib/utils";
-import { Check, CheckCheck, X, Info, Play, Pause, Mic, Reply, Pencil, Trash2, Copy, SmilePlus, Languages, Pin, PinOff, BarChart2 } from "lucide-react";
+import { Check, CheckCheck, X, Info, Play, Pause, Mic, Reply, Pencil, Trash2, Copy, SmilePlus, Languages, Pin, PinOff, BarChart2, Eye, Crown, Wand2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   AlertDialog,
@@ -19,6 +19,48 @@ import {
 } from "@/components/ui/alert-dialog";
 
 const QUICK_REACTIONS = ["❤️", "👍", "🔥", "😂", "😮", "😢"];
+
+function EffectOverlay({ effect, onDone }: { effect: string; onDone: () => void }) {
+  const particles = useMemo(() => {
+    const count = effect === "confetti" ? 40 : effect === "snow" ? 30 : 25;
+    const colors = effect === "confetti"
+      ? ["#f43f5e", "#3b82f6", "#22c55e", "#f59e0b", "#a855f7", "#06b6d4", "#fb923c", "#34d399"]
+      : effect === "snow" ? ["#dbeafe", "#e0f2fe", "#ffffff", "#bfdbfe"]
+      : ["#f97316", "#ef4444", "#fbbf24", "#fb923c", "#dc2626"];
+    return Array.from({ length: count }, (_, i) => ({
+      id: i,
+      x: (i / count) * 120 - 10,
+      velX: (((i * 7 + 3) % 21) - 10) * 3,
+      velY: effect === "fire" ? -(50 + (i * 13 % 100)) : (80 + (i * 17 % 120)),
+      delay: (i * 0.05) % 1.0,
+      duration: 1.5 + (i * 11 % 10) / 10,
+      rotation: (i * 137) % 720,
+      color: colors[i % colors.length],
+      size: effect === "snow" ? 4 + (i % 5) : effect === "confetti" ? 6 + (i % 8) : 3 + (i % 6),
+      isRound: effect === "snow" || (effect === "confetti" && i % 3 === 0),
+    }));
+  }, [effect]);
+
+  useEffect(() => {
+    const timer = setTimeout(onDone, 3200);
+    return () => clearTimeout(timer);
+  }, [onDone]);
+
+  return (
+    <div className="absolute inset-0 pointer-events-none overflow-visible" style={{ zIndex: 50 }}>
+      {particles.map(p => (
+        <motion.div
+          key={p.id}
+          className={p.isRound ? "absolute rounded-full" : "absolute rounded-sm"}
+          style={{ left: `${p.x}%`, top: "50%", width: p.size, height: p.isRound ? p.size : p.size * 1.6, backgroundColor: p.color }}
+          initial={{ opacity: 1, y: 0, x: 0, rotate: 0, scale: 1 }}
+          animate={{ opacity: 0, y: p.velY, x: p.velX, rotate: p.rotation, scale: 0.3 }}
+          transition={{ duration: p.duration, delay: p.delay, ease: "easeOut" }}
+        />
+      ))}
+    </div>
+  );
+}
 
 function VoicePlayer({ src, durationSec, isMine }: { src: string; durationSec: number; isMine: boolean }) {
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -232,8 +274,11 @@ export interface MessageBubbleProps {
 
 export function MessageBubble({ message, onReply, onEdit, ownBubbleStyle, onPin, typingOut, onTypingDone }: MessageBubbleProps) {
   const { currentUserId } = useAppContext();
+  const { data: me } = useGetMe();
   const queryClient = useQueryClient();
   const isMine = message.senderId === currentUserId;
+  const viewerIsPrimePlus = !!(me as any)?.hasPrime && (me as any)?.primeTier === "prime_plus";
+  const effect = (message as any).effect as string | null;
   const [showGiftInfo, setShowGiftInfo] = useState(false);
   const [menuPos, setMenuPos] = useState<{ x: number; y: number } | null>(null);
   const [showMenu, setShowMenu] = useState(false);
@@ -244,6 +289,17 @@ export function MessageBubble({ message, onReply, onEdit, ownBubbleStyle, onPin,
   const [showTranslation, setShowTranslation] = useState(false);
   const longPressRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const bubbleRef = useRef<HTMLDivElement>(null);
+
+  // Play effect if message is recent (within 20s) and effect hasn't played yet this session
+  const [effectPlaying, setEffectPlaying] = useState<boolean>(() => {
+    if (!effect) return false;
+    const key = `effect-played-${message.id}`;
+    if (sessionStorage.getItem(key)) return false;
+    const age = Date.now() - new Date(message.createdAt).getTime();
+    if (age > 20000) return false;
+    sessionStorage.setItem(key, "1");
+    return true;
+  });
 
   const [displayedWords, setDisplayedWords] = useState<number>(typingOut ? 0 : Infinity);
   const typingDoneRef = useRef(false);
@@ -318,19 +374,22 @@ export function MessageBubble({ message, onReply, onEdit, ownBubbleStyle, onPin,
   const handleReact = async (emoji: string) => {
     closeMenu();
     const reactions = (message as any).reactions || [];
-    const alreadyReacted = reactions.some((r: any) => r.userId === currentUserId && r.emoji === emoji);
+    const myReactions = reactions.filter((r: any) => r.userId === currentUserId && r.emoji === emoji);
+    const myCount = myReactions.length;
     try {
-      if (alreadyReacted) {
+      if (myCount === 0) {
         await fetch(`/api/messages/${message.id}/reactions`, {
-          method: "DELETE",
-          headers,
-          body: JSON.stringify({ emoji }),
+          method: "POST", headers, body: JSON.stringify({ emoji }),
+        });
+      } else if (myCount === 1 && viewerIsPrimePlus) {
+        // Prime+: add second reaction (double reaction ×2)
+        await fetch(`/api/messages/${message.id}/reactions`, {
+          method: "POST", headers, body: JSON.stringify({ emoji }),
         });
       } else {
+        // Remove all my reactions for this emoji
         await fetch(`/api/messages/${message.id}/reactions`, {
-          method: "POST",
-          headers,
-          body: JSON.stringify({ emoji }),
+          method: "DELETE", headers, body: JSON.stringify({ emoji }),
         });
       }
       queryClient.invalidateQueries({ queryKey: getGetMessagesQueryKey({ chatId: message.chatId }) });
@@ -390,12 +449,15 @@ export function MessageBubble({ message, onReply, onEdit, ownBubbleStyle, onPin,
 
   const reactions = ((message as any).reactions || []) as { emoji: string; userId: number; user?: any }[];
   const groupedReactions = reactions.reduce((acc, r) => {
-    if (!acc[r.emoji]) acc[r.emoji] = { count: 0, users: [], mine: false };
+    if (!acc[r.emoji]) acc[r.emoji] = { count: 0, users: [], mine: false, myCount: 0 };
     acc[r.emoji].count++;
     acc[r.emoji].users.push(r.user?.displayName || "?");
-    if (r.userId === currentUserId) acc[r.emoji].mine = true;
+    if (r.userId === currentUserId) {
+      acc[r.emoji].mine = true;
+      acc[r.emoji].myCount++;
+    }
     return acc;
-  }, {} as Record<string, { count: number; users: string[]; mine: boolean }>);
+  }, {} as Record<string, { count: number; users: string[]; mine: boolean; myCount: number }>);
 
   const replyTo = (message as any).replyTo as (Message & { sender?: any }) | null;
   const pollData = (message as any).pollData;
@@ -610,9 +672,17 @@ export function MessageBubble({ message, onReply, onEdit, ownBubbleStyle, onPin,
               style={isMine && ownBubbleStyle && message.type !== "sticker" ? ownBubbleStyle : undefined}
             >
               {!isMine && message.sender && (
-                <p className="text-[12px] font-black mb-1.5 leading-none" style={{ color: message.sender.avatarColor }}>
-                  {message.sender.displayName}
-                </p>
+                <div className="flex items-center gap-1 mb-1.5">
+                  <p className="text-[12px] font-black leading-none" style={{ color: message.sender.avatarColor }}>
+                    {message.sender.displayName}
+                  </p>
+                  {(message.sender as any).hasPrime && (message.sender as any).primeTier === "prime_plus" && (
+                    <span className="text-[9px] font-black px-1 py-0.5 rounded border bg-purple-500/15 text-purple-400 border-purple-500/30 leading-none">VIP+</span>
+                  )}
+                  {(message.sender as any).hasPrime && (message.sender as any).primeTier === "prime" && (
+                    <span className="text-[9px] font-black px-1 py-0.5 rounded border bg-yellow-500/15 text-yellow-400 border-yellow-500/30 leading-none">VIP</span>
+                  )}
+                </div>
               )}
 
               {replyTo && (
@@ -632,9 +702,26 @@ export function MessageBubble({ message, onReply, onEdit, ownBubbleStyle, onPin,
               )}
 
               {(message as any).isDeleted ? (
-                <p className={cn("text-[14px] font-medium italic opacity-60 select-none", isMine ? "text-white" : "text-foreground")}>
-                  🗑 Сообщение удалено
-                </p>
+                (message as any).deletedContentVisible ? (
+                  <div className="relative">
+                    <div className="opacity-40 pointer-events-none select-none">
+                      {renderContent()}
+                    </div>
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <span className={cn(
+                        "flex items-center gap-1 text-[11px] font-black px-2.5 py-1 rounded-lg backdrop-blur-sm",
+                        isMine ? "bg-black/40 text-white" : "bg-secondary/90 text-foreground"
+                      )}>
+                        <Eye size={11} />
+                        Удалено · Prime+
+                      </span>
+                    </div>
+                  </div>
+                ) : (
+                  <p className={cn("text-[14px] font-medium italic opacity-60 select-none", isMine ? "text-white" : "text-foreground")}>
+                    🗑 Сообщение удалено
+                  </p>
+                )
               ) : renderContent()}
 
               <div className={cn(
@@ -659,7 +746,7 @@ export function MessageBubble({ message, onReply, onEdit, ownBubbleStyle, onPin,
                     onClick={() => handleReact(emoji)}
                     title={data.users.join(", ")}
                     className={cn(
-                      "flex items-center gap-1.5 px-2.5 py-1 rounded-[12px] text-[13px] font-black border transition-all hover:scale-105 active:scale-95 shadow-sm",
+                      "flex items-center gap-1 px-2.5 py-1 rounded-[12px] text-[13px] font-black border transition-all hover:scale-105 active:scale-95 shadow-sm",
                       data.mine
                         ? "bg-primary border-transparent text-white"
                         : "bg-card border-border text-foreground hover:border-primary/50"
@@ -667,10 +754,20 @@ export function MessageBubble({ message, onReply, onEdit, ownBubbleStyle, onPin,
                   >
                     <span>{emoji}</span>
                     <span>{data.count}</span>
+                    {data.myCount >= 2 && (
+                      <span className="text-[9px] font-black px-1 py-0.5 rounded bg-white/25 leading-none">×2</span>
+                    )}
                   </button>
                 ))}
               </div>
             )}
+
+            {/* Send effect overlay — plays once after sending */}
+            <AnimatePresence>
+              {effectPlaying && effect && (
+                <EffectOverlay effect={effect} onDone={() => setEffectPlaying(false)} />
+              )}
+            </AnimatePresence>
           </div>
         </div>
       </motion.div>

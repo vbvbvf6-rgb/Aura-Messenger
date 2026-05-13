@@ -1,7 +1,7 @@
 import React, { useRef, useEffect, useState } from "react";
 import { useGetChatById, useGetMessages, getGetMessagesQueryKey, useInitiateCall, useMarkChatAsRead, useUpdateChat, getGetChatsQueryKey, Message, useGetMe } from "@workspace/api-client-react";
 import { useNotifications } from "@/hooks/useNotifications";
-import { Phone, Video, MoreVertical, ArrowLeft, Search, BellOff, Bell, Pin, PinOff, User, Trash2, X, Timer, Flame, ChevronRight, Settings, Crown, Palette, Check, Sparkles, Lock, MessageSquare } from "lucide-react";
+import { Phone, Video, MoreVertical, ArrowLeft, Search, BellOff, Bell, Pin, PinOff, User, Trash2, X, Timer, Flame, ChevronRight, ChevronDown, Settings, Crown, Palette, Check, Sparkles, Lock, MessageSquare } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { ChatInfoPanel } from "./ChatInfoPanel";
 import { useAppContext } from "@/contexts/AppContext";
@@ -311,6 +311,7 @@ export function ChatWindow({ chatId }: ChatWindowProps) {
   const [smartRepliesFor, setSmartRepliesFor] = useState<number | null>(null);
   const [smartReplyPending, setSmartReplyPending] = useState(false);
   const [pinnedMsgDismissed, setPinnedMsgDismissed] = useState<number | null>(null);
+  const [pinnedMsgIndex, setPinnedMsgIndex] = useState<number>(0);
   const [replyChipText, setReplyChipText] = useState<string | null>(null);
   const [typingOutMsgId, setTypingOutMsgId] = useState<number | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -789,38 +790,67 @@ export function ChatWindow({ chatId }: ChatWindowProps) {
         </div>
       </header>
 
-      {/* Pinned message banner */}
+      {/* Pinned messages banner — supports up to 10 (Prime+) */}
       {(() => {
-        const pinnedMsg = (chat as any)?.pinnedMessage;
-        if (!pinnedMsg || pinnedMsgDismissed === pinnedMsg.id) return null;
-        const txt = pinnedMsg.type === "image" ? "📷 Фото" : pinnedMsg.type === "audio" ? "🎤 Голосовое" : pinnedMsg.type === "poll" ? "📊 Опрос" : pinnedMsg.text || "Сообщение";
+        const pinnedMessages: any[] = (chat as any)?.pinnedMessages || [];
+        const legacyPin = (chat as any)?.pinnedMessage;
+        const allPinned = pinnedMessages.length > 0 ? pinnedMessages : (legacyPin ? [legacyPin] : []);
+        const visiblePinned = allPinned.filter((p: any) => p.id !== pinnedMsgDismissed);
+        if (visiblePinned.length === 0) return null;
+        const currentIdx = Math.min(pinnedMsgIndex, visiblePinned.length - 1);
+        const pinnedMsg = visiblePinned[currentIdx];
+        const txt = pinnedMsg.type === "image" ? "📷 Фото" :
+                    pinnedMsg.type === "audio" ? "🎤 Голосовое" :
+                    pinnedMsg.type === "poll" ? "📊 Опрос" :
+                    pinnedMsg.text || "Сообщение";
         return (
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="flex items-center gap-3 px-4 py-2.5 bg-card border-b border-primary/20 shrink-0 shadow-sm relative z-10 cursor-pointer hover:bg-secondary/50 transition-colors"
-            onClick={() => {}}
+            className="relative flex items-center gap-2 px-3 py-2.5 bg-card border-b border-primary/20 shrink-0 shadow-sm z-10"
           >
+            {visiblePinned.length > 1 && (
+              <div className="absolute top-0 left-0 right-0 h-[3px] flex gap-px px-2 overflow-hidden rounded-t">
+                {visiblePinned.map((_: any, i: number) => (
+                  <div key={i} className={`flex-1 h-full transition-all duration-300 ${i === currentIdx ? "bg-primary" : "bg-primary/20"}`} />
+                ))}
+              </div>
+            )}
             <div className="w-1 h-8 rounded-full bg-primary shrink-0" />
-            <div className="flex-1 min-w-0">
-              <p className="text-[11px] font-black uppercase tracking-wider text-primary mb-0.5">Закреплено</p>
+            <div
+              className="flex-1 min-w-0 cursor-pointer"
+              onClick={() => visiblePinned.length > 1 && setPinnedMsgIndex(i => (i + 1) % visiblePinned.length)}
+            >
+              <p className="text-[11px] font-black uppercase tracking-wider text-primary mb-0.5 flex items-center gap-1.5">
+                Закреплено
+                {visiblePinned.length > 1 && (
+                  <span className="text-[10px] bg-primary/15 px-1.5 py-0.5 rounded-full leading-none">
+                    {currentIdx + 1}/{visiblePinned.length}
+                  </span>
+                )}
+              </p>
               <p className="text-[13px] font-medium text-foreground truncate">{txt}</p>
             </div>
+            {visiblePinned.length > 1 && (
+              <button
+                onClick={() => setPinnedMsgIndex(i => (i + 1) % visiblePinned.length)}
+                className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-secondary text-muted-foreground hover:text-primary transition-colors shrink-0"
+              >
+                <ChevronDown size={14} />
+              </button>
+            )}
             <button
-              onClick={(e) => {
-                e.stopPropagation();
-                handlePinMessage(pinnedMsg);
-              }}
+              onClick={() => handlePinMessage(pinnedMsg)}
               title="Открепить"
-              className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors shrink-0"
+              className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors shrink-0"
             >
-              <PinOff size={16} />
+              <PinOff size={15} />
             </button>
             <button
-              onClick={(e) => { e.stopPropagation(); setPinnedMsgDismissed(pinnedMsg.id); }}
-              className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors shrink-0"
+              onClick={() => setPinnedMsgDismissed(pinnedMsg.id)}
+              className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors shrink-0"
             >
-              <X size={16} />
+              <X size={14} />
             </button>
           </motion.div>
         );

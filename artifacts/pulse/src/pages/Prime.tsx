@@ -280,6 +280,138 @@ function PlanPicker({ plans, selected, onSelect, accentClass }: {
 
 // ─── Main page ────────────────────────────────────────────────────────────────
 
+function PrimePlusPanel({ navigate, toast, queryClient }: {
+  navigate: (to: string) => void;
+  toast: (opts: any) => void;
+  queryClient: any;
+}) {
+  const [giftStatus, setGiftStatus] = useState<"idle" | "claiming" | "claimed" | "cooldown">("idle");
+  const [giftMsg, setGiftMsg] = useState("");
+  const [loungeLoading, setLoungeLoading] = useState(false);
+
+  const claimMonthlyGift = async () => {
+    setGiftStatus("claiming");
+    try {
+      const token = sessionStorage.getItem("pulse-token");
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+      const res = await fetch("/api/wallet/monthly-gift", { method: "POST", headers });
+      const data = await res.json();
+      if (res.ok) {
+        setGiftStatus("claimed");
+        setGiftMsg(`+${data.amount} ⚡ и эпический подарок зачислены!`);
+        queryClient.invalidateQueries({ queryKey: ["getMe"] });
+        toast({ title: "Ежемесячный подарок получен! 🎁", description: giftMsg });
+      } else if (res.status === 429) {
+        setGiftStatus("cooldown");
+        setGiftMsg(data.message || "Следующий подарок через месяц");
+      } else {
+        setGiftStatus("idle");
+      }
+    } catch {
+      setGiftStatus("idle");
+    }
+  };
+
+  const openLounge = async () => {
+    setLoungeLoading(true);
+    try {
+      const token = sessionStorage.getItem("pulse-token");
+      const headers: Record<string, string> = {};
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+      const res = await fetch("/api/prime/lounge", { headers });
+      if (res.ok) {
+        const data = await res.json();
+        navigate(`/chat/${data.loungeId}`);
+      } else {
+        toast({ title: "Не удалось открыть лаунж", variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Ошибка подключения", variant: "destructive" });
+    }
+    setLoungeLoading(false);
+  };
+
+  return (
+    <div className="space-y-3">
+      {/* Monthly Epic Gift */}
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="relative rounded-2xl border border-purple-500/30 overflow-hidden p-4"
+        style={{ background: "linear-gradient(135deg, rgba(168,85,247,0.08), rgba(217,70,239,0.04))" }}
+      >
+        <div className="flex items-center gap-3">
+          <motion.div
+            animate={{ rotate: [0, -5, 5, -5, 0], scale: [1, 1.1, 1] }}
+            transition={{ duration: 3, repeat: Infinity, repeatDelay: 2 }}
+            className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 text-2xl"
+            style={{ background: "linear-gradient(135deg, rgba(168,85,247,0.2), rgba(217,70,239,0.15))" }}
+          >
+            🎁
+          </motion.div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-black text-foreground">Ежемесячный эпический подарок</p>
+            <p className="text-xs text-muted-foreground">
+              {giftStatus === "claimed" ? giftMsg :
+               giftStatus === "cooldown" ? giftMsg :
+               "Эксклюзивно для Prime+ — бесплатный эпик каждый месяц"}
+            </p>
+          </div>
+          <motion.button
+            whileHover={{ scale: 1.04 }}
+            whileTap={{ scale: 0.96 }}
+            onClick={claimMonthlyGift}
+            disabled={giftStatus === "claiming" || giftStatus === "claimed" || giftStatus === "cooldown"}
+            className={`px-4 py-2 rounded-xl text-sm font-black transition-all shrink-0 ${
+              giftStatus === "claimed" ? "bg-green-500/20 text-green-400 cursor-default" :
+              giftStatus === "cooldown" ? "bg-secondary text-muted-foreground cursor-default" :
+              "text-white"
+            }`}
+            style={giftStatus === "idle" ? { background: "linear-gradient(135deg, #a855f7, #d946ef)" } : undefined}
+          >
+            {giftStatus === "claiming" ? "..." :
+             giftStatus === "claimed" ? "Получено ✓" :
+             giftStatus === "cooldown" ? "Позже" :
+             "Получить"}
+          </motion.button>
+        </div>
+      </motion.div>
+
+      {/* Prime+ Lounge */}
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.08 }}
+        className="relative rounded-2xl border border-purple-500/30 overflow-hidden p-4"
+        style={{ background: "linear-gradient(135deg, rgba(124,58,237,0.08), rgba(6,182,212,0.04))" }}
+      >
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 text-2xl"
+            style={{ background: "linear-gradient(135deg, rgba(124,58,237,0.2), rgba(6,182,212,0.15))" }}
+          >
+            💎
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-black text-foreground">Prime+ Lounge</p>
+            <p className="text-xs text-muted-foreground">Закрытый чат только для Prime+ участников</p>
+          </div>
+          <motion.button
+            whileHover={{ scale: 1.04 }}
+            whileTap={{ scale: 0.96 }}
+            onClick={openLounge}
+            disabled={loungeLoading}
+            className="px-4 py-2 rounded-xl text-sm font-black text-white transition-all shrink-0"
+            style={{ background: "linear-gradient(135deg, #7c3aed, #06b6d4)" }}
+          >
+            {loungeLoading ? "..." : "Войти"}
+          </motion.button>
+        </div>
+      </motion.div>
+    </div>
+  );
+}
+
 export default function Prime() {
   const { data: me } = useGetMe();
   const { toast } = useToast();
@@ -364,6 +496,11 @@ export default function Prime() {
             tier={primeTier ?? "prime"}
             onRenew={() => openModal(primeTier === "prime_plus" ? "prime_plus" : "prime")}
           />
+        )}
+
+        {/* Prime+ exclusive live actions */}
+        {isSubscribedPlus && (
+          <PrimePlusPanel navigate={navigate} toast={toast} queryClient={queryClient} />
         )}
 
         {/* Tab switcher */}

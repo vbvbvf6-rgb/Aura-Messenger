@@ -14,7 +14,9 @@ export const messagesTable = pgTable("messages", {
   replyToId: integer("reply_to_id"),
   isEdited: boolean("is_edited").notNull().default(false),
   isDeleted: boolean("is_deleted").notNull().default(false),
+  deletedAt: timestamp("deleted_at", { withTimezone: true }),
   isRead: boolean("is_read").notNull().default(false),
+  effect: text("effect"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 });

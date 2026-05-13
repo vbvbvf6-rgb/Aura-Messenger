@@ -16,6 +16,60 @@ const PLUS_PLANS: Record<string, { spark: number; months: number }> = {
   yearly:   { spark: 5388, months: 12 },
 };
 
+async function ensurePrimePlusLounge(userId: number): Promise<number | null> {
+  try {
+    // Find the Prime+ Lounge (a special group chat)
+    const existing = await db.execute(sql`
+      SELECT c.id FROM chats c
+      WHERE c.type = 'group' AND c.name = 'Prime+ Lounge'
+      LIMIT 1
+    `);
+
+    let loungeId: number;
+
+    if ((existing.rows as any[]).length > 0) {
+      loungeId = (existing.rows[0] as any).id;
+    } else {
+      // Create the Prime+ Lounge
+      const created = await db.execute(sql`
+        INSERT INTO chats (type, name, description, avatar_color)
+        VALUES ('group', 'Prime+ Lounge', 'Эксклюзивный чат для участников Prime+', '#7c3aed')
+        RETURNING id
+      `);
+      loungeId = (created.rows[0] as any).id;
+
+      // Add a system message
+      await db.execute(sql`
+        INSERT INTO messages (chat_id, sender_id, text, type)
+        SELECT ${loungeId}, id, '💎 Добро пожаловать в Prime+ Lounge — эксклюзивное сообщество подписчиков Prime+! Здесь вы можете общаться с другими Prime+ участниками.', 'text'
+        FROM users WHERE is_admin = true LIMIT 1
+      `).catch(async () => {
+        // If no admin, use first prime+ user
+        await db.execute(sql`
+          INSERT INTO messages (chat_id, sender_id, text, type)
+          VALUES (${loungeId}, ${userId}, '💎 Добро пожаловать в Prime+ Lounge!', 'text')
+        `).catch(() => {});
+      });
+    }
+
+    // Check if user is already a member
+    const isMember = await db.execute(sql`
+      SELECT 1 FROM chat_members WHERE chat_id = ${loungeId} AND user_id = ${userId} LIMIT 1
+    `);
+
+    if ((isMember.rows as any[]).length === 0) {
+      await db.execute(sql`
+        INSERT INTO chat_members (chat_id, user_id, role) VALUES (${loungeId}, ${userId}, 'member')
+      `);
+    }
+
+    return loungeId;
+  } catch (err) {
+    console.error("Failed to ensure Prime+ Lounge:", err);
+    return null;
+  }
+}
+
 router.post("/prime/subscribe", async (req, res) => {
   try {
     const uid = req.currentUserId;
@@ -64,10 +118,20 @@ router.post("/prime/subscribe", async (req, res) => {
     const SIGNUP_BONUS = isFirstTime || isUpgrade ? (isPlus ? 100 : 50) : 0;
     if (SIGNUP_BONUS > 0) {
       await db.execute(sql`UPDATE users SET balance = balance + ${SIGNUP_BONUS} WHERE id = ${uid}`);
+      await db.execute(sql`INSERT INTO spark_activity (user_id, type, amount, description) VALUES (${uid}, 'subscription_bonus', ${SIGNUP_BONUS}, ${'Бонус при подписке: ' + tierValue})`).catch(() => {});
     }
+
+    // Log subscription activity
+    await db.execute(sql`INSERT INTO spark_activity (user_id, type, amount, description) VALUES (${uid}, 'subscription', ${-plan.spark}, ${'Подписка: ' + tierValue + ' ' + planId})`).catch(() => {});
 
     const updated = await db.execute(sql`SELECT balance FROM users WHERE id = ${uid}`);
     const newBalance = Number((updated.rows[0] as any)?.balance ?? 0);
+
+    // If subscribing to Prime+, add to lounge
+    let loungeId: number | null = null;
+    if (isPlus) {
+      loungeId = await ensurePrimePlusLounge(uid);
+    }
 
     res.json({
       success: true,
@@ -75,6 +139,7 @@ router.post("/prime/subscribe", async (req, res) => {
       primeExpiresAt: newExpiry.toISOString(),
       primeTier: tierValue,
       bonusAwarded: SIGNUP_BONUS,
+      loungeId,
     });
   } catch (err) {
     req.log.error(err);
@@ -98,6 +163,27 @@ router.get("/prime/status", async (req, res) => {
     }
 
     res.json({ hasPrime: isActive, primeTier: user.prime_tier ?? null, primeExpiresAt: expiresAt });
+  } catch (err) {
+    req.log.error(err);
+    res.status(500).json({ error: "Ошибка сервера" });
+  }
+});
+
+// Get or create Prime+ Lounge
+router.get("/prime/lounge", async (req, res) => {
+  try {
+    const uid = req.currentUserId;
+    const primeRow = await db.execute(sql`SELECT has_prime, prime_tier, prime_expires_at FROM users WHERE id = ${uid}`);
+    const user = primeRow.rows[0] as any;
+    const hasPrime = (user?.has_prime === true || user?.has_prime === "t") && user?.prime_expires_at && new Date(user.prime_expires_at) > new Date();
+    const isPrimePlus = hasPrime && user?.prime_tier === "prime_plus";
+
+    if (!isPrimePlus) return res.status(403).json({ error: "Prime+ Lounge доступен только для Prime+ подписчиков" });
+
+    const loungeId = await ensurePrimePlusLounge(uid);
+    if (!loungeId) return res.status(500).json({ error: "Не удалось найти Prime+ Lounge" });
+
+    res.json({ loungeId });
   } catch (err) {
     req.log.error(err);
     res.status(500).json({ error: "Ошибка сервера" });
@@ -141,6 +227,11 @@ router.post("/prime/gift", async (req, res) => {
 
     await db.execute(sql`UPDATE users SET balance = balance - ${cost} WHERE id = ${senderId}`);
     await db.execute(sql`UPDATE users SET has_prime = true, prime_tier = ${tierValue}, prime_expires_at = ${newExpiry.toISOString()} WHERE id = ${recipientId}`);
+
+    // If gifting Prime+, add recipient to lounge
+    if (isPlus) {
+      await ensurePrimePlusLounge(recipientId);
+    }
 
     const updated = await db.execute(sql`SELECT balance FROM users WHERE id = ${senderId}`);
     const newBalance = Number((updated.rows[0] as any)?.balance ?? 0);

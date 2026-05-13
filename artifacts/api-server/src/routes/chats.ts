@@ -1,14 +1,25 @@
 import { Router } from "express";
-import { db, chatsTable, chatMembersTable, usersTable, messagesTable, reactionsTable } from "@workspace/db";
+import { db, chatsTable, chatMembersTable, usersTable, messagesTable, reactionsTable, pinnedMessagesTable } from "@workspace/db";
 import { eq, and, desc, inArray, count, gt, ne, sql } from "drizzle-orm";
 import { CreateChatBody, UpdateChatBody, AddChatMemberBody } from "@workspace/api-zod";
 
 const router = Router();
 
+async function getUserPrimeInfo(userId: number): Promise<{ hasPrime: boolean; isPrimePlus: boolean }> {
+  try {
+    const row = await db.execute(sql`SELECT has_prime, prime_tier, prime_expires_at FROM users WHERE id = ${userId}`);
+    const u = row.rows[0] as any;
+    const hasPrime = (u?.has_prime === true || u?.has_prime === "t") && u?.prime_expires_at && new Date(u.prime_expires_at) > new Date();
+    const isPrimePlus = hasPrime && u?.prime_tier === "prime_plus";
+    return { hasPrime: !!hasPrime, isPrimePlus: !!isPrimePlus };
+  } catch { return { hasPrime: false, isPrimePlus: false }; }
+}
+
 async function buildChat(chatId: number, currentUserId: number) {
   const chat = await db.query.chatsTable.findFirst({ where: eq(chatsTable.id, chatId) });
   if (!chat) return null;
 
+  // Legacy single pinned message support
   let pinnedMessage: any = null;
   if ((chat as any).pinnedMessageId) {
     try {
@@ -19,6 +30,39 @@ async function buildChat(chatId: number, currentUserId: number) {
       }
     } catch {}
   }
+
+  // Multi-pin support: fetch from pinned_messages table
+  let pinnedMessages: any[] = [];
+  try {
+    const pinnedRows = await db.execute(sql`
+      SELECT pm.id as pin_id, pm.pinned_at, pm.pinned_by,
+             m.id, m.chat_id, m.sender_id, m.text, m.type, m.media_url, m.created_at, m.is_deleted,
+             u.display_name, u.avatar_color
+      FROM pinned_messages pm
+      JOIN messages m ON m.id = pm.message_id
+      JOIN users u ON u.id = m.sender_id
+      WHERE pm.chat_id = ${chatId}
+      ORDER BY pm.pinned_at DESC
+    `);
+    pinnedMessages = (pinnedRows.rows as any[]).map(row => ({
+      id: row.id,
+      pinId: row.pin_id,
+      chatId: row.chat_id,
+      senderId: row.sender_id,
+      text: row.text,
+      type: row.type,
+      mediaUrl: row.media_url,
+      createdAt: row.created_at,
+      isDeleted: row.is_deleted,
+      pinnedAt: row.pinned_at,
+      sender: { displayName: row.display_name, avatarColor: row.avatar_color },
+    }));
+
+    // Use first pinned message as legacy pinnedMessage if not already set
+    if (!pinnedMessage && pinnedMessages.length > 0) {
+      pinnedMessage = pinnedMessages[0];
+    }
+  } catch {}
 
   const memberRows = await db
     .select({ member: chatMembersTable, user: usersTable })
@@ -66,7 +110,17 @@ async function buildChat(chatId: number, currentUserId: number) {
   let otherUser = null;
   if (chat.type === "direct") {
     const other = memberRows.find(m => m.member.userId !== currentUserId);
-    otherUser = other?.user ?? null;
+    if (other?.user) {
+      // Attach prime info to otherUser
+      try {
+        const primeRow = await db.execute(sql`SELECT has_prime, prime_tier, prime_expires_at FROM users WHERE id = ${other.user.id}`);
+        const pu = primeRow.rows[0] as any;
+        const hasPrime = (pu?.has_prime === true || pu?.has_prime === "t") && pu?.prime_expires_at && new Date(pu.prime_expires_at) > new Date();
+        otherUser = { ...other.user, hasPrime: !!hasPrime, primeTier: hasPrime ? pu?.prime_tier : null };
+      } catch {
+        otherUser = other.user;
+      }
+    }
   }
 
   return {
@@ -78,6 +132,7 @@ async function buildChat(chatId: number, currentUserId: number) {
     members: memberRows.map(m => ({ ...m.member, user: m.user })),
     otherUser,
     pinnedMessage,
+    pinnedMessages,
   };
 }
 
@@ -236,6 +291,8 @@ router.put("/chats/:chatId", async (req, res) => {
 router.delete("/chats/:chatId", async (req, res) => {
   try {
     const chatId = Number(req.params.chatId);
+    // Clean up pinned messages first
+    await db.execute(sql`DELETE FROM pinned_messages WHERE chat_id = ${chatId}`).catch(() => {});
     await db.delete(messagesTable).where(eq(messagesTable.chatId, chatId));
     await db.delete(chatMembersTable).where(eq(chatMembersTable.chatId, chatId));
     await db.delete(chatsTable).where(eq(chatsTable.id, chatId));
@@ -254,7 +311,20 @@ router.get("/chats/:chatId/members", async (req, res) => {
       .from(chatMembersTable)
       .innerJoin(usersTable, eq(chatMembersTable.userId, usersTable.id))
       .where(eq(chatMembersTable.chatId, chatId));
-    res.json(members.map(m => ({ ...m.member, user: m.user })));
+
+    // Attach prime info to each member
+    const membersWithPrime = await Promise.all(members.map(async m => {
+      try {
+        const primeRow = await db.execute(sql`SELECT has_prime, prime_tier, prime_expires_at FROM users WHERE id = ${m.user.id}`);
+        const pu = primeRow.rows[0] as any;
+        const hasPrime = (pu?.has_prime === true || pu?.has_prime === "t") && pu?.prime_expires_at && new Date(pu.prime_expires_at) > new Date();
+        return { ...m.member, user: { ...m.user, hasPrime: !!hasPrime, primeTier: hasPrime ? pu?.prime_tier : null } };
+      } catch {
+        return { ...m.member, user: m.user };
+      }
+    }));
+
+    res.json(membersWithPrime);
   } catch (err) {
     req.log.error(err);
     res.status(500).json({ error: "Internal server error" });
@@ -309,7 +379,7 @@ router.post("/chats/:chatId/read", async (req, res) => {
 router.patch("/chats/:chatId/auto-delete", async (req, res) => {
   try {
     const chatId = Number(req.params.chatId);
-    const { timer } = req.body; // null or seconds (number)
+    const { timer } = req.body;
     const timerVal = timer === null || timer === 0 ? null : Number(timer);
     await db.update(chatsTable).set({ autoDeleteTimer: timerVal }).where(eq(chatsTable.id, chatId));
     const uid = req.currentUserId;
@@ -321,17 +391,66 @@ router.patch("/chats/:chatId/auto-delete", async (req, res) => {
   }
 });
 
+// Multi-pin support: pin a message (up to 10 for Prime+, 1 for others)
 router.put("/chats/:chatId/pin-message", async (req, res) => {
   try {
     const chatId = Number(req.params.chatId);
+    const uid = req.currentUserId;
     const { messageId } = req.body;
     const mid = messageId ? Number(messageId) : null;
-    await db.execute(
-      mid
-        ? sql`UPDATE chats SET pinned_message_id = ${mid} WHERE id = ${chatId}`
-        : sql`UPDATE chats SET pinned_message_id = NULL WHERE id = ${chatId}`
-    );
+
+    if (mid) {
+      // Check message exists and belongs to this chat
+      const msg = await db.query.messagesTable.findFirst({ where: eq(messagesTable.id, mid) });
+      if (!msg || msg.chatId !== chatId) return res.status(404).json({ error: "Сообщение не найдено" });
+
+      // Check current pinned count
+      const countRow = await db.execute(sql`SELECT COUNT(*) as cnt FROM pinned_messages WHERE chat_id = ${chatId}`);
+      const currentPins = Number((countRow.rows[0] as any)?.cnt ?? 0);
+
+      const { isPrimePlus, hasPrime } = await getUserPrimeInfo(uid);
+      const maxPins = isPrimePlus ? 10 : hasPrime ? 3 : 1;
+
+      // Check if already pinned
+      const alreadyPinned = await db.execute(sql`SELECT id FROM pinned_messages WHERE chat_id = ${chatId} AND message_id = ${mid} LIMIT 1`);
+      if ((alreadyPinned.rows as any[]).length > 0) {
+        // Unpin it
+        await db.execute(sql`DELETE FROM pinned_messages WHERE chat_id = ${chatId} AND message_id = ${mid}`);
+        // Also clear legacy pinnedMessageId if it was this message
+        await db.execute(sql`UPDATE chats SET pinned_message_id = NULL WHERE id = ${chatId} AND pinned_message_id = ${mid}`).catch(() => {});
+      } else {
+        if (currentPins >= maxPins) {
+          // Remove oldest pin to make room
+          await db.execute(sql`DELETE FROM pinned_messages WHERE id = (SELECT id FROM pinned_messages WHERE chat_id = ${chatId} ORDER BY pinned_at ASC LIMIT 1)`);
+        }
+        await db.execute(sql`INSERT INTO pinned_messages (chat_id, message_id, pinned_by) VALUES (${chatId}, ${mid}, ${uid})`);
+        // Update legacy field too for backward compat
+        await db.execute(sql`UPDATE chats SET pinned_message_id = ${mid} WHERE id = ${chatId}`).catch(() => {});
+      }
+    } else {
+      // Unpin all
+      await db.execute(sql`DELETE FROM pinned_messages WHERE chat_id = ${chatId}`);
+      await db.execute(sql`UPDATE chats SET pinned_message_id = NULL WHERE id = ${chatId}`).catch(() => {});
+    }
+
+    const chat = await buildChat(chatId, uid);
+    res.json(chat);
+  } catch (err) {
+    req.log.error(err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// Unpin a specific message
+router.delete("/chats/:chatId/pinned-messages/:messageId", async (req, res) => {
+  try {
+    const chatId = Number(req.params.chatId);
+    const messageId = Number(req.params.messageId);
     const uid = req.currentUserId;
+
+    await db.execute(sql`DELETE FROM pinned_messages WHERE chat_id = ${chatId} AND message_id = ${messageId}`);
+    await db.execute(sql`UPDATE chats SET pinned_message_id = NULL WHERE id = ${chatId} AND pinned_message_id = ${messageId}`).catch(() => {});
+
     const chat = await buildChat(chatId, uid);
     res.json(chat);
   } catch (err) {
@@ -352,6 +471,30 @@ router.put("/chats/:chatId/pin", async (req, res) => {
       .where(and(eq(chatMembersTable.chatId, chatId), eq(chatMembersTable.userId, uid)));
     const chat = await buildChat(chatId, uid);
     res.json(chat);
+  } catch (err) {
+    req.log.error(err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// Typing routes
+router.post("/chats/:chatId/typing", async (req, res) => {
+  res.status(204).send();
+});
+
+router.post("/chats/:chatId/typing/stop", async (req, res) => {
+  res.status(204).send();
+});
+
+// Leave chat
+router.post("/chats/:chatId/leave", async (req, res) => {
+  try {
+    const uid = req.currentUserId;
+    const chatId = Number(req.params.chatId);
+    await db.delete(chatMembersTable).where(
+      and(eq(chatMembersTable.chatId, chatId), eq(chatMembersTable.userId, uid))
+    );
+    res.status(204).send();
   } catch (err) {
     req.log.error(err);
     res.status(500).json({ error: "Internal server error" });
