@@ -174,7 +174,7 @@ export function Sidebar({ mobileSidebarOpen, onMobileClose, onMobileOpen }: Side
   const DesktopSidebar = (
     <div className="hidden md:flex flex-col h-[100dvh] w-[240px] bg-card border-r border-border py-4 shrink-0 shadow-[4px_0_24px_rgba(0,0,0,0.02)]">
       <div className="flex items-center gap-3 px-5 mb-6">
-        <div className="w-10 h-10 rounded-[14px] bg-gradient-to-br from-primary to-orange-600 flex items-center justify-center shadow-[0_0_20px_rgba(255,85,0,0.3)] shrink-0">
+        <div className="w-10 h-10 rounded-[14px] bg-gradient-to-br from-primary to-violet-700 flex items-center justify-center shadow-[0_0_20px_rgba(139,92,246,0.35)] shrink-0">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
             <path d="M13 2L4.5 13.5H11L10 22L19.5 10.5H13L13 2Z" fill="white" />
           </svg>
@@ -193,7 +193,7 @@ export function Sidebar({ mobileSidebarOpen, onMobileClose, onMobileOpen }: Side
               className={cn(
                 "flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group relative",
                 isActive
-                  ? "bg-primary text-primary-foreground shadow-[0_4px_14px_rgba(255,85,0,0.3)]"
+                  ? "bg-primary text-primary-foreground shadow-[0_4px_14px_rgba(139,92,246,0.3)]"
                   : "text-muted-foreground hover:bg-secondary/80 hover:text-foreground"
               )}
             >
@@ -224,8 +224,8 @@ export function Sidebar({ mobileSidebarOpen, onMobileClose, onMobileOpen }: Side
           className={cn(
             "flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group border mt-2",
             location.startsWith("/prime")
-              ? "bg-gradient-to-r from-orange-500 to-yellow-500 text-white border-transparent shadow-[0_4px_14px_rgba(245,158,11,0.4)]"
-              : "border-orange-500/20 text-orange-400 hover:bg-orange-500/10 hover:border-orange-500/30"
+              ? "bg-gradient-to-r from-violet-600 to-indigo-500 text-white border-transparent shadow-[0_4px_14px_rgba(139,92,246,0.4)]"
+              : "border-violet-500/20 text-violet-400 hover:bg-violet-500/10 hover:border-violet-500/30"
           )}
         >
           <Crown size={18} className="transition-transform duration-300 group-hover:scale-110 shrink-0" />
@@ -256,7 +256,7 @@ export function Sidebar({ mobileSidebarOpen, onMobileClose, onMobileOpen }: Side
                 <div
                   className={cn(
                     "w-9 h-9 rounded-full flex items-center justify-center text-white font-bold text-sm overflow-hidden",
-                    isPremium && "ring-2 ring-orange-500 ring-offset-2 ring-offset-card"
+                    isPremium && "ring-2 ring-violet-500 ring-offset-2 ring-offset-card"
                   )}
                   style={{ backgroundColor: me?.avatarColor || "#3B82F6" }}
                 >
@@ -265,7 +265,7 @@ export function Sidebar({ mobileSidebarOpen, onMobileClose, onMobileOpen }: Side
                     : initial}
                 </div>
                 {isPremium && (
-                  <div className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-orange-500 flex items-center justify-center shadow-sm border-2 border-card">
+                  <div className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-violet-500 flex items-center justify-center shadow-sm border-2 border-card">
                     <Sparkles size={8} className="text-white" />
                   </div>
                 )}
@@ -322,7 +322,7 @@ export function Sidebar({ mobileSidebarOpen, onMobileClose, onMobileOpen }: Side
     <div className="flex flex-col h-full bg-card border-r border-border">
       <div className="flex items-center justify-between px-5 mb-6 pt-4">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-[14px] bg-gradient-to-br from-primary to-orange-600 flex items-center justify-center shadow-[0_0_20px_rgba(255,85,0,0.3)] shrink-0">
+          <div className="w-10 h-10 rounded-[14px] bg-gradient-to-br from-primary to-violet-700 flex items-center justify-center shadow-[0_0_20px_rgba(139,92,246,0.35)] shrink-0">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
               <path d="M13 2L4.5 13.5H11L10 22L19.5 10.5H13L13 2Z" fill="white" />
             </svg>
@@ -349,7 +349,7 @@ export function Sidebar({ mobileSidebarOpen, onMobileClose, onMobileOpen }: Side
               className={cn(
                 "flex items-center gap-3 p-3.5 rounded-xl transition-all duration-200 group relative",
                 isActive
-                  ? "bg-primary text-primary-foreground shadow-[0_4px_14px_rgba(255,85,0,0.3)]"
+                  ? "bg-primary text-primary-foreground shadow-[0_4px_14px_rgba(139,92,246,0.3)]"
                   : "text-muted-foreground hover:bg-secondary hover:text-foreground"
               )}
             >
@@ -381,8 +381,8 @@ export function Sidebar({ mobileSidebarOpen, onMobileClose, onMobileOpen }: Side
           className={cn(
             "flex items-center gap-3 p-3.5 rounded-xl transition-all duration-200 group relative border mt-2",
             location.startsWith("/prime")
-              ? "bg-gradient-to-r from-orange-500 to-yellow-500 text-white border-transparent shadow-[0_4px_14px_rgba(245,158,11,0.4)]"
-              : "border-orange-500/20 text-orange-400 hover:bg-orange-500/10 hover:border-orange-500/30"
+              ? "bg-gradient-to-r from-violet-600 to-indigo-500 text-white border-transparent shadow-[0_4px_14px_rgba(139,92,246,0.4)]"
+              : "border-violet-500/20 text-violet-400 hover:bg-violet-500/10 hover:border-violet-500/30"
           )}
         >
           <Crown size={20} className="shrink-0" />
@@ -436,7 +436,7 @@ export function Sidebar({ mobileSidebarOpen, onMobileClose, onMobileOpen }: Side
             <div
               className={cn(
                 "w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm overflow-hidden",
-                isPremium && "ring-2 ring-orange-500 ring-offset-2 ring-offset-card"
+                isPremium && "ring-2 ring-violet-500 ring-offset-2 ring-offset-card"
               )}
               style={{ backgroundColor: me?.avatarColor || "#3B82F6" }}
             >

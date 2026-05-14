@@ -139,7 +139,7 @@ function VoicePlayer({ src, durationSec, isMine, messageId, viewerIsPrimePlus }:
           "w-12 h-12 rounded-full flex items-center justify-center shrink-0 transition-all",
           isMine
             ? "bg-white text-primary shadow-sm hover:scale-105 active:scale-95"
-            : "bg-primary text-white shadow-[0_4px_14px_rgba(255,85,0,0.3)] hover:scale-105 active:scale-95"
+            : "bg-primary text-white shadow-[0_4px_14px_rgba(139,92,246,0.35)] hover:scale-105 active:scale-95"
         )}
       >
         {playing ? <Pause size={18} fill="currentColor" /> : <Play size={18} fill="currentColor" className="ml-1" />}
@@ -866,8 +866,8 @@ export function MessageBubble({ message, onReply, onEdit, ownBubbleStyle, onPin,
                   : cn(
                     "px-5 py-3.5 rounded-[24px]",
                     isMine
-                      ? (ownBubbleStyle ? "text-white rounded-br-sm" : "bubble-mine text-primary-foreground rounded-br-sm")
-                      : "bg-card text-foreground rounded-bl-sm border border-border shadow-sm"
+                      ? (ownBubbleStyle ? "text-white rounded-br-sm border border-white/10 shadow-[0_4px_16px_rgba(0,0,0,0.25)]" : "bubble-mine text-primary-foreground rounded-br-sm")
+                      : "bg-card text-foreground rounded-bl-sm border border-border/60 shadow-[0_2px_8px_rgba(0,0,0,0.15)]"
                   )
               )}
               style={isMine && ownBubbleStyle && message.type !== "sticker" ? ownBubbleStyle : undefined}
@@ -1052,7 +1052,7 @@ export function MessageBubble({ message, onReply, onEdit, ownBubbleStyle, onPin,
                     onClick={() => { closeMenu(); onEdit(message); }}
                     className="w-full flex items-center gap-3 px-3 py-3 text-[15px] font-bold text-foreground hover:bg-secondary rounded-xl transition-colors text-left"
                   >
-                    <Pencil size={18} className="text-orange-500" />
+                    <Pencil size={18} className="text-violet-400" />
                     Изменить
                   </button>
                 )}

@@ -46,8 +46,8 @@ const CHAT_THEMES: ChatTheme[] = [
   {
     id: "sunset", name: "Закат", emoji: "🌅", tier: "prime",
     bg: { background: "linear-gradient(160deg, #1a0a0a 0%, #2d1008 40%, #1a0d1a 100%)" },
-    bubble: { background: "linear-gradient(135deg, #f97316, #ec4899)", boxShadow: "0 4px 16px rgba(249,115,22,0.35)" },
-    preview: "linear-gradient(135deg, #f97316, #ec4899)",
+    bubble: { background: "linear-gradient(135deg, #6366f1, #ec4899)", boxShadow: "0 4px 16px rgba(99,102,241,0.35)" },
+    preview: "linear-gradient(135deg, #6366f1, #ec4899)",
   },
   {
     id: "ocean", name: "Океан", emoji: "🌊", tier: "prime",
@@ -76,8 +76,8 @@ const CHAT_THEMES: ChatTheme[] = [
   {
     id: "ember", name: "Огонь", emoji: "🔥", tier: "prime",
     bg: { background: "linear-gradient(160deg, #120503 0%, #251008 50%, #100402 100%)" },
-    bubble: { background: "linear-gradient(135deg, #ef4444, #f97316)", boxShadow: "0 4px 16px rgba(239,68,68,0.35)" },
-    preview: "linear-gradient(135deg, #ef4444, #f97316)",
+    bubble: { background: "linear-gradient(135deg, #ef4444, #dc2626)", boxShadow: "0 4px 16px rgba(239,68,68,0.35)" },
+    preview: "linear-gradient(135deg, #ef4444, #dc2626)",
   },
   {
     id: "arctic", name: "Арктика", emoji: "❄️", tier: "prime",
@@ -88,8 +88,8 @@ const CHAT_THEMES: ChatTheme[] = [
   {
     id: "gold", name: "Золото", emoji: "✨", tier: "prime",
     bg: { background: "linear-gradient(160deg, #110d02 0%, #221a04 50%, #0e0a02 100%)" },
-    bubble: { background: "linear-gradient(135deg, #eab308, #f97316)", boxShadow: "0 4px 16px rgba(234,179,8,0.35)" },
-    preview: "linear-gradient(135deg, #eab308, #f97316)",
+    bubble: { background: "linear-gradient(135deg, #eab308, #d97706)", boxShadow: "0 4px 16px rgba(234,179,8,0.35)" },
+    preview: "linear-gradient(135deg, #eab308, #d97706)",
   },
   {
     id: "galaxy", name: "Галактика", emoji: "🌌", tier: "prime_plus",
@@ -628,7 +628,7 @@ export function ChatWindow({ chatId }: ChatWindowProps) {
                 style={{
                   background: otherUserIsPlus
                     ? "conic-gradient(from 0deg, #a855f7, #38bdf8, #e2e8f0, #c084fc, #06b6d4, #a855f7)"
-                    : "conic-gradient(from 0deg, #facc15, #fb923c, #f97316, #facc15)",
+                    : "conic-gradient(from 0deg, #eab308, #f59e0b, #d97706, #eab308)",
                   borderRadius: "18px",
                 }}
               />
@@ -648,7 +648,7 @@ export function ChatWindow({ chatId }: ChatWindowProps) {
               <div className={`absolute -top-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center z-20 ${
                 otherUserIsPlus
                   ? "bg-gradient-to-br from-purple-500 to-cyan-400 shadow-[0_0_6px_rgba(168,85,247,0.8)]"
-                  : "bg-gradient-to-br from-yellow-400 to-orange-500 shadow-[0_0_6px_rgba(250,204,21,0.8)]"
+                  : "bg-gradient-to-br from-yellow-400 to-amber-500 shadow-[0_0_6px_rgba(250,204,21,0.8)]"
               }`}>
                 <Crown size={8} className="text-white" />
               </div>
@@ -677,7 +677,7 @@ export function ChatWindow({ chatId }: ChatWindowProps) {
                 </svg>
               )}
               {autoDeleteTimer ? (
-                <span className="flex items-center gap-1 text-[11px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md bg-orange-500 text-white shrink-0 shadow-[0_2px_8px_rgba(249,115,22,0.3)]">
+                <span className="flex items-center gap-1 text-[11px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md bg-violet-500 text-white shrink-0 shadow-[0_2px_8px_rgba(139,92,246,0.3)]">
                   <Flame size={12} fill="currentColor" />
                   {autoDeleteLabel}
                 </span>
@@ -749,7 +749,7 @@ export function ChatWindow({ chatId }: ChatWindowProps) {
                 {chat.isMuted ? (
                   <><Bell size={18} className="mr-3 text-green-500" /><span className="font-semibold">{t("chat.muteOff")}</span></>
                 ) : (
-                  <><BellOff size={18} className="mr-3 text-orange-500" /><span className="font-semibold">{t("chat.muteOn")}</span></>
+                  <><BellOff size={18} className="mr-3 text-violet-400" /><span className="font-semibold">{t("chat.muteOn")}</span></>
                 )}
               </DropdownMenuItem>
               <DropdownMenuItem onClick={handleTogglePin} className="rounded-xl cursor-pointer py-2.5">
@@ -764,7 +764,7 @@ export function ChatWindow({ chatId }: ChatWindowProps) {
                 className="flex items-center justify-between rounded-xl cursor-pointer py-2.5"
               >
                 <div className="flex items-center font-semibold">
-                  <Flame size={18} className={`mr-3 ${autoDeleteTimer ? "text-orange-500 fill-orange-500/20" : "text-muted-foreground"}`} />
+                  <Flame size={18} className={`mr-3 ${autoDeleteTimer ? "text-violet-400 fill-violet-500/20" : "text-muted-foreground"}`} />
                   {t("chat.autoDelete")}
                 </div>
                 <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider bg-secondary px-2 py-0.5 rounded-md">{autoDeleteLabel}</span>
@@ -776,7 +776,7 @@ export function ChatWindow({ chatId }: ChatWindowProps) {
                     <span className="font-semibold">{chat.type === "channel" ? "Настройки канала" : "Настройки группы"}</span>
                   </DropdownMenuItem>
                   <DropdownMenuItem
-                    className="text-orange-500 focus:text-orange-500 rounded-xl cursor-pointer py-2.5"
+                    className="text-destructive focus:text-destructive rounded-xl cursor-pointer py-2.5"
                     onClick={async () => {
                       try {
                         await fetch(`/api/chats/${chatId}/leave`, { method: "POST", headers: getCWAuthHeaders() });
@@ -873,7 +873,7 @@ export function ChatWindow({ chatId }: ChatWindowProps) {
 
       {/* Auto-delete active banner */}
       {autoDeleteTimer ? (
-        <div className="flex items-center justify-between px-5 py-2.5 bg-orange-500 text-white shrink-0 shadow-sm relative z-10">
+        <div className="flex items-center justify-between px-5 py-2.5 bg-violet-600 text-white shrink-0 shadow-sm relative z-10">
           <div className="flex items-center gap-2">
             <Flame size={16} fill="white" />
             <span className="text-sm font-semibold">{t("autodelete.active")} <strong>{autoDeleteLabel}</strong></span>
@@ -968,7 +968,7 @@ export function ChatWindow({ chatId }: ChatWindowProps) {
                 queryClient.invalidateQueries({ queryKey: getGetChatsQueryKey() });
                 startBotTypingPoll();
               }}
-              className="w-full max-w-[220px] py-4 bg-primary text-primary-foreground rounded-2xl text-[15px] font-black shadow-[0_4px_20px_rgba(255,85,0,0.35)] hover:bg-primary/90 transition-all"
+              className="w-full max-w-[220px] py-4 bg-primary text-primary-foreground rounded-2xl text-[15px] font-black shadow-[0_4px_20px_rgba(139,92,246,0.35)] hover:bg-primary/90 transition-all"
             >
               СТАРТ
             </motion.button>
@@ -1216,8 +1216,8 @@ export function ChatWindow({ chatId }: ChatWindowProps) {
       <AlertDialog open={showAutoDeleteMenu} onOpenChange={setShowAutoDeleteMenu}>
         <AlertDialogContent className="max-w-sm rounded-[24px] p-0 overflow-hidden">
           <div className="px-6 pt-6 pb-4 bg-card border-b border-border text-center">
-            <div className="w-14 h-14 rounded-2xl bg-orange-500/10 flex items-center justify-center mx-auto mb-3">
-              <Flame size={28} className="text-orange-500" />
+            <div className="w-14 h-14 rounded-2xl bg-violet-500/10 flex items-center justify-center mx-auto mb-3">
+              <Flame size={28} className="text-violet-400" />
             </div>
             <h2 className="font-black text-xl mb-1">Автоудаление</h2>
             <p className="text-sm font-medium text-muted-foreground">

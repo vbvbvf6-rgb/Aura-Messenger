@@ -83,7 +83,7 @@ function ChatAvatar({ chat, displayName }: { chat: Chat; displayName: string }) 
           style={{
             background: isPlus
               ? "conic-gradient(from 0deg, #a855f7, #38bdf8, #e2e8f0, #c084fc, #06b6d4, #a855f7)"
-              : "conic-gradient(from 0deg, #facc15, #fb923c, #f97316, #facc15)",
+              : "conic-gradient(from 0deg, #eab308, #f59e0b, #d97706, #eab308)",
             borderRadius: "20px",
           }}
         />
@@ -111,7 +111,7 @@ function ChatAvatar({ chat, displayName }: { chat: Chat; displayName: string }) 
         <div className={`absolute -top-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center z-20 ${
           isPlus
             ? "bg-gradient-to-br from-purple-500 to-cyan-400 shadow-[0_0_6px_rgba(168,85,247,0.8)]"
-            : "bg-gradient-to-br from-yellow-400 to-orange-500 shadow-[0_0_6px_rgba(250,204,21,0.8)]"
+            : "bg-gradient-to-br from-yellow-400 to-amber-500 shadow-[0_0_6px_rgba(250,204,21,0.8)]"
         }`}>
           <Crown size={8} className="text-white" />
         </div>
@@ -337,7 +337,7 @@ export function ChatList() {
           </div>
           <button
             onClick={openCreate}
-            className="w-12 h-12 rounded-2xl bg-primary text-primary-foreground flex items-center justify-center hover:bg-primary/90 transition-all shadow-[0_4px_14px_rgba(255,85,0,0.3)] shrink-0"
+            className="w-12 h-12 rounded-2xl bg-primary text-primary-foreground flex items-center justify-center hover:bg-primary/90 transition-all shadow-[0_4px_14px_rgba(139,92,246,0.3)] shrink-0"
           >
             <SquarePen size={20} />
           </button>
@@ -569,7 +569,7 @@ export function ChatList() {
                         {chat.unreadCount > 0 && (
                           <div className={cn(
                             "text-[11px] font-black px-2 py-0.5 rounded-full min-w-[22px] text-center leading-none",
-                            chat.isMuted ? "bg-secondary text-muted-foreground border border-border" : "bg-primary text-primary-foreground shadow-[0_2px_8px_rgba(255,85,0,0.3)]"
+                            chat.isMuted ? "bg-secondary text-muted-foreground border border-border" : "bg-primary text-primary-foreground shadow-[0_2px_8px_rgba(139,92,246,0.3)]"
                           )}>
                             {chat.unreadCount > 99 ? "99+" : chat.unreadCount}
                           </div>
@@ -634,7 +634,7 @@ export function ChatList() {
                       onClick={() => { setCreateType("channel"); setCreateStep("details"); }}
                       className="w-full flex items-center gap-4 p-4 rounded-2xl bg-secondary/50 hover:bg-secondary border border-border transition-all group"
                     >
-                      <div className="w-14 h-14 rounded-[18px] bg-orange-500/10 text-orange-500 flex items-center justify-center group-hover:scale-105 transition-transform">
+                      <div className="w-14 h-14 rounded-[18px] bg-indigo-500/10 text-indigo-400 flex items-center justify-center group-hover:scale-105 transition-transform">
                         <Radio size={28} />
                       </div>
                       <div className="flex-1 text-left">
@@ -671,7 +671,7 @@ export function ChatList() {
                       <button
                         disabled={!createName.trim()}
                         onClick={() => setCreateStep("members")}
-                        className="w-full py-4 rounded-xl bg-primary text-primary-foreground font-black disabled:opacity-50 hover:bg-primary/90 transition-all text-base shadow-[0_4px_14px_rgba(255,85,0,0.3)] hover:-translate-y-0.5 active:translate-y-0 disabled:shadow-none disabled:-translate-y-0"
+                        className="w-full py-4 rounded-xl bg-primary text-primary-foreground font-black disabled:opacity-50 hover:bg-primary/90 transition-all text-base shadow-[0_4px_14px_rgba(139,92,246,0.3)] hover:-translate-y-0.5 active:translate-y-0 disabled:shadow-none disabled:-translate-y-0"
                       >
                         Далее
                       </button>
@@ -738,7 +738,7 @@ export function ChatList() {
                       <button
                         onClick={handleCreate}
                         disabled={creating}
-                        className="w-full py-4 rounded-xl bg-primary text-primary-foreground font-black disabled:opacity-50 hover:bg-primary/90 transition-all text-base shadow-[0_4px_14px_rgba(255,85,0,0.3)] hover:-translate-y-0.5 active:translate-y-0"
+                        className="w-full py-4 rounded-xl bg-primary text-primary-foreground font-black disabled:opacity-50 hover:bg-primary/90 transition-all text-base shadow-[0_4px_14px_rgba(139,92,246,0.3)] hover:-translate-y-0.5 active:translate-y-0"
                       >
                         {creating ? "Создание..." : `Создать ${createType === "group" ? "группу" : "канал"} (${selectedMembers.length})`}
                       </button>

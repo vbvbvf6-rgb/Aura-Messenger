@@ -477,7 +477,7 @@ export function ChatInput({ chatId, onMessageSent, replyTo, editMessage, onCance
               <button
                 onClick={handleScheduledSend}
                 disabled={!text.trim() || !scheduledAt}
-                className="w-full py-4 bg-primary text-primary-foreground rounded-[16px] text-[15px] font-black disabled:opacity-50 transition-all hover:bg-primary/90 shadow-[0_4px_14px_rgba(255,85,0,0.3)] hover:-translate-y-0.5 active:translate-y-0"
+                className="w-full py-4 bg-primary text-primary-foreground rounded-[16px] text-[15px] font-black disabled:opacity-50 transition-all hover:bg-primary/90 shadow-[0_4px_14px_rgba(139,92,246,0.3)] hover:-translate-y-0.5 active:translate-y-0"
               >
                 Сохранить
               </button>
@@ -645,13 +645,13 @@ export function ChatInput({ chatId, onMessageSent, replyTo, editMessage, onCance
           {editMessage && (
             <motion.div
               initial={{ opacity: 0, height: 0, y: 10 }} animate={{ opacity: 1, height: "auto", y: 0 }} exit={{ opacity: 0, height: 0, y: 10 }}
-              className="mb-2 flex items-center gap-3 bg-orange-500/10 backdrop-blur-md border border-orange-500/20 rounded-[20px] px-4 py-3"
+              className="mb-2 flex items-center gap-3 bg-violet-500/10 backdrop-blur-md border border-violet-500/20 rounded-[20px] px-4 py-3"
             >
-              <div className="w-8 h-8 rounded-full bg-orange-500/20 flex items-center justify-center shrink-0">
-                <Pencil size={16} className="text-orange-500" />
+              <div className="w-8 h-8 rounded-full bg-violet-500/20 flex items-center justify-center shrink-0">
+                <Pencil size={16} className="text-violet-400" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-[11px] font-black uppercase tracking-wider text-orange-500 mb-0.5">Редактирование</p>
+                <p className="text-[11px] font-black uppercase tracking-wider text-violet-400 mb-0.5">Редактирование</p>
                 <p className="text-[13px] font-medium text-foreground truncate">{editMessage.text}</p>
               </div>
               <button onClick={onCancelEdit} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-background/50 text-muted-foreground hover:text-foreground transition-colors shrink-0">
@@ -737,7 +737,7 @@ export function ChatInput({ chatId, onMessageSent, replyTo, editMessage, onCance
                 <button
                   onClick={handleSendPoll}
                   disabled={pollSending || !pollQuestion.trim()}
-                  className="w-full py-2.5 rounded-xl bg-primary text-primary-foreground font-black text-[13px] hover:bg-primary/90 disabled:opacity-50 transition-all hover:shadow-[0_0_20px_rgba(255,85,0,0.3)]"
+                  className="w-full py-2.5 rounded-xl bg-primary text-primary-foreground font-black text-[13px] hover:bg-primary/90 disabled:opacity-50 transition-all hover:shadow-[0_0_20px_rgba(139,92,246,0.3)]"
                 >
                   {pollSending ? "Создаём..." : "Создать опрос"}
                 </button>
@@ -906,7 +906,7 @@ export function ChatInput({ chatId, onMessageSent, replyTo, editMessage, onCance
                 <button
                   onClick={() => handleSend()}
                   disabled={isSending}
-                  className="w-12 h-12 flex items-center justify-center bg-primary text-primary-foreground rounded-[20px] hover:bg-primary/90 transition-all disabled:opacity-50 shadow-[0_4px_14px_rgba(255,85,0,0.3)] hover:scale-105 active:scale-95"
+                  className="w-12 h-12 flex items-center justify-center bg-primary text-primary-foreground rounded-[20px] hover:bg-primary/90 transition-all disabled:opacity-50 shadow-[0_4px_14px_rgba(139,92,246,0.3)] hover:scale-105 active:scale-95"
                 >
                   <SendHorizontal size={20} className={isSending ? "animate-pulse" : "translate-x-[-1px]"} />
                 </button>
