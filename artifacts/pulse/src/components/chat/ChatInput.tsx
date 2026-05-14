@@ -20,6 +20,30 @@ const STICKERS = [
   { id: "sticker-12", url: "/stickers/sticker-12.svg", label: "Сон" },
 ];
 
+function makePrimeSVG(emoji: string, from: string, to: string): string {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100"><defs><linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:${from}"/><stop offset="100%" style="stop-color:${to}"/></linearGradient></defs><rect width="100" height="100" rx="24" fill="url(#g)"/><text x="50" y="68" font-size="52" text-anchor="middle" font-family="Apple Color Emoji,Segoe UI Emoji,Noto Color Emoji,sans-serif">${emoji}</text></svg>`;
+  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+}
+
+const PRIME_STICKERS = [
+  { id: "prime-01", url: makePrimeSVG("💎", "#7c3aed", "#06b6d4"), label: "Бриллиант" },
+  { id: "prime-02", url: makePrimeSVG("👑", "#f59e0b", "#ef4444"), label: "Корона" },
+  { id: "prime-03", url: makePrimeSVG("🌟", "#a855f7", "#ec4899"), label: "Звезда" },
+  { id: "prime-04", url: makePrimeSVG("🔥", "#ef4444", "#f97316"), label: "Огонь" },
+  { id: "prime-05", url: makePrimeSVG("🦋", "#3b82f6", "#06b6d4"), label: "Бабочка" },
+  { id: "prime-06", url: makePrimeSVG("🌈", "#22c55e", "#3b82f6"), label: "Радуга" },
+  { id: "prime-07", url: makePrimeSVG("🎯", "#ec4899", "#8b5cf6"), label: "Цель" },
+  { id: "prime-08", url: makePrimeSVG("🚀", "#7c3aed", "#ec4899"), label: "Ракета" },
+  { id: "prime-09", url: makePrimeSVG("🌙", "#1e40af", "#7c3aed"), label: "Луна" },
+  { id: "prime-10", url: makePrimeSVG("⚡", "#f59e0b", "#ef4444"), label: "Молния" },
+  { id: "prime-11", url: makePrimeSVG("🦄", "#ec4899", "#8b5cf6"), label: "Единорог" },
+  { id: "prime-12", url: makePrimeSVG("🌺", "#ef4444", "#f97316"), label: "Цветок" },
+  { id: "prime-13", url: makePrimeSVG("🐉", "#7c3aed", "#ef4444"), label: "Дракон" },
+  { id: "prime-14", url: makePrimeSVG("🎸", "#1e40af", "#06b6d4"), label: "Гитара" },
+  { id: "prime-15", url: makePrimeSVG("🏆", "#f59e0b", "#22c55e"), label: "Трофей" },
+  { id: "prime-16", url: makePrimeSVG("🎪", "#ec4899", "#f97316"), label: "Шоу" },
+];
+
 const EMOJI_CATEGORIES: { label: string; icon: string; emojis: string[] }[] = [
   { label: "Смайлы", icon: "😀", emojis: ["😀","😁","😂","🤣","😃","😄","😅","😆","😉","😊","😋","😎","😍","🥰","😘","🥲","😗","😙","🥺","😚","🙂","🤗","🤭","🤫","🤔","🤐","😐","😑","😶","😏","😒","🙄","😬","🤥","😌","😔","😪","🤤","😴","😷","🤒","🤕","🤢","🤮","🥵","🥶","🥴","😵","🤯","🤠","🥳","😕","☹️","😟","😧","😮","😲","😳","🥸","😢","😭","😤","😠","😡","🤬","💀","👻","👽","🤖","💩","😈","👹","👺","🤡","💫","💥","❗","❓","‼️"] },
   { label: "Жесты", icon: "👋", emojis: ["👋","🤚","🖐","✋","🖖","👌","🤌","🤏","✌","🤞","🤟","🤘","🤙","👈","👉","👆","🖕","👇","☝","👍","👎","✊","👊","🤛","🤜","👏","🙌","🫶","👐","🤲","🤝","🙏","💪","🦾","🦿","🦵","🦶","👂","🦻","👃","🫀","🫁","🧠","🦷","🦴","👀","👁","👅","👄","💋","🧑","👶","🧒","👦","👧","🧑","👱","🧔","👩","👴","👵","🧓","👮","💂","🕵","👷","🫅","👸","🤴","🧙","🧝","🧛","🧟","🧞","🧜","🧚","🤶","🎅","🧑‍⚕️","🧑‍🏫","🧑‍🍳","🧑‍🔧","🧑‍🎤","🧑‍💻","🧑‍🚀"] },
@@ -106,6 +130,7 @@ export function ChatInput({ chatId, onMessageSent, replyTo, editMessage, onCance
   const [pollSending, setPollSending] = useState(false);
   const [pollError, setPollError] = useState("");
   const [showStickerPanel, setShowStickerPanel] = useState(false);
+  const [stickerTab, setStickerTab] = useState<"regular" | "prime">("regular");
   const [selectedEffect, setSelectedEffect] = useState<string | null>(null);
   const [showEffectPicker, setShowEffectPicker] = useState(false);
 
@@ -494,23 +519,53 @@ export function ChatInput({ chatId, onMessageSent, replyTo, editMessage, onCance
               className="absolute bottom-full mb-3 left-0 w-[280px] z-50 bg-card border border-border rounded-[24px] shadow-2xl overflow-hidden origin-bottom-left"
             >
               <div className="px-4 py-3 border-b border-border flex items-center justify-between">
-                <span className="text-[12px] font-black text-muted-foreground uppercase tracking-wider">Стикеры</span>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => setStickerTab("regular")}
+                    className={`text-[11px] font-black px-2.5 py-1 rounded-lg transition-all ${stickerTab === "regular" ? "bg-primary/15 text-primary" : "text-muted-foreground hover:text-foreground"}`}
+                  >
+                    Стикеры
+                  </button>
+                  {isPrimePlus && (
+                    <button
+                      onClick={() => setStickerTab("prime")}
+                      className={`text-[11px] font-black px-2.5 py-1 rounded-lg transition-all flex items-center gap-1 ${stickerTab === "prime" ? "bg-purple-500/20 text-purple-400" : "text-muted-foreground hover:text-purple-400"}`}
+                    >
+                      <span className="text-[10px]">👑</span> Prime+
+                    </button>
+                  )}
+                </div>
                 <button onClick={() => setShowStickerPanel(false)} className="w-6 h-6 flex items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors">
                   <X size={14} />
                 </button>
               </div>
-              <div className="p-3 grid grid-cols-4 gap-2 max-h-[220px] overflow-y-auto scrollbar-none">
-                {STICKERS.map((s) => (
-                  <button
-                    key={s.id}
-                    onClick={() => sendSticker(s)}
-                    title={s.label}
-                    className="aspect-square rounded-xl hover:bg-secondary transition-all hover:scale-110 active:scale-95 p-1 flex items-center justify-center"
-                  >
-                    <img src={s.url} alt={s.label} className="w-full h-full object-contain" />
-                  </button>
-                ))}
-              </div>
+              {stickerTab === "regular" ? (
+                <div className="p-3 grid grid-cols-4 gap-2 max-h-[220px] overflow-y-auto scrollbar-none">
+                  {STICKERS.map((s) => (
+                    <button
+                      key={s.id}
+                      onClick={() => sendSticker(s)}
+                      title={s.label}
+                      className="aspect-square rounded-xl hover:bg-secondary transition-all hover:scale-110 active:scale-95 p-1 flex items-center justify-center"
+                    >
+                      <img src={s.url} alt={s.label} className="w-full h-full object-contain" />
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div className="p-3 grid grid-cols-4 gap-2 max-h-[220px] overflow-y-auto scrollbar-none">
+                  {PRIME_STICKERS.map((s) => (
+                    <button
+                      key={s.id}
+                      onClick={() => sendSticker(s)}
+                      title={s.label}
+                      className="aspect-square rounded-xl hover:bg-purple-500/10 transition-all hover:scale-110 active:scale-95 p-1 flex items-center justify-center ring-1 ring-purple-500/20"
+                    >
+                      <img src={s.url} alt={s.label} className="w-full h-full object-contain rounded-xl" />
+                    </button>
+                  ))}
+                </div>
+              )}
             </motion.div>
           )}
         </AnimatePresence>

@@ -13,7 +13,7 @@ import {
   Gift, PhoneCall, Monitor, Zap, AlertTriangle, X, Flame, Upload, Camera, Crown,
   ShieldCheck, QrCode, Fingerprint, LogIn, HelpCircle,
   Star, Battery, FolderOpen, ArrowLeft, Mic, Headphones, Bot,
-  SlidersHorizontal, Layers, Calendar
+  SlidersHorizontal, Layers, Calendar, Wand2, Play
 } from "lucide-react";
 import { useGetMe, useUpdateMe } from "@workspace/api-client-react";
 import { useAppContext } from "@/contexts/AppContext";
@@ -743,6 +743,7 @@ export default function Settings() {
   const [notifyGifts, setNotifyGifts] = useState(() => lsb("pulse-notify-gifts", true));
   const [notifyCalls, setNotifyCalls] = useState(() => lsb("pulse-notify-calls", true));
   const [notifyPreview, setNotifyPreview] = useState(() => lsb("pulse-notify-preview", true));
+  const [notificationSound, setNotificationSound] = useState(() => localStorage.getItem("pulse-notification-sound") || "classic");
 
   // Privacy
   const [lastSeenVisibility, setLastSeenVisibility] = useState(() => ls("pulse-privacy-last-seen", "everyone"));
@@ -770,7 +771,25 @@ export default function Settings() {
 
   // Avatar file upload
   const avatarFileRef = useRef<HTMLInputElement>(null);
+  const videoAvatarRef = useRef<HTMLInputElement>(null);
   const [cancelPrimeLoading, setCancelPrimeLoading] = useState(false);
+  const [aiAvatarGenerating, setAiAvatarGenerating] = useState(false);
+
+  const saveAvatarUrl = (compressed: string) => {
+    setAvatarUrl(compressed);
+    const token = sessionStorage.getItem("pulse-token");
+    fetch("/api/users/me", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", ...(token ? { "Authorization": `Bearer ${token}` } : {}) },
+      body: JSON.stringify({ avatarUrl: compressed }),
+    })
+      .then((r) => r.ok ? r.json() : Promise.reject(r.status))
+      .then(() => {
+        queryClient.invalidateQueries({ queryKey: ["/api/users/me"] });
+        toast({ title: lang === "ru" ? "Фото обновлено" : "Photo updated" });
+      })
+      .catch(() => { toast({ title: t("settings.saveError"), variant: "destructive" }); });
+  };
 
   const handleAvatarFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -787,29 +806,65 @@ export default function Settings() {
       canvas.height = Math.round(img.height * scale);
       const ctx = canvas.getContext("2d")!;
       ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-      const compressed = canvas.toDataURL("image/jpeg", 0.75);
-      setAvatarUrl(compressed);
-      // Auto-save avatar immediately
-      const uid = sessionStorage.getItem("pulse-user-id");
-      const token = sessionStorage.getItem("pulse-token");
-      fetch("/api/users/me", {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { "Authorization": `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({ avatarUrl: compressed }),
-      })
-        .then((r) => r.ok ? r.json() : Promise.reject(r.status))
-        .then(() => {
-          queryClient.invalidateQueries({ queryKey: ["/api/users/me"] });
-          toast({ title: lang === "ru" ? "Фото обновлено" : "Photo updated" });
-        })
-        .catch(() => {
-          toast({ title: t("settings.saveError"), variant: "destructive" });
-        });
+      saveAvatarUrl(canvas.toDataURL("image/jpeg", 0.75));
     };
     img.src = objectUrl;
+  };
+
+  const handleVideoAvatarFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = "";
+    const video = document.createElement("video");
+    const objectUrl = URL.createObjectURL(file);
+    video.onloadeddata = () => {
+      video.currentTime = 0.1;
+    };
+    video.onseeked = () => {
+      URL.revokeObjectURL(objectUrl);
+      const canvas = document.createElement("canvas");
+      const MAX = 400;
+      const scale = Math.min(1, MAX / Math.max(video.videoWidth, video.videoHeight));
+      canvas.width = Math.round(video.videoWidth * scale);
+      canvas.height = Math.round(video.videoHeight * scale);
+      const ctx = canvas.getContext("2d")!;
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      saveAvatarUrl(canvas.toDataURL("image/jpeg", 0.85));
+    };
+    video.onerror = () => { URL.revokeObjectURL(objectUrl); };
+    video.src = objectUrl;
+    video.load();
+  };
+
+  const handleGenerateAIAvatar = () => {
+    setAiAvatarGenerating(true);
+    try {
+      const name = (user?.displayName || "U").toUpperCase();
+      const initial = name[0];
+      const hue = (name.charCodeAt(0) * 137 + (name.charCodeAt(1) || 0) * 53) % 360;
+      const canvas = document.createElement("canvas");
+      canvas.width = 400; canvas.height = 400;
+      const ctx = canvas.getContext("2d")!;
+      const grad = ctx.createRadialGradient(160, 140, 0, 200, 200, 280);
+      grad.addColorStop(0, `hsl(${hue}, 80%, 65%)`);
+      grad.addColorStop(0.5, `hsl(${(hue + 40) % 360}, 75%, 45%)`);
+      grad.addColorStop(1, `hsl(${(hue + 80) % 360}, 70%, 25%)`);
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, 400, 400);
+      ctx.fillStyle = "rgba(255,255,255,0.08)";
+      for (let i = 0; i < 6; i++) {
+        const cx = 50 + i * 65 + (i % 2) * 20, cy = 50 + (i % 3) * 120, r = 30 + i * 15;
+        ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
+      }
+      ctx.fillStyle = "rgba(255,255,255,0.92)";
+      ctx.font = "bold 180px system-ui, -apple-system, sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(initial, 200, 215);
+      saveAvatarUrl(canvas.toDataURL("image/jpeg", 0.9));
+    } finally {
+      setAiAvatarGenerating(false);
+    }
   };
 
   const handleCancelPrime = async () => {
@@ -1271,7 +1326,7 @@ export default function Settings() {
                     <Label className="text-xs text-muted-foreground mb-1.5 block flex items-center gap-1.5">
                       <Camera size={11}/> {t("settings.avatarUrl")}
                     </Label>
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <button
                         type="button"
                         onClick={() => avatarFileRef.current?.click()}
@@ -1279,6 +1334,25 @@ export default function Settings() {
                       >
                         <Upload size={14}/> {lang==="ru"?"Загрузить фото":"Upload photo"}
                       </button>
+                      {(user as any)?.hasPrime && (
+                        <button
+                          type="button"
+                          onClick={() => videoAvatarRef.current?.click()}
+                          className="flex items-center gap-2 px-3 py-2 bg-purple-500/10 border border-purple-500/30 rounded-xl text-sm text-purple-400 hover:bg-purple-500/20 transition-colors"
+                        >
+                          <span className="text-[12px]">🎬</span> {lang==="ru"?"Видео-аватар":"Video avatar"}
+                        </button>
+                      )}
+                      {(user as any)?.hasPrime && (
+                        <button
+                          type="button"
+                          onClick={handleGenerateAIAvatar}
+                          disabled={aiAvatarGenerating}
+                          className="flex items-center gap-2 px-3 py-2 bg-purple-500/10 border border-purple-500/30 rounded-xl text-sm text-purple-400 hover:bg-purple-500/20 transition-colors disabled:opacity-50"
+                        >
+                          <Wand2 size={14}/> {lang==="ru"?"AI аватар":"AI avatar"}
+                        </button>
+                      )}
                       {avatarUrl && (
                         <button type="button" onClick={() => setAvatarUrl("")}
                           className="px-3 py-2 text-sm text-destructive/70 hover:text-destructive transition-colors">
@@ -1287,6 +1361,12 @@ export default function Settings() {
                       )}
                     </div>
                     <input ref={avatarFileRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarFile}/>
+                    <input ref={videoAvatarRef} type="file" accept="video/*" className="hidden" onChange={handleVideoAvatarFile}/>
+                    {(user as any)?.hasPrime && (
+                      <p className="text-[11px] text-muted-foreground mt-1.5 flex items-center gap-1">
+                        <Crown size={10} className="text-purple-400"/> {lang==="ru"?"Видео-аватар и AI-генерация доступны с Prime":"Video avatar and AI generation available with Prime"}
+                      </p>
+                    )}
                   </div>
 
                   <div>
@@ -1454,6 +1534,78 @@ export default function Settings() {
                   )}
                 </div>
               </Section>
+
+              {/* Prime+ Custom Notification Sounds */}
+              {(user as any)?.hasPrime && (
+                <Section
+                  title={lang==="ru"?"Звук уведомлений (Prime+)":"Notification Sound (Prime+)"}
+                  icon={<Headphones size={13}/>}
+                >
+                  <div className="p-4">
+                    <p className="text-xs text-muted-foreground mb-4">
+                      {lang==="ru"?"Выберите звук для входящих сообщений":"Choose notification sound for incoming messages"}
+                    </p>
+                    <div className="space-y-2">
+                      {[
+                        { id: "classic", label: lang==="ru"?"Классический":"Classic", desc: lang==="ru"?"Стандартный звук Pulse":"Standard Pulse tone", icon: "🔔" },
+                        { id: "pulse", label: "Pulse Beat", desc: lang==="ru"?"Двойной тон":"Double tone", icon: "💫" },
+                        { id: "chime", label: lang==="ru"?"Перезвон":"Chime", desc: lang==="ru"?"Мелодичный звон":"Melodic chime", icon: "🎵" },
+                        { id: "soft", label: lang==="ru"?"Мягкий":"Soft", desc: lang==="ru"?"Тихий и спокойный":"Quiet and calm", icon: "🌙" },
+                        { id: "space", label: "Space Echo", desc: "Prime+", icon: "🚀", prime: true },
+                        { id: "crystal", label: "Crystal Bell", desc: "Prime+", icon: "💎", prime: true },
+                        { id: "deep", label: "Deep Bass", desc: "Prime+", icon: "⚡", prime: true },
+                      ].filter(s => !s.prime || (user as any)?.primeTier === "prime_plus").map(sound => (
+                        <div
+                          key={sound.id}
+                          className={`flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${
+                            notificationSound === sound.id
+                              ? "border-primary bg-primary/8"
+                              : "border-border hover:border-primary/40 bg-secondary/30"
+                          }`}
+                          onClick={() => {
+                            setNotificationSound(sound.id);
+                            localStorage.setItem("pulse-notification-sound", sound.id);
+                            try {
+                              const ctx = new AudioContext();
+                              const gain = ctx.createGain();
+                              gain.connect(ctx.destination);
+                              gain.gain.setValueAtTime(0, ctx.currentTime);
+                              gain.gain.linearRampToValueAtTime(0.25, ctx.currentTime + 0.02);
+                              gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.9);
+                              const plays: { freq: number; type: OscillatorType; start: number; dur: number }[] = 
+                                sound.id === "classic" ? [{ freq: 880, type: "sine", start: 0, dur: 0.5 }]
+                                : sound.id === "pulse" ? [{ freq: 880, type: "sine", start: 0, dur: 0.2 }, { freq: 1100, type: "sine", start: 0.2, dur: 0.2 }]
+                                : sound.id === "chime" ? [{ freq: 1047, type: "sine", start: 0, dur: 0.3 }, { freq: 1319, type: "sine", start: 0.15, dur: 0.3 }, { freq: 1568, type: "sine", start: 0.3, dur: 0.4 }]
+                                : sound.id === "soft" ? [{ freq: 440, type: "sine", start: 0, dur: 0.7 }]
+                                : sound.id === "space" ? [{ freq: 220, type: "sine", start: 0, dur: 0.4 }, { freq: 440, type: "sine", start: 0.2, dur: 0.4 }, { freq: 880, type: "sine", start: 0.4, dur: 0.4 }]
+                                : sound.id === "crystal" ? [{ freq: 2093, type: "sine", start: 0, dur: 0.5 }, { freq: 2637, type: "sine", start: 0.1, dur: 0.5 }]
+                                : [{ freq: 110, type: "sine", start: 0, dur: 0.6 }, { freq: 82, type: "sine", start: 0.1, dur: 0.6 }];
+                              plays.forEach(p => {
+                                const o = ctx.createOscillator();
+                                o.type = p.type;
+                                o.frequency.value = p.freq;
+                                o.connect(gain);
+                                o.start(ctx.currentTime + p.start);
+                                o.stop(ctx.currentTime + p.start + p.dur);
+                              });
+                              setTimeout(() => ctx.close(), 2000);
+                            } catch {}
+                          }}
+                        >
+                          <span className="text-xl shrink-0">{sound.icon}</span>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold text-foreground">{sound.label}</p>
+                            <p className="text-xs text-muted-foreground">{sound.desc}</p>
+                          </div>
+                          {notificationSound === sound.id && (
+                            <CheckCircle size={18} className="text-primary shrink-0" />
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </Section>
+              )}
             </div>
           )}
 

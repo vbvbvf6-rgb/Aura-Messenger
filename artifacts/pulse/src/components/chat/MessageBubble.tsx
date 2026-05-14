@@ -62,13 +62,37 @@ function EffectOverlay({ effect, onDone }: { effect: string; onDone: () => void 
   );
 }
 
-function VoicePlayer({ src, durationSec, isMine }: { src: string; durationSec: number; isMine: boolean }) {
+function VoicePlayer({ src, durationSec, isMine, messageId, viewerIsPrimePlus }: { src: string; durationSec: number; isMine: boolean; messageId?: number; viewerIsPrimePlus?: boolean }) {
   const audioRef = useRef<HTMLAudioElement>(null);
   const [playing, setPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
   const [currentSec, setCurrentSec] = useState(0);
   const [speed, setSpeed] = useState(1);
+  const [transcript, setTranscript] = useState<string | null>(null);
+  const [transcribing, setTranscribing] = useState(false);
+  const [showTranscript, setShowTranscript] = useState(false);
   const SPEEDS = [0.5, 1, 1.5, 2];
+
+  const handleTranscribe = async () => {
+    if (transcript) { setShowTranscript(v => !v); return; }
+    if (!messageId || transcribing) return;
+    setTranscribing(true);
+    try {
+      const token = sessionStorage.getItem("pulse-token");
+      const res = await fetch("/api/messages/transcribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...(token ? { "Authorization": `Bearer ${token}` } : {}) },
+        body: JSON.stringify({ messageId }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setTranscript(data.transcript);
+        setShowTranscript(true);
+      }
+    } catch {} finally {
+      setTranscribing(false);
+    }
+  };
 
   const toggle = () => {
     const a = audioRef.current;
@@ -153,7 +177,27 @@ function VoicePlayer({ src, durationSec, isMine }: { src: string; durationSec: n
           >
             {speed}×
           </button>
+          {viewerIsPrimePlus && messageId && (
+            <button
+              onClick={handleTranscribe}
+              disabled={transcribing}
+              title="AI транскрипция (Prime+)"
+              className={cn(
+                "text-[10px] font-black px-1.5 py-0.5 rounded-md border transition-all hover:scale-105 active:scale-95 flex items-center gap-0.5",
+                transcript && showTranscript
+                  ? isMine ? "border-purple-300/60 text-purple-200 bg-purple-500/20" : "border-purple-500/60 text-purple-400 bg-purple-500/10"
+                  : isMine ? "border-white/20 text-white/60 hover:border-white/40 bg-white/5" : "border-muted-foreground/20 text-muted-foreground hover:border-purple-500/40 hover:text-purple-400"
+              )}
+            >
+              {transcribing ? "..." : "АА"}
+            </button>
+          )}
         </div>
+        {showTranscript && transcript && (
+          <p className={cn("text-[12px] italic mt-1 leading-snug", isMine ? "text-white/70" : "text-muted-foreground")}>
+            "{transcript}"
+          </p>
+        )}
       </div>
     </div>
   );
@@ -760,7 +804,7 @@ export function MessageBubble({ message, onReply, onEdit, ownBubbleStyle, onPin,
       }
       case "audio": {
         const durSec = parseInt((message.text || "voice:0").replace("voice:", "")) || 0;
-        return <VoicePlayer src={message.mediaUrl || ""} durationSec={durSec} isMine={isMine} />;
+        return <VoicePlayer src={message.mediaUrl || ""} durationSec={durSec} isMine={isMine} messageId={message.id} viewerIsPrimePlus={viewerIsPrimePlus} />;
       }
       case "sticker":
         return (
