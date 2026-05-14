@@ -92,7 +92,6 @@ function MainApp({ onLogout, onSwitchAccount, onRemoveAccount, onOpenAddAccount 
 
 function GlobalNotificationListener() {
   const { notify, requestPermission, registerPushSubscription } = useNotifications();
-  const sseRef = useRef<EventSource | null>(null);
 
   useEffect(() => {
     const uid = sessionStorage.getItem("pulse-user-id");
@@ -107,14 +106,9 @@ function GlobalNotificationListener() {
       }
     }
 
-    const token = sessionStorage.getItem("pulse-token");
-    if (!token) return; // No token — don't open SSE (auth guard will reject it anyway)
-    const es = new EventSource(`/api/users/me/events?_token=${encodeURIComponent(token)}`);
-    sseRef.current = es;
-
-    es.addEventListener("new-message", (e: MessageEvent) => {
+    const handler = (e: Event) => {
       try {
-        const data = JSON.parse(e.data) as { chatId: number; senderName: string; body: string; messageId: number };
+        const data = (e as CustomEvent).detail as { chatId: number; senderName: string; body: string; messageId: number };
         notify(data.senderName, {
           body: data.body,
           url: "/",
@@ -122,12 +116,10 @@ function GlobalNotificationListener() {
           type: "message",
         });
       } catch {}
-    });
-
-    return () => {
-      es.close();
-      sseRef.current = null;
     };
+
+    window.addEventListener("pulse:new-message", handler);
+    return () => window.removeEventListener("pulse:new-message", handler);
   }, []);
 
   return null;

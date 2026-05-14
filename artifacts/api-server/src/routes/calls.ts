@@ -31,6 +31,9 @@ router.post("/calls", async (req, res) => {
   try {
     const uid = req.currentUserId;
     const body = InitiateCallBody.parse(req.body);
+
+    const callee = await db.query.usersTable.findFirst({ where: eq(usersTable.id, body.calleeId) });
+
     const [call] = await db.insert(callsTable).values({
       callerId: uid,
       calleeId: body.calleeId,
@@ -39,6 +42,18 @@ router.post("/calls", async (req, res) => {
       status: "ringing",
     }).returning();
     const built = await buildCall(call);
+
+    if (callee?.isBot) {
+      // Bot users auto-decline calls immediately
+      const [declined] = await db.update(callsTable)
+        .set({ status: "declined", endedAt: new Date() })
+        .where(eq(callsTable.id, call.id))
+        .returning();
+      const declinedBuilt = await buildCall(declined);
+      broadcastToUser(uid, "call-declined", declinedBuilt);
+      return res.status(201).json(declinedBuilt);
+    }
+
     if (built.calleeId) {
       broadcastToUser(built.calleeId, "incoming-call", built);
     }

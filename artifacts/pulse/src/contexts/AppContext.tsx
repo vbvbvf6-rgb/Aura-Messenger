@@ -371,6 +371,13 @@ export function AppProvider({ children, onLogout, onSwitchAccount, onRemoveAccou
         cleanupCall();
       });
 
+      es.addEventListener("new-message", (e: MessageEvent) => {
+        try {
+          const data = JSON.parse(e.data);
+          window.dispatchEvent(new CustomEvent("pulse:new-message", { detail: data }));
+        } catch {}
+      });
+
       es.addEventListener("webrtc-signal", async (e: MessageEvent) => {
         try {
           const signal = JSON.parse(e.data);

@@ -70,17 +70,20 @@ export default defineConfig({
       "/api": {
         target: "http://localhost:8080",
         changeOrigin: true,
-        timeout: 10000,
-        proxyTimeout: 10000,
         configure: (proxy) => {
           proxy.on("error", () => {});
+          proxy.on("proxyRes", (proxyRes) => {
+            const ct = proxyRes.headers["content-type"] || "";
+            if (ct.includes("text/event-stream")) {
+              proxyRes.headers["cache-control"] = "no-cache";
+              proxyRes.headers["x-accel-buffering"] = "no";
+            }
+          });
         },
       },
       "/bot": {
         target: "http://localhost:8080",
         changeOrigin: true,
-        timeout: 10000,
-        proxyTimeout: 10000,
         configure: (proxy) => {
           proxy.on("error", () => {});
         },

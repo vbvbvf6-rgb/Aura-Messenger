@@ -29,7 +29,7 @@ router.get("/chats/:chatId/events", async (req, res) => {
 
   const keepAlive = setInterval(() => {
     try { res.write(": ping\n\n"); } catch { clearInterval(keepAlive); }
-  }, 25000);
+  }, 8000);
 
   subscribeToChatEvents(chatId, res);
 
@@ -82,7 +82,7 @@ router.get("/users/me/events", (req, res) => {
 
   const keepAlive = setInterval(() => {
     try { res.write(": ping\n\n"); } catch { clearInterval(keepAlive); }
-  }, 25000);
+  }, 8000);
 
   subscribeToUserEvents(uid, res);
 
