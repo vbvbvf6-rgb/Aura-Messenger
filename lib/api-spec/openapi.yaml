@@ -932,6 +932,8 @@ components:
           type: boolean
         readReceiptsEnabled:
           type: boolean
+        statusAnimation:
+          type: string
 
     AddContactBody:
       type: object

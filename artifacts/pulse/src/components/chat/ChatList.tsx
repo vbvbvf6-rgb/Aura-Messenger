@@ -44,6 +44,22 @@ function PrimeBadge() {
   );
 }
 
+function PrimePlusBadge() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="shrink-0 inline-block">
+      <defs>
+        <linearGradient id="ppgrad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#a855f7"/>
+          <stop offset="50%" stopColor="#d946ef"/>
+          <stop offset="100%" stopColor="#06b6d4"/>
+        </linearGradient>
+      </defs>
+      <circle cx="12" cy="12" r="12" fill="url(#ppgrad)"/>
+      <text x="12" y="16" fontSize="12" textAnchor="middle" fill="white" fontFamily="system-ui" fontWeight="bold">💎</text>
+    </svg>
+  );
+}
+
 function AdminBadge() {
   return (
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="shrink-0 inline-block">
@@ -444,6 +460,7 @@ export function ChatList() {
               const isBot = (chat.otherUser as any)?.isBot;
               const isVerified = chat.type === "direct" && (chat.otherUser as any)?.isVerified;
               const hasPrime = chat.type === "direct" && (chat.otherUser as any)?.hasPrime;
+              const isPrimePlus = hasPrime && (chat.otherUser as any)?.primeTier === "prime_plus";
               const isAdmin = chat.type === "direct" && (chat.otherUser as any)?.isAdmin;
 
               const displayName =
@@ -494,7 +511,7 @@ export function ChatList() {
                       <div className="flex items-center gap-1.5 min-w-0">
                         <h3 className="font-bold truncate text-[15px] text-foreground">{displayName}</h3>
                         {isVerified && <VerifiedBadge />}
-                        {hasPrime && <PrimeBadge />}
+                        {isPrimePlus ? <PrimePlusBadge /> : hasPrime ? <PrimeBadge /> : null}
                         {isAdmin && <AdminBadge />}
                         {isBot && (
                           <span className="text-[9px] font-black text-primary bg-primary/10 px-1.5 py-0.5 rounded uppercase tracking-wider shrink-0">BOT</span>

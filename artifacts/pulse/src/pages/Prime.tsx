@@ -299,8 +299,8 @@ function PrimePlusPanel({ navigate, toast, queryClient }: {
       const data = await res.json();
       if (res.ok) {
         setGiftStatus("claimed");
-        setGiftMsg(`+${data.amount} ⚡ и эпический подарок зачислены!`);
-        queryClient.invalidateQueries({ queryKey: ["getMe"] });
+        setGiftMsg(`+${data.amount || 0} ⚡ и эпический подарок зачислены!`);
+        queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
         toast({ title: "Ежемесячный подарок получен! 🎁", description: giftMsg });
       } else if (res.status === 429) {
         setGiftStatus("cooldown");

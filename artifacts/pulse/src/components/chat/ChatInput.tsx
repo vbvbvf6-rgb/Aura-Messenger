@@ -393,6 +393,8 @@ export function ChatInput({ chatId, onMessageSent, replyTo, editMessage, onCance
     } finally { setIsSending(false); }
   };
 
+  const MAX_VOICE_SECONDS = isPrimePlus ? Infinity : isPrime ? 180 : 60;
+
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -411,7 +413,17 @@ export function ChatInput({ chatId, onMessageSent, replyTo, editMessage, onCance
       mediaRecorderRef.current = recorder;
       setIsRecording(true);
       setRecordSeconds(0);
-      timerRef.current = setInterval(() => setRecordSeconds(s => s + 1), 1000);
+      timerRef.current = setInterval(() => {
+        setRecordSeconds(s => {
+          const next = s + 1;
+          if (next >= MAX_VOICE_SECONDS) {
+            if (mediaRecorderRef.current?.state !== "inactive") mediaRecorderRef.current?.stop();
+            if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
+            setIsRecording(false);
+          }
+          return next;
+        });
+      }, 1000);
     } catch {
       alert("Нет доступа к микрофону.");
     }
@@ -920,7 +932,14 @@ export function ChatInput({ chatId, onMessageSent, replyTo, editMessage, onCance
               >
                 <motion.div animate={{ scale: [1, 1.4, 1], opacity: [0.5, 1, 0.5] }} transition={{ duration: 1.2, repeat: Infinity }} className="w-3 h-3 rounded-full bg-red-500 shrink-0" />
                 <span className="text-[15px] font-bold text-red-500">Запись...</span>
-                <span className="text-[15px] font-black font-mono text-red-400 ml-auto tracking-wider">{formatDuration(recordSeconds)}</span>
+                <div className="flex flex-col items-end ml-auto gap-0.5">
+                  <span className="text-[15px] font-black font-mono text-red-400 tracking-wider">{formatDuration(recordSeconds)}</span>
+                  {!isPrimePlus && MAX_VOICE_SECONDS < Infinity && (
+                    <span className={`text-[10px] font-bold ${recordSeconds >= MAX_VOICE_SECONDS * 0.8 ? "text-red-400" : "text-muted-foreground"}`}>
+                      {isPrime ? "макс. 3:00" : "макс. 1:00"}
+                    </span>
+                  )}
+                </div>
                 <button onClick={cancelRecording} className="w-10 h-10 flex items-center justify-center rounded-full text-muted-foreground hover:bg-red-500/10 hover:text-red-500 transition-colors shrink-0 ml-2"><Trash2 size={18} /></button>
                 <button onClick={stopRecording} className="w-10 h-10 flex items-center justify-center bg-red-500 text-white rounded-full hover:bg-red-600 transition-all shadow-[0_4px_14px_rgba(239,68,68,0.4)] shrink-0"><Square size={16} fill="white" /></button>
               </motion.div>

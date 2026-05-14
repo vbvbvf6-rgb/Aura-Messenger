@@ -55,6 +55,7 @@ export interface UpdateUserBody {
   status?: UpdateUserBodyStatus;
   showOnlineStatus?: boolean;
   readReceiptsEnabled?: boolean;
+  statusAnimation?: string;
 }
 
 export interface AddContactBody {

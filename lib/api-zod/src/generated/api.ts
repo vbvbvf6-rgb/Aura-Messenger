@@ -49,6 +49,7 @@ export const UpdateMeBody = zod.object({
   status: zod.enum(["online", "offline", "away"]).optional(),
   showOnlineStatus: zod.boolean().optional(),
   readReceiptsEnabled: zod.boolean().optional(),
+  statusAnimation: zod.string().optional(),
 });
 
 export const UpdateMeResponse = zod.object({

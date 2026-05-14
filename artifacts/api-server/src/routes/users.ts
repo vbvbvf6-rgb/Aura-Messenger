@@ -37,11 +37,12 @@ router.put("/users/me", async (req, res) => {
     const uid = req.currentUserId;
     const body = UpdateMeBody.parse(req.body);
     const [updated] = await db.update(usersTable).set(body).where(eq(usersTable.id, uid)).returning();
-    const rows = await db.execute(sql`SELECT balance, username_changed_at, has_prime, prime_expires_at FROM users WHERE id = ${uid}`);
+    const rows = await db.execute(sql`SELECT balance, username_changed_at, has_prime, prime_tier, prime_expires_at FROM users WHERE id = ${uid}`);
     const row = rows.rows[0] as any;
     const balance = row ? Number(row.balance) : 0;
     const hasPrime = row?.has_prime === true || row?.has_prime === "t" || row?.has_prime === 1;
-    res.json({ ...updated, balance, hasPrime, primeExpiresAt: row?.prime_expires_at ?? null, usernameChangedAt: row?.username_changed_at ?? null });
+    const primeTier: string | null = row?.prime_tier ?? null;
+    res.json({ ...updated, balance, hasPrime, primeTier, primeExpiresAt: row?.prime_expires_at ?? null, usernameChangedAt: row?.username_changed_at ?? null });
   } catch (err) {
     req.log.error(err);
     res.status(500).json({ error: "Internal server error" });
