@@ -12,7 +12,7 @@ import {
   ChevronRight, User, Radio, BellOff, Volume2, VolumeX, Clock, MessageSquare,
   Gift, PhoneCall, Monitor, Zap, AlertTriangle, X, Flame, Upload, Camera, Crown,
   ShieldCheck, QrCode, Fingerprint, LogIn, HelpCircle,
-  Star, Battery, FolderOpen, ArrowLeft, Mic, Headphones, Bot,
+  Battery, FolderOpen, ArrowLeft, Mic, Headphones, Bot,
   SlidersHorizontal, Layers, Calendar, Wand2, Play
 } from "lucide-react";
 import { useGetMe, useUpdateMe } from "@workspace/api-client-react";
@@ -924,8 +924,6 @@ export default function Settings() {
   // Battery
   const [powerSaving, setPowerSaving] = useState(() => lsb("pulse-power-saving", false));
 
-  // Stars
-  const starsBalance = 0;
 
   // Apply font size globally
   useEffect(() => {
@@ -1220,9 +1218,7 @@ export default function Settings() {
               badge={(user as any)?.hasPrime ? (lang==="ru"?"Активен":"Active") : undefined}
               badgeAmber={(user as any)?.hasPrime}
               active={displaySection} onClick={setActiveSection}/>
-            <NavItem id="stars" icon={<Star size={16}/>}  color="bg-gradient-to-br from-yellow-400 to-amber-500"
-              label={lang==="ru"?"Мои звёзды":"My Stars"} badge="0"
-              active={displaySection} onClick={setActiveSection}/>
+
             <NavItem id="gift"  icon={<Gift size={16}/>}  color="bg-gradient-to-br from-pink-500 to-rose-600"
               label={lang==="ru"?"Отправить подарок":"Send a Gift"} href="/gifts"
               active={displaySection} onClick={setActiveSection}/>
@@ -1279,7 +1275,7 @@ export default function Settings() {
             : displaySection === "language"      ? (lang==="ru"?"Язык":"Language")
             : displaySection === "scale"         ? (lang==="ru"?"Масштаб интерфейса":"Interface Scale")
             : displaySection === "prime"         ? "Pulse Prime"
-            : displaySection === "stars"         ? (lang==="ru"?"Мои звёзды":"My Stars")
+
             : displaySection === "faq"           ? "Pulse FAQ"
             : displaySection === "features"      ? (lang==="ru"?"Возможности Pulse":"Pulse Features")
             : displaySection === "support"       ? (lang==="ru"?"Поддержка":"Support")
@@ -1994,36 +1990,6 @@ export default function Settings() {
             </div>
           )}
 
-          {/* ─── MY STARS ──────────────────────────────────── */}
-          {displaySection === "stars" && (
-            <div className="max-w-2xl mx-auto space-y-6">
-              <div className="text-center py-10">
-                <div className="relative w-20 h-20 mx-auto mb-5">
-                  <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-yellow-400 to-amber-500 flex items-center justify-center shadow-2xl shadow-amber-500/30">
-                    <Star size={36} className="text-white fill-white"/>
-                  </div>
-                  <span className="absolute -top-2 -right-2 text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-amber-500 text-white border-2 border-card shadow">Soon</span>
-                </div>
-                <h3 className="text-2xl font-black mb-2">{lang==="ru"?"Звёзды — скоро":"Stars — Coming Soon"}</h3>
-                <p className="text-muted-foreground text-sm max-w-xs mx-auto leading-relaxed">
-                  {lang==="ru"
-                    ? "Звёзды появятся в ближайшем обновлении Pulse. Следите за новостями!"
-                    : "Stars are coming in the next Pulse update. Stay tuned!"}
-                </p>
-              </div>
-              <div className="bg-amber-500/8 border border-amber-500/20 rounded-2xl p-4 flex items-start gap-3">
-                <span className="text-xl shrink-0">🎁</span>
-                <div>
-                  <p className="text-sm font-semibold mb-0.5">{lang==="ru"?"Что такое Звёзды?":"What are Stars?"}</p>
-                  <p className="text-xs text-muted-foreground leading-relaxed">
-                    {lang==="ru"
-                      ? "Звёзды — внутренняя валюта Pulse для отправки анимированных подарков другим пользователям. Функция подарков и звёзд находится в разработке."
-                      : "Stars are Pulse's in-app currency for sending animated gifts to other users. Gifts and Stars features are currently in development."}
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
 
           {/* ─── PULSE FAQ ─────────────────────────────────── */}
           {displaySection === "faq" && (
