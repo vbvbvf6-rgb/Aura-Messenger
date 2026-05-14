@@ -5,53 +5,99 @@ import { sql } from "drizzle-orm";
 const router = Router();
 
 const BOT_USERNAME = "deepseek_ai";
+const TIMEOUT_MS = 12000;
+
+async function raceFirst(tasks: Promise<string | undefined>[]): Promise<string | undefined> {
+  return new Promise((resolve) => {
+    let settled = 0;
+    for (const t of tasks) {
+      t.then(val => { if (val) resolve(val); else if (++settled === tasks.length) resolve(undefined); })
+       .catch(() => { if (++settled === tasks.length) resolve(undefined); });
+    }
+  });
+}
+
+async function callOpenRouter(
+  apiKey: string,
+  model: string,
+  messages: object[],
+): Promise<string | undefined> {
+  try {
+    const r = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+        "HTTP-Referer": "https://pulse-messenger.replit.app",
+        "X-Title": "Pulse Messenger",
+      },
+      body: JSON.stringify({ model, messages, max_tokens: 1200, temperature: 0.7 }),
+      signal: AbortSignal.timeout(TIMEOUT_MS),
+    });
+    if (!r.ok) return undefined;
+    const data = await r.json() as any;
+    return (data.choices?.[0]?.message?.content as string | undefined)?.trim() || undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+async function callPollinations(
+  systemPrompt: string,
+  userMessage: string,
+  history: { role: string; content: string }[],
+  model: string,
+): Promise<string | undefined> {
+  try {
+    const conversationText = history
+      .map(m => `${m.role === "assistant" ? "Assistant" : "User"}: ${m.content}`)
+      .join("\n");
+    const fullPrompt = conversationText
+      ? `${conversationText}\nUser: ${userMessage}\nAssistant:`
+      : userMessage;
+    const url = `https://text.pollinations.ai/${encodeURIComponent(fullPrompt)}?model=${model}&system=${encodeURIComponent(systemPrompt)}&seed=${Math.floor(Math.random() * 99999)}`;
+    const r = await fetch(url, { signal: AbortSignal.timeout(TIMEOUT_MS) });
+    if (!r.ok) return undefined;
+    return (await r.text())?.trim() || undefined;
+  } catch {
+    return undefined;
+  }
+}
 
 router.post("/ai/chat", async (req, res) => {
   try {
-    const apiKey = process.env["DEEP_SEEK"];
-
-    if (!apiKey) {
-      return res.status(503).json({ error: "AI недоступен. Администратор должен добавить DEEP_SEEK." });
-    }
-
     const { message, history } = req.body;
     if (!message) {
       return res.status(400).json({ error: "Сообщение обязательно" });
     }
 
+    const systemPrompt = "Ты — дружелюбный и умный ИИ-помощник в мессенджере Pulse. Отвечай кратко, по существу и преимущественно на русском языке, если пользователь пишет по-русски. Ты умеешь помогать с любыми вопросами.";
+    const historySlice = Array.isArray(history) ? history.slice(-10) : [];
     const messages = [
-      {
-        role: "system",
-        content: "Ты — дружелюбный и умный ИИ-помощник в мессенджере Pulse. Отвечай кратко, по существу и преимущественно на русском языке, если пользователь пишет по-русски. Ты умеешь помогать с любыми вопросами."
-      },
-      ...(Array.isArray(history) ? history.slice(-10) : []),
-      { role: "user", content: message }
+      { role: "system", content: systemPrompt },
+      ...historySlice,
+      { role: "user", content: message },
     ];
 
-    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${apiKey}`,
-        "HTTP-Referer": "https://pulse-messenger.replit.app",
-        "X-Title": "Pulse Messenger"
-      },
-      body: JSON.stringify({
-        model: "google/gemini-flash-1.5",
-        messages,
-        max_tokens: 800,
-        temperature: 0.7,
-      })
-    });
+    const apiKey = process.env["DEEP_SEEK"];
 
-    if (!response.ok) {
-      const errText = await response.text();
-      req.log.error({ status: response.status, errText }, "OpenRouter API error");
-      return res.status(502).json({ error: "Ошибка AI сервиса. Попробуйте позже." });
+    const tasks: Promise<string | undefined>[] = [
+      callPollinations(systemPrompt, message, historySlice, "openai"),
+      callPollinations(systemPrompt, message, historySlice, "mistral"),
+    ];
+
+    if (apiKey) {
+      tasks.unshift(
+        callOpenRouter(apiKey, "google/gemini-flash-1.5-8b", messages),
+        callOpenRouter(apiKey, "meta-llama/llama-3.1-8b-instruct:free", messages),
+      );
     }
 
-    const data = await response.json() as any;
-    const reply = data.choices?.[0]?.message?.content || "Не удалось получить ответ.";
+    const reply = await raceFirst(tasks);
+
+    if (!reply) {
+      return res.status(502).json({ error: "Все AI провайдеры не ответили. Попробуйте позже." });
+    }
 
     res.json({ reply });
   } catch (err) {

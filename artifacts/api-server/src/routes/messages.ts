@@ -449,11 +449,29 @@ ${inline_code}
             { role: "user", content: userContent },
           ];
 
-          const aiModel = "google/gemini-flash-1.5";
+          const TIMEOUT_MS = 12000;
 
-          let reply: string | undefined;
+          const callOpenRouter = async (model: string): Promise<string | undefined> => {
+            if (!process.env.DEEP_SEEK) return undefined;
+            const r = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${process.env.DEEP_SEEK}`,
+                "HTTP-Referer": "https://pulse-messenger.replit.app",
+                "X-Title": "Pulse Messenger",
+              },
+              body: JSON.stringify({ model, messages: chatPayload, max_tokens: 1200, temperature: 0.7 }),
+              signal: AbortSignal.timeout(TIMEOUT_MS),
+            });
+            if (!r.ok) return undefined;
+            const data = await r.json() as any;
+            const txt = data.choices?.[0]?.message?.content as string | undefined;
+            return txt?.trim() || undefined;
+          };
 
-          const callPollinations = async (model: string) => {
+          const callPollinations = async (model: string): Promise<string | undefined> => {
+            if (isImageMessage) return undefined;
             const conversationText = historyMessages
               .map((m: any) => `${m.role === "assistant" ? "Assistant" : "User"}: ${m.content}`)
               .join("\n");
@@ -461,46 +479,35 @@ ${inline_code}
               ? `${conversationText}\nUser: ${body.text}\nAssistant:`
               : body.text;
             const url = `https://text.pollinations.ai/${encodeURIComponent(fullPrompt || "")}?model=${model}&system=${encodeURIComponent(systemPrompt)}&seed=${Math.floor(Math.random() * 99999)}`;
-            const r = await fetch(url, { method: "GET", signal: AbortSignal.timeout(20000) });
+            const r = await fetch(url, { method: "GET", signal: AbortSignal.timeout(TIMEOUT_MS) });
             if (!r.ok) return undefined;
             const text = await r.text();
             return text?.trim() || undefined;
           };
 
-          if (process.env.DEEP_SEEK) {
-            try {
-              const r = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                  Authorization: `Bearer ${process.env.DEEP_SEEK}`,
-                  "HTTP-Referer": "https://pulse-messenger.replit.app",
-                  "X-Title": "Pulse Messenger",
-                },
-                body: JSON.stringify({ model: aiModel, messages: chatPayload, max_tokens: 2000, temperature: 0.7 }),
-                signal: AbortSignal.timeout(30000),
-              });
-              const data = await r.json() as any;
-              reply = data.choices?.[0]?.message?.content as string | undefined;
-            } catch {}
-          }
-
-          if (!reply && !isImageMessage) {
-            // Try Pollinations models in parallel (fastest wins)
-            try {
-              const results = await Promise.allSettled([
-                callPollinations("openai"),
-                callPollinations("mistral"),
-              ]);
-              for (const r of results) {
-                if (r.status === "fulfilled" && r.value) { reply = r.value; break; }
+          // Race ALL providers simultaneously — fastest reply wins
+          const raceFirst = async (tasks: Promise<string | undefined>[]): Promise<string | undefined> => {
+            return new Promise((resolve) => {
+              let settled = 0;
+              for (const t of tasks) {
+                t.then(val => { if (val) resolve(val); else if (++settled === tasks.length) resolve(undefined); })
+                 .catch(() => { if (++settled === tasks.length) resolve(undefined); });
               }
-            } catch {}
-          }
+            });
+          };
+
+          let reply: string | undefined;
+          try {
+            reply = await raceFirst([
+              callOpenRouter("google/gemini-flash-1.5-8b"),
+              callOpenRouter("meta-llama/llama-3.1-8b-instruct:free"),
+              callPollinations("openai"),
+              callPollinations("mistral"),
+            ]);
+          } catch {}
 
           if (!reply || typeof reply !== "string" || !reply.trim()) return;
 
-          await new Promise(r => setTimeout(r, 200 + Math.random() * 300));
           const [botMsg] = await db.insert(messagesTable).values({
             chatId: body.chatId,
             senderId: bot.id,
