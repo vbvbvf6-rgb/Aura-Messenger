@@ -223,6 +223,15 @@ export default function Admin() {
   const [appealActionLoading, setAppealActionLoading] = useState<number | null>(null);
   const [appealResponse, setAppealResponse] = useState<Record<number, string>>({});
 
+  // Banwords
+  interface Banword { id: number; word: string; created_at: string; }
+  const [banwords, setBanwordsState] = useState<Banword[]>([]);
+  const [banwordsLoading, setBanwordsLoading] = useState(false);
+  const [showBanwords, setShowBanwords] = useState(false);
+  const [newBanword, setNewBanword] = useState("");
+  const [addingBanword, setAddingBanword] = useState(false);
+  const [deletingBanwordId, setDeletingBanwordId] = useState<number | null>(null);
+
   // Support Bugs
   interface AdminBugReport {
     id: number; title: string; description: string; category: string; status: string;
@@ -851,6 +860,42 @@ export default function Admin() {
       setShowEditProfile(false);
     } catch { showToast("Ошибка соединения", "err"); }
     setEditLoading(false);
+  };
+
+  const fetchBanwords = async () => {
+    setBanwordsLoading(true);
+    try {
+      const res = await fetch("/api/admin/banwords", { headers: getHeader() });
+      if (res.ok) setBanwordsState(await res.json());
+    } catch {}
+    setBanwordsLoading(false);
+  };
+
+  const handleAddBanword = async () => {
+    const word = newBanword.trim().toLowerCase();
+    if (!word) return;
+    setAddingBanword(true);
+    try {
+      const res = await fetch("/api/admin/banwords", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...getHeader() },
+        body: JSON.stringify({ word }),
+      });
+      const data = await res.json();
+      if (!res.ok) { showToast(data.error || "Ошибка", "err"); }
+      else { setBanwordsState(prev => [data, ...prev]); setNewBanword(""); showToast(`🚫 «${word}» добавлен`, "ok"); }
+    } catch { showToast("Ошибка соединения", "err"); }
+    setAddingBanword(false);
+  };
+
+  const handleDeleteBanword = async (id: number, word: string) => {
+    setDeletingBanwordId(id);
+    try {
+      const res = await fetch(`/api/admin/banwords/${id}`, { method: "DELETE", headers: getHeader() });
+      if (res.ok) { setBanwordsState(prev => prev.filter(b => b.id !== id)); showToast(`✅ «${word}» удалён`, "ok"); }
+      else showToast("Ошибка", "err");
+    } catch { showToast("Ошибка соединения", "err"); }
+    setDeletingBanwordId(null);
   };
 
   const filtered = users.filter(u =>
@@ -2074,6 +2119,79 @@ export default function Admin() {
               </div>
             )}
           </div>
+        </div>
+
+        {/* Banwords */}
+        <div className="bg-card border border-border rounded-2xl overflow-hidden">
+          <button
+            onClick={() => { setShowBanwords(v => !v); if (!showBanwords && banwords.length === 0) fetchBanwords(); }}
+            className="w-full p-4 flex items-center justify-between hover:bg-secondary/50 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-red-500/10 flex items-center justify-center">
+                <Ban size={18} className="text-red-400" />
+              </div>
+              <div className="text-left">
+                <p className="font-semibold text-sm">Банворды</p>
+                <p className="text-xs text-muted-foreground">
+                  Запрещённые слова — блокируют публикацию сообщений и историй
+                  {banwords.length > 0 && ` · ${banwords.length} слов`}
+                </p>
+              </div>
+            </div>
+            {showBanwords ? <ChevronDown size={16} className="text-muted-foreground" /> : <ChevronRight size={16} className="text-muted-foreground" />}
+          </button>
+          {showBanwords && (
+            <div className="border-t border-border">
+              {/* Add form */}
+              <div className="p-3 border-b border-border flex gap-2">
+                <input
+                  value={newBanword}
+                  onChange={e => setNewBanword(e.target.value)}
+                  onKeyDown={e => e.key === "Enter" && handleAddBanword()}
+                  placeholder="Введите слово..."
+                  className="flex-1 text-sm bg-background border border-border rounded-xl px-3 py-2 text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary transition-colors"
+                />
+                <button
+                  onClick={handleAddBanword}
+                  disabled={addingBanword || !newBanword.trim()}
+                  className="px-4 py-2 rounded-xl bg-red-500 text-white text-sm font-semibold hover:bg-red-400 disabled:opacity-50 transition-colors flex items-center gap-1.5"
+                >
+                  <Plus size={14} /> Добавить
+                </button>
+              </div>
+              {/* List */}
+              <div className="max-h-64 overflow-y-auto divide-y divide-border">
+                {banwordsLoading ? (
+                  Array.from({ length: 3 }).map((_, i) => (
+                    <div key={i} className="p-3 animate-pulse flex gap-2">
+                      <div className="h-4 bg-secondary rounded flex-1" />
+                      <div className="h-4 w-8 bg-secondary rounded" />
+                    </div>
+                  ))
+                ) : banwords.length === 0 ? (
+                  <p className="text-center text-muted-foreground text-sm py-8">Список пуст</p>
+                ) : banwords.map(bw => (
+                  <div key={bw.id} className="px-4 py-2.5 flex items-center gap-3 hover:bg-secondary/30 transition-colors group">
+                    <span className="w-5 h-5 rounded-full bg-red-500/10 flex items-center justify-center shrink-0">
+                      <Ban size={11} className="text-red-400" />
+                    </span>
+                    <span className="flex-1 text-sm font-mono text-foreground">{bw.word}</span>
+                    <span className="text-[10px] text-muted-foreground hidden group-hover:block">
+                      {new Date(bw.created_at).toLocaleDateString("ru-RU")}
+                    </span>
+                    <button
+                      onClick={() => handleDeleteBanword(bw.id, bw.word)}
+                      disabled={deletingBanwordId === bw.id}
+                      className="p-1.5 rounded-lg text-muted-foreground hover:text-red-400 hover:bg-red-500/10 transition-colors disabled:opacity-50"
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Users + Details */}

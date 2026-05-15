@@ -6,11 +6,12 @@ export interface RingtoneDefinition {
 }
 
 export const RINGTONES: RingtoneDefinition[] = [
-  { id: "pulse",   label: "Пульс",       emoji: "💓", desc: "Стандартный звонок" },
-  { id: "classic", label: "Классический", emoji: "📞", desc: "Двойной сигнал" },
-  { id: "melody",  label: "Мелодия",      emoji: "🎵", desc: "Восходящая гамма" },
-  { id: "gentle",  label: "Нежный",       emoji: "🌙", desc: "Мягкий перезвон" },
-  { id: "retro",   label: "Ретро",        emoji: "☎️", desc: "Старинный телефон" },
+  { id: "pulse",   label: "Пульс",        emoji: "💓", desc: "Стандартный звонок" },
+  { id: "classic", label: "Классический",  emoji: "📞", desc: "Двойной сигнал" },
+  { id: "melody",  label: "Мелодия",       emoji: "🎵", desc: "Восходящая гамма" },
+  { id: "gentle",  label: "Нежный",        emoji: "🌙", desc: "Мягкий перезвон" },
+  { id: "retro",   label: "Ретро",         emoji: "☎️",  desc: "Старинный телефон" },
+  { id: "custom",  label: "Своя мелодия",  emoji: "📁", desc: "Из ваших файлов" },
 ];
 
 export function getSelectedRingtone(): string {
@@ -37,24 +38,18 @@ function playNotes(
   }
 }
 
-/** Play one "cycle" of a ringtone pattern. Returns duration in ms. */
 function playOneCycle(ctx: AudioContext, id: string): number {
   switch (id) {
     case "pulse":
-      // Simple 660 Hz beep, 0.4 s on
       playNotes(ctx, [{ freq: 660, start: 0, dur: 0.4 }], 0.09);
       return 400;
-
     case "classic":
-      // Two quick beeps: 880 Hz × 2
       playNotes(ctx, [
-        { freq: 880, start: 0,   dur: 0.25 },
+        { freq: 880, start: 0,    dur: 0.25 },
         { freq: 880, start: 0.35, dur: 0.25 },
       ], 0.1);
       return 600;
-
     case "melody":
-      // Ascending C-E-G-C5 arpeggio
       playNotes(ctx, [
         { freq: 523,  start: 0,    dur: 0.15 },
         { freq: 659,  start: 0.18, dur: 0.15 },
@@ -62,17 +57,13 @@ function playOneCycle(ctx: AudioContext, id: string): number {
         { freq: 1047, start: 0.54, dur: 0.35 },
       ], 0.1);
       return 950;
-
     case "gentle":
-      // Soft overlapping chimes
       playNotes(ctx, [
         { freq: 1047, start: 0,   dur: 0.7 },
         { freq: 1319, start: 0.3, dur: 0.7 },
       ], 0.065);
       return 1050;
-
     case "retro": {
-      // Dual-tone rotary phone: 425 + 480 Hz together for 1.5 s
       const master = ctx.createGain();
       master.gain.value = 0.08;
       master.connect(ctx.destination);
@@ -86,14 +77,12 @@ function playOneCycle(ctx: AudioContext, id: string): number {
       }
       return 1500;
     }
-
     default:
       playNotes(ctx, [{ freq: 660, start: 0, dur: 0.4 }], 0.09);
       return 400;
   }
 }
 
-/** Gap (silence) between cycles for each ringtone, in ms. */
 function gapMs(id: string): number {
   switch (id) {
     case "pulse":   return 1600;
@@ -105,8 +94,89 @@ function gapMs(id: string): number {
   }
 }
 
-/** Start a looping ringtone. Returns a stop function. */
+/* ── IndexedDB helpers for custom audio ─────────────────────────── */
+
+function openRingtoneDB(): Promise<IDBDatabase> {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open("pulse-ringtones", 1);
+    req.onupgradeneeded = () => req.result.createObjectStore("files");
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+export async function storeCustomRingtone(arrayBuffer: ArrayBuffer): Promise<void> {
+  const db = await openRingtoneDB();
+  await new Promise<void>((resolve, reject) => {
+    const tx = db.transaction("files", "readwrite");
+    tx.objectStore("files").put(arrayBuffer, "custom");
+    tx.oncomplete = () => { db.close(); resolve(); };
+    tx.onerror = () => { db.close(); reject(tx.error); };
+  });
+}
+
+async function loadCustomRingtone(): Promise<ArrayBuffer | null> {
+  try {
+    const db = await openRingtoneDB();
+    return await new Promise<ArrayBuffer | null>((resolve) => {
+      const tx = db.transaction("files", "readonly");
+      const req = tx.objectStore("files").get("custom");
+      req.onsuccess = () => { db.close(); resolve(req.result ?? null); };
+      req.onerror = () => { db.close(); resolve(null); };
+    });
+  } catch { return null; }
+}
+
+/* ── Custom-file looping player ─────────────────────────────────── */
+
+function playCustomLoop(buffer: AudioBuffer, onStop: () => boolean): StopFn {
+  let ctx: AudioContext | null = new AudioContext();
+  let sourceNode: AudioBufferSourceNode | null = null;
+  let stopped = false;
+
+  const play = () => {
+    if (stopped || !ctx) return;
+    sourceNode = ctx.createBufferSource();
+    sourceNode.buffer = buffer;
+    sourceNode.connect(ctx.destination);
+    sourceNode.onended = () => {
+      if (!stopped) setTimeout(play, 1000);
+    };
+    sourceNode.start();
+  };
+
+  play();
+
+  return () => {
+    stopped = true;
+    try { sourceNode?.stop(); } catch {}
+    ctx?.close();
+    ctx = null;
+  };
+}
+
+/* ── Public API ─────────────────────────────────────────────────── */
+
 export function playRingtone(ringtoneId: string): StopFn {
+  if (ringtoneId === "custom") {
+    let stopped = false;
+    let stopFn: StopFn | null = null;
+
+    loadCustomRingtone().then(ab => {
+      if (stopped || !ab) return;
+      const ctx = new AudioContext();
+      ctx.decodeAudioData(ab).then(buffer => {
+        if (stopped) { ctx.close(); return; }
+        stopFn = playCustomLoop(buffer, () => stopped);
+      }).catch(() => ctx.close());
+    });
+
+    return () => {
+      stopped = true;
+      stopFn?.();
+    };
+  }
+
   let stopped = false;
   let ctx: AudioContext | null = null;
   const timeouts: ReturnType<typeof setTimeout>[] = [];
@@ -115,13 +185,12 @@ export function playRingtone(ringtoneId: string): StopFn {
     if (stopped) return;
     ctx = new AudioContext();
     const cycleDur = playOneCycle(ctx, ringtoneId);
-    const closeAt = cycleDur + 50;
     timeouts.push(
       setTimeout(() => {
         ctx?.close();
         ctx = null;
         if (!stopped) timeouts.push(setTimeout(tick, gapMs(ringtoneId)));
-      }, closeAt),
+      }, cycleDur + 50),
     );
   };
 
@@ -135,8 +204,21 @@ export function playRingtone(ringtoneId: string): StopFn {
   };
 }
 
-/** Preview a ringtone once (for Settings picker). */
 export function previewRingtone(ringtoneId: string): void {
+  if (ringtoneId === "custom") {
+    loadCustomRingtone().then(ab => {
+      if (!ab) return;
+      const ctx = new AudioContext();
+      ctx.decodeAudioData(ab).then(buffer => {
+        const src = ctx.createBufferSource();
+        src.buffer = buffer;
+        src.connect(ctx.destination);
+        src.start();
+        setTimeout(() => { try { src.stop(); } catch {} ctx.close(); }, 5000);
+      }).catch(() => ctx.close());
+    });
+    return;
+  }
   try {
     const ctx = new AudioContext();
     playOneCycle(ctx, ringtoneId);
@@ -144,9 +226,7 @@ export function previewRingtone(ringtoneId: string): void {
   } catch {}
 }
 
-/** Telecom-standard ringback tone for the caller.
- *  440 Hz, 2 s ON → 4 s silence → repeat.
- */
+/** Telecom-standard ringback tone for the caller (440 Hz, 2s ON / 4s OFF). */
 export function playRingbackTone(): StopFn {
   let stopped = false;
   let ctx: AudioContext | null = null;

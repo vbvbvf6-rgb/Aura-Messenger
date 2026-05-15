@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import { useGetMe, useUpdateMe } from "@workspace/api-client-react";
 import { useAppContext } from "@/contexts/AppContext";
-import { RINGTONES, previewRingtone } from "@/lib/ringtones";
+import { RINGTONES, previewRingtone, storeCustomRingtone } from "@/lib/ringtones";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
@@ -1149,6 +1149,25 @@ export default function Settings() {
   const [notifyPreview, setNotifyPreview] = useState(() => lsb("pulse-notify-preview", true));
   const [notificationSound, setNotificationSound] = useState(() => localStorage.getItem("pulse-notification-sound") || "classic");
   const [ringtone, setRingtone] = useState(() => localStorage.getItem("pulse-ringtone") || "pulse");
+  const [customRingtoneName, setCustomRingtoneName] = useState(() => localStorage.getItem("pulse-ringtone-name") || "");
+  const customRingtoneInputRef = useRef<HTMLInputElement>(null);
+
+  const handleCustomRingtoneFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const ab = await file.arrayBuffer();
+      await storeCustomRingtone(ab);
+      localStorage.setItem("pulse-ringtone-name", file.name);
+      localStorage.setItem("pulse-ringtone", "custom");
+      setCustomRingtoneName(file.name);
+      setRingtone("custom");
+      previewRingtone("custom");
+    } catch {
+      toast({ title: "Не удалось загрузить файл", variant: "destructive" });
+    }
+    e.target.value = "";
+  };
 
   // Privacy
   const [lastSeenVisibility, setLastSeenVisibility] = useState(() => ls("pulse-privacy-last-seen", "everyone"));
@@ -1951,6 +1970,14 @@ export default function Settings() {
                       ? "Выберите мелодию для входящих звонков"
                       : "Choose the ringtone for incoming calls"}
                   </p>
+                  {/* Hidden file input for custom ringtone */}
+                  <input
+                    ref={customRingtoneInputRef}
+                    type="file"
+                    accept="audio/*"
+                    className="hidden"
+                    onChange={handleCustomRingtoneFile}
+                  />
                   <div className="space-y-2">
                     {RINGTONES.map(rt => (
                       <div
@@ -1961,6 +1988,10 @@ export default function Settings() {
                             : "border-border hover:border-primary/40 bg-secondary/30"
                         }`}
                         onClick={() => {
+                          if (rt.id === "custom") {
+                            customRingtoneInputRef.current?.click();
+                            return;
+                          }
                           setRingtone(rt.id);
                           localStorage.setItem("pulse-ringtone", rt.id);
                           previewRingtone(rt.id);
@@ -1969,18 +2000,34 @@ export default function Settings() {
                         <span className="text-xl shrink-0">{rt.emoji}</span>
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-semibold text-foreground">{rt.label}</p>
-                          <p className="text-xs text-muted-foreground">{rt.desc}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {rt.id === "custom" && customRingtoneName
+                              ? customRingtoneName
+                              : rt.desc}
+                          </p>
                         </div>
                         {ringtone === rt.id ? (
-                          <CheckCircle size={18} className="text-primary shrink-0" />
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            {rt.id === "custom" && (
+                              <button
+                                className="p-1.5 rounded-lg hover:bg-primary/10 text-primary transition-colors text-[11px] font-medium"
+                                onClick={e => { e.stopPropagation(); customRingtoneInputRef.current?.click(); }}
+                              >
+                                {lang === "ru" ? "Изменить" : "Change"}
+                              </button>
+                            )}
+                            <CheckCircle size={18} className="text-primary" />
+                          </div>
                         ) : (
-                          <button
-                            className="p-1.5 rounded-lg hover:bg-primary/10 text-muted-foreground hover:text-primary transition-colors"
-                            onClick={e => { e.stopPropagation(); previewRingtone(rt.id); }}
-                            title={lang === "ru" ? "Прослушать" : "Preview"}
-                          >
-                            <Play size={14}/>
-                          </button>
+                          rt.id !== "custom" && (
+                            <button
+                              className="p-1.5 rounded-lg hover:bg-primary/10 text-muted-foreground hover:text-primary transition-colors"
+                              onClick={e => { e.stopPropagation(); previewRingtone(rt.id); }}
+                              title={lang === "ru" ? "Прослушать" : "Preview"}
+                            >
+                              <Play size={14}/>
+                            </button>
+                          )
                         )}
                       </div>
                     ))}

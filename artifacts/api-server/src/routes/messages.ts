@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { db, messagesTable, reactionsTable, usersTable, chatMembersTable, chatsTable } from "@workspace/db";
 import { eq, and, lt, desc, sql, lte, gt, ne } from "drizzle-orm";
+import { getBanwords, findBanword } from "../lib/banwords";
 import { spawn } from "node:child_process";
 import { broadcastToChat, broadcastToUser } from "../lib/sse";
 import { sendPushToUser } from "./push";
@@ -260,6 +261,15 @@ router.post("/messages", async (req, res) => {
 
     if (body.text && body.text.length > 4000) {
       return res.status(400).json({ error: "Сообщение слишком длинное (максимум 4000 символов)" });
+    }
+
+    // Banword check
+    if (body.text) {
+      const banwords = await getBanwords();
+      const hit = findBanword(body.text, banwords);
+      if (hit) {
+        return res.status(400).json({ error: "Сообщение содержит запрещённое слово и не может быть отправлено." });
+      }
     }
 
     // Validate effect (only Prime+ can use effects)

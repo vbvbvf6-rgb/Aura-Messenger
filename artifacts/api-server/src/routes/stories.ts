@@ -2,6 +2,7 @@ import { Router } from "express";
 import { db, storiesTable, storyViewsTable, usersTable, contactsTable } from "@workspace/db";
 import { eq, and, gt, inArray, desc } from "drizzle-orm";
 import { CreateStoryBody } from "@workspace/api-zod";
+import { getBanwords, findBanword } from "../lib/banwords";
 
 const router = Router();
 
@@ -58,6 +59,15 @@ router.post("/stories", async (req, res) => {
   try {
     const uid = req.currentUserId;
     const body = CreateStoryBody.parse(req.body);
+    // Banword check
+    if (body.text) {
+      const banwords = await getBanwords();
+      const hit = findBanword(body.text, banwords);
+      if (hit) {
+        return res.status(400).json({ error: "История содержит запрещённое слово и не может быть опубликована." });
+      }
+    }
+
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
     const [story] = await db.insert(storiesTable).values({
       userId: uid,

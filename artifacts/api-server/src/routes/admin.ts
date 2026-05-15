@@ -1,8 +1,9 @@
 import { Router } from "express";
-import { db, usersTable, messagesTable, chatsTable, chatMembersTable, giftsTable, callsTable } from "@workspace/db";
+import { db, usersTable, messagesTable, chatsTable, chatMembersTable, giftsTable, callsTable, banwordsTable } from "@workspace/db";
 import { eq, sql, ne } from "drizzle-orm";
 import { createHash } from "node:crypto";
 import { moderateContent } from "../lib/moderation";
+import { invalidateBanwordsCache } from "../lib/banwords";
 
 const router = Router();
 
@@ -970,6 +971,50 @@ router.get("/admin/stats", requireAdmin, async (req, res) => {
       totalCalls: Number((calls.rows[0] as any).cnt),
       totalGifts: Number((gifts.rows[0] as any).cnt),
     });
+  } catch (err) {
+    req.log.error(err);
+    res.status(500).json({ error: "Ошибка сервера" });
+  }
+});
+
+/* ── Banwords ──────────────────────────────────────────────────── */
+
+router.get("/admin/banwords", requireAdmin, async (req, res) => {
+  try {
+    const rows = await db.execute(sql`SELECT id, word, created_at FROM banwords ORDER BY created_at DESC`);
+    res.json(rows.rows);
+  } catch (err) {
+    req.log.error(err);
+    res.status(500).json({ error: "Ошибка сервера" });
+  }
+});
+
+router.post("/admin/banwords", requireAdmin, async (req, res) => {
+  try {
+    const word = String(req.body.word ?? "").trim().toLowerCase();
+    if (!word) return res.status(400).json({ error: "Введите слово" });
+    const existing = await db.execute(sql`SELECT id FROM banwords WHERE word = ${word}`);
+    if ((existing.rows as any[]).length > 0) {
+      return res.status(409).json({ error: "Слово уже в списке" });
+    }
+    const [row] = await db.insert(banwordsTable).values({
+      word,
+      createdBy: req.currentUserId,
+    }).returning();
+    invalidateBanwordsCache();
+    res.status(201).json(row);
+  } catch (err) {
+    req.log.error(err);
+    res.status(500).json({ error: "Ошибка сервера" });
+  }
+});
+
+router.delete("/admin/banwords/:id", requireAdmin, async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    await db.execute(sql`DELETE FROM banwords WHERE id = ${id}`);
+    invalidateBanwordsCache();
+    res.status(204).send();
   } catch (err) {
     req.log.error(err);
     res.status(500).json({ error: "Ошибка сервера" });
