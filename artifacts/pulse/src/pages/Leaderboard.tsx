@@ -1,7 +1,7 @@
-import React, { useState } from "react";
+import React from "react";
 import { useQuery } from "@tanstack/react-query";
-import { motion, AnimatePresence } from "framer-motion";
-import { Trophy, Users, Gift, Zap, Crown, BadgeCheck, Medal } from "lucide-react";
+import { motion } from "framer-motion";
+import { Trophy, Users, Crown, BadgeCheck, Medal } from "lucide-react";
 import { useGetMe } from "@workspace/api-client-react";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -11,14 +11,6 @@ const getToken = () => sessionStorage.getItem(TOKEN_KEY);
 const apiFetch = (url: string) =>
   fetch(url, { headers: { Authorization: `Bearer ${getToken()}` } }).then(r => r.json());
 
-type Tab = "referrals" | "gifts" | "messages" | "balance";
-
-const TABS: { id: Tab; label: string; icon: React.ReactNode }[] = [
-  { id: "referrals", label: "Рефералы", icon: <Users size={16} /> },
-  { id: "gifts", label: "Подарки", icon: <Gift size={16} /> },
-  { id: "messages", label: "Сообщения", icon: <Zap size={16} /> },
-  { id: "balance", label: "Баланс", icon: <Trophy size={16} /> },
-];
 
 function UserAvatar({ user, rank }: { user: any; rank: number }) {
   const medalColors: Record<number, string> = { 1: "#FFD700", 2: "#C0C0C0", 3: "#CD7F32" };
@@ -287,7 +279,6 @@ function StatsLeaderboard({ tab }: { tab: Tab }) {
 }
 
 export default function Leaderboard() {
-  const [activeTab, setActiveTab] = useState<Tab>("referrals");
   const { data: me } = useGetMe();
 
   return (
@@ -301,38 +292,13 @@ export default function Leaderboard() {
 
       <div className="flex-1 overflow-y-auto">
         <div className="max-w-2xl mx-auto px-4 py-6 pb-24 md:pb-6">
-          <div className="flex gap-2 mb-6 p-1 bg-secondary/50 rounded-2xl">
-            {TABS.map(tab => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-bold transition-all ${
-                  activeTab === tab.id
-                    ? "bg-background text-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                {tab.icon}
-                <span className="hidden sm:inline">{tab.label}</span>
-              </button>
-            ))}
-          </div>
-
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={activeTab}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.15 }}
-            >
-              {activeTab === "referrals" ? (
-                <ReferralLeaderboard me={me} />
-              ) : (
-                <StatsLeaderboard tab={activeTab} />
-              )}
-            </motion.div>
-          </AnimatePresence>
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.15 }}
+          >
+            <ReferralLeaderboard me={me} />
+          </motion.div>
         </div>
       </div>
     </div>
