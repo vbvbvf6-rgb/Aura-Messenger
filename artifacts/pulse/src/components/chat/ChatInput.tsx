@@ -304,7 +304,7 @@ export function ChatInput({ chatId, onMessageSent, replyTo, editMessage, onCance
     if (!files.length) return;
     const results = await Promise.all(files.map(f => compressImage(f)));
     setImagePreviews(prev => [...prev, ...results]);
-    e.target.value = "";
+    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   const removeImage = (idx: number) => setImagePreviews(prev => prev.filter((_, i) => i !== idx));

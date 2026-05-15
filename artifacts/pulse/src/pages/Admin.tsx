@@ -329,6 +329,34 @@ export default function Admin() {
     setCatalogSavingId(null);
   };
 
+  const fetchAppeals = async () => {
+    setAppealsLoading(true);
+    try {
+      const res = await fetch("/api/admin/moderation/appeals", { headers: getHeader() });
+      if (res.ok) setAppeals(await res.json());
+    } catch {}
+    setAppealsLoading(false);
+  };
+
+  const handleAppealAction = async (appealId: number, action: "approve" | "reject") => {
+    setAppealActionLoading(appealId);
+    try {
+      const res = await fetch(`/api/admin/moderation/appeals/${appealId}/${action}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...getHeader() },
+        body: JSON.stringify({ adminResponse: appealResponse[appealId]?.trim() || undefined }),
+      });
+      const data = await res.json();
+      if (!res.ok) { showToast(data.error || "Ошибка", "err"); }
+      else {
+        showToast(action === "approve" ? "✅ Апелляция одобрена, пост восстановлен" : "❌ Апелляция отклонена", action === "approve" ? "ok" : "err");
+        setAppeals(prev => prev.map(a => a.id === appealId ? { ...a, status: action === "approve" ? "approved" : "rejected", admin_response: appealResponse[appealId] || null } : a));
+        setAppealResponse(prev => { const n = { ...prev }; delete n[appealId]; return n; });
+      }
+    } catch { showToast("Ошибка соединения", "err"); }
+    setAppealActionLoading(null);
+  };
+
   // Broadcast Push
   const [showBroadcastPush, setShowBroadcastPush] = useState(false);
   const [pushTitle, setPushTitle] = useState("");
@@ -1046,6 +1074,128 @@ export default function Admin() {
               </div>
             </div>
           </div>
+        </div>
+
+        {/* Moderation Appeals */}
+        <div className="bg-card border border-border rounded-2xl overflow-hidden">
+          <button
+            onClick={() => { setShowAppeals(v => !v); if (!showAppeals && appeals.length === 0) fetchAppeals(); }}
+            className="w-full p-4 flex items-center justify-between hover:bg-secondary/50 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-orange-500/10 flex items-center justify-center">
+                <ShieldAlert size={18} className="text-orange-400" />
+              </div>
+              <div className="text-left">
+                <p className="font-semibold text-sm">Апелляции модерации</p>
+                <p className="text-xs text-muted-foreground">
+                  {appeals.filter(a => a.status === "pending").length > 0
+                    ? `${appeals.filter(a => a.status === "pending").length} ожидают рассмотрения`
+                    : "Проверить обжалования заблокированных постов"}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              {appeals.filter(a => a.status === "pending").length > 0 && (
+                <span className="min-w-[20px] h-5 px-1.5 bg-orange-500 text-white text-[11px] font-black rounded-full flex items-center justify-center">
+                  {appeals.filter(a => a.status === "pending").length}
+                </span>
+              )}
+              {showAppeals ? <ChevronDown size={16} className="text-muted-foreground" /> : <ChevronRight size={16} className="text-muted-foreground" />}
+            </div>
+          </button>
+          {showAppeals && (
+            <div className="border-t border-border">
+              <div className="p-3 flex items-center justify-between border-b border-border/50">
+                <p className="text-xs text-muted-foreground font-medium">Всего: {appeals.length} · Ожидают: {appeals.filter(a => a.status === "pending").length}</p>
+                <button onClick={fetchAppeals} disabled={appealsLoading} className="flex items-center gap-1.5 text-xs text-primary hover:text-primary/80 font-medium px-2 py-1 rounded-lg hover:bg-primary/10 transition-colors disabled:opacity-50">
+                  <RefreshCw size={12} className={appealsLoading ? "animate-spin" : ""} /> Обновить
+                </button>
+              </div>
+              {appealsLoading && appeals.length === 0 ? (
+                <div className="p-6 text-center text-muted-foreground text-sm">Загружаем...</div>
+              ) : appeals.length === 0 ? (
+                <div className="p-6 text-center text-muted-foreground text-sm">Нет апелляций</div>
+              ) : (
+                <div className="divide-y divide-border/50">
+                  {appeals.map(appeal => (
+                    <div key={appeal.id} className="p-4 space-y-3">
+                      <div className="flex items-start gap-3">
+                        <div
+                          className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0 overflow-hidden"
+                          style={{ backgroundColor: appeal.avatar_color }}
+                        >
+                          {appeal.avatar_url ? <img src={appeal.avatar_url} alt="" className="w-full h-full object-cover" /> : appeal.display_name[0]}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-semibold text-sm">{appeal.display_name}</span>
+                            <span className="text-xs text-muted-foreground">@{appeal.username}</span>
+                            <span className={`text-[10px] font-black px-1.5 py-0.5 rounded-full ${
+                              appeal.status === "pending" ? "bg-yellow-500/15 text-yellow-400 border border-yellow-500/30"
+                              : appeal.status === "approved" ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30"
+                              : "bg-destructive/15 text-destructive border border-destructive/30"
+                            }`}>
+                              {appeal.status === "pending" ? "Ожидает" : appeal.status === "approved" ? "Одобрено" : "Отклонено"}
+                            </span>
+                          </div>
+                          <div className="mt-2 p-2.5 bg-destructive/5 border border-destructive/20 rounded-xl text-xs space-y-1">
+                            <p className="text-muted-foreground font-medium">Заблокированный пост:</p>
+                            <p className="text-foreground line-clamp-2">{appeal.post_text}</p>
+                            {appeal.moderation_reason && (
+                              <p className="text-destructive/80 italic">Причина: {appeal.moderation_reason}</p>
+                            )}
+                            {appeal.moderation_confidence && (
+                              <p className="text-muted-foreground">Уверенность ИИ: {appeal.moderation_confidence}%</p>
+                            )}
+                          </div>
+                          <div className="mt-2 p-2.5 bg-secondary/50 rounded-xl text-xs">
+                            <p className="text-muted-foreground font-medium mb-1">Апелляция пользователя:</p>
+                            <p className="text-foreground">{appeal.appeal_text}</p>
+                          </div>
+                          {appeal.admin_response && (
+                            <div className="mt-2 p-2 bg-primary/5 border border-primary/20 rounded-lg text-xs">
+                              <p className="text-primary/70 font-medium">Ответ админа:</p>
+                              <p className="text-foreground">{appeal.admin_response}</p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      {appeal.status === "pending" && (
+                        <div className="pl-11 space-y-2">
+                          <input
+                            type="text"
+                            value={appealResponse[appeal.id] || ""}
+                            onChange={e => setAppealResponse(prev => ({ ...prev, [appeal.id]: e.target.value }))}
+                            placeholder="Ответ администратора (необязательно)..."
+                            className="w-full bg-background border border-border rounded-xl px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary transition-colors"
+                          />
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => handleAppealAction(appeal.id, "approve")}
+                              disabled={appealActionLoading === appeal.id}
+                              className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20 text-xs font-bold transition-colors disabled:opacity-50"
+                            >
+                              <CheckCircle2 size={13} />
+                              {appealActionLoading === appeal.id ? "..." : "Одобрить и восстановить"}
+                            </button>
+                            <button
+                              onClick={() => handleAppealAction(appeal.id, "reject")}
+                              disabled={appealActionLoading === appeal.id}
+                              className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl bg-destructive/10 border border-destructive/30 text-destructive hover:bg-destructive/20 text-xs font-bold transition-colors disabled:opacity-50"
+                            >
+                              <X size={13} />
+                              {appealActionLoading === appeal.id ? "..." : "Отклонить"}
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Top-up Requests */}

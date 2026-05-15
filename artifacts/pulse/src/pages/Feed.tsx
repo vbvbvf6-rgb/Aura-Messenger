@@ -466,7 +466,7 @@ export default function Feed() {
   const [newPostText, setNewPostText] = useState("");
   const [newPostImage, setNewPostImage] = useState<string | null>(null);
   const [imageLoading, setImageLoading] = useState(false);
-  const { data: posts, isLoading, refetch } = useGetPosts();
+  const { data: posts, isLoading, refetch } = useGetPosts({ query: { refetchInterval: 20000 } } as any);
   const { data: me } = useGetMe();
   const createPost = useCreatePost();
   const queryClient = useQueryClient();
@@ -477,11 +477,11 @@ export default function Feed() {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    e.target.value = "";
     setImageLoading(true);
 
     const reader = new FileReader();
     reader.onload = (ev) => {
+      if (fileInputRef.current) fileInputRef.current.value = "";
       const dataUrl = ev.target?.result as string;
       if (!dataUrl) { setImageLoading(false); return; }
 
@@ -509,7 +509,7 @@ export default function Feed() {
       img.onerror = () => { setNewPostImage(dataUrl); setImageLoading(false); };
       img.src = dataUrl;
     };
-    reader.onerror = () => setImageLoading(false);
+    reader.onerror = () => { if (fileInputRef.current) fileInputRef.current.value = ""; setImageLoading(false); };
     reader.readAsDataURL(file);
   };
 
