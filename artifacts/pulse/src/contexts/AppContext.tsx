@@ -3,9 +3,33 @@ import { io, Socket } from "socket.io-client";
 import { Call } from "@workspace/api-client-react";
 import { getSavedAccounts, SavedAccount, MAX_ACCOUNTS } from "@/lib/accounts";
 
+// Free STUN (NAT traversal discovery) + Free TURN relay via Open Relay Project.
+// TURN is essential for users behind symmetric NAT (mobile networks, corporate routers etc).
+// Open Relay Project: https://www.metered.ca/tools/openrelay/ — completely free, no signup.
 const ICE_SERVERS: RTCIceServer[] = [
   { urls: "stun:stun.l.google.com:19302" },
   { urls: "stun:stun1.l.google.com:19302" },
+  { urls: "stun:openrelay.metered.ca:80" },
+  {
+    urls: "turn:openrelay.metered.ca:80",
+    username: "openrelayproject",
+    credential: "openrelayproject",
+  },
+  {
+    urls: "turn:openrelay.metered.ca:443",
+    username: "openrelayproject",
+    credential: "openrelayproject",
+  },
+  {
+    urls: "turn:openrelay.metered.ca:443?transport=tcp",
+    username: "openrelayproject",
+    credential: "openrelayproject",
+  },
+  {
+    urls: "turns:openrelay.metered.ca:443?transport=tcp",
+    username: "openrelayproject",
+    credential: "openrelayproject",
+  },
 ];
 
 function createSilentStream(): MediaStream {
