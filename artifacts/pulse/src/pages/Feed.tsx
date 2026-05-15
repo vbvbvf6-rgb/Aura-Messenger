@@ -633,6 +633,99 @@ const TOPICS = [
 
 type TopicId = typeof TOPICS[number]["id"];
 
+function TrendingTopicsWidget({ posts, onTopicClick, selectedTopic }: {
+  posts: any[];
+  onTopicClick: (id: string) => void;
+  selectedTopic: string | null;
+}) {
+  const now = Date.now();
+  const DAY_MS = 24 * 60 * 60 * 1000;
+
+  const counts: Record<string, number> = {};
+  for (const p of posts) {
+    if (!p.topic) continue;
+    const ts = p.createdAt ? new Date(p.createdAt).getTime() : 0;
+    if (now - ts <= DAY_MS) {
+      counts[p.topic] = (counts[p.topic] ?? 0) + 1;
+    }
+  }
+
+  const ranked = TOPICS
+    .map(t => ({ ...t, count: counts[t.id] ?? 0 }))
+    .filter(t => t.count > 0)
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 8);
+
+  const max = ranked[0]?.count ?? 1;
+
+  if (ranked.length === 0) {
+    return (
+      <div className="bg-card border border-border rounded-2xl p-4">
+        <div className="flex items-center gap-2 mb-3">
+          <TrendingUp size={15} className="text-primary" />
+          <h3 className="text-[13px] font-bold">Тренды сегодня</h3>
+        </div>
+        <p className="text-[12px] text-muted-foreground text-center py-4">Пока нет активных тем</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-card border border-border rounded-2xl p-4">
+      <div className="flex items-center gap-2 mb-4">
+        <TrendingUp size={15} className="text-primary" />
+        <h3 className="text-[13px] font-bold">Тренды сегодня</h3>
+        <span className="ml-auto text-[10px] text-muted-foreground font-medium">за 24 ч</span>
+      </div>
+      <div className="space-y-2.5">
+        {ranked.map((topic, i) => {
+          const isActive = selectedTopic === topic.id;
+          const barWidth = Math.max(8, Math.round((topic.count / max) * 100));
+          return (
+            <button
+              key={topic.id}
+              onClick={() => onTopicClick(topic.id)}
+              className={`w-full group text-left rounded-xl px-3 py-2.5 transition-all ${
+                isActive
+                  ? "bg-primary/10 ring-1 ring-primary/30"
+                  : "hover:bg-secondary/70"
+              }`}
+            >
+              <div className="flex items-center gap-2 mb-1.5">
+                <span className={`text-[10px] font-black w-4 shrink-0 ${
+                  i === 0 ? "text-amber-400" : i === 1 ? "text-slate-400" : i === 2 ? "text-orange-600" : "text-muted-foreground/60"
+                }`}>
+                  {i + 1}
+                </span>
+                <span className="text-[13px]">{topic.emoji}</span>
+                <span className={`text-[12px] font-semibold flex-1 truncate ${isActive ? "text-primary" : "text-foreground"}`}>
+                  {topic.label}
+                </span>
+                <span className={`text-[11px] font-bold shrink-0 ${isActive ? "text-primary" : "text-muted-foreground"}`}>
+                  {topic.count}
+                </span>
+              </div>
+              <div className="h-[3px] rounded-full bg-secondary overflow-hidden ml-6">
+                <motion.div
+                  className={`h-full rounded-full ${isActive ? "bg-primary" : "bg-primary/40 group-hover:bg-primary/60"}`}
+                  initial={{ width: 0 }}
+                  animate={{ width: `${barWidth}%` }}
+                  transition={{ duration: 0.5, delay: i * 0.05, ease: "easeOut" }}
+                />
+              </div>
+            </button>
+          );
+        })}
+      </div>
+      <div className="mt-3 pt-3 border-t border-border/50 text-center">
+        <span className="text-[10px] text-muted-foreground">
+          {Object.values(counts).reduce((a, b) => a + b, 0)} постов с темой сегодня
+        </span>
+      </div>
+    </div>
+  );
+}
+
 function applyFeedMode(posts: any[], mode: FeedMode): any[] {
   if (!Array.isArray(posts)) return [];
   const visible = posts.filter((p: any) => !(p as any)._optimistic || true);
@@ -879,7 +972,8 @@ export default function Feed() {
       </header>
 
       <div className="flex-1 overflow-y-auto scrollbar-thin pb-24 md:pb-0">
-        <div className="max-w-2xl mx-auto p-4 space-y-4">
+        <div className="max-w-5xl mx-auto p-4 flex gap-5 items-start">
+        <div className="flex-1 min-w-0 space-y-4">
 
           <AnimatePresence>
             {showCreatePost && (
@@ -1031,6 +1125,17 @@ export default function Feed() {
               </motion.div>
             </AnimatePresence>
           )}
+        </div>
+
+        {/* Sidebar */}
+        <div className="w-72 shrink-0 hidden xl:block sticky top-4 space-y-4">
+          <TrendingTopicsWidget
+            posts={posts as any[] ?? []}
+            selectedTopic={selectedTopic}
+            onTopicClick={(id) => setSelectedTopic(prev => prev === id ? null : id as TopicId)}
+          />
+        </div>
+
         </div>
       </div>
     </div>
