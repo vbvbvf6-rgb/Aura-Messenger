@@ -133,10 +133,6 @@ export default function Home() {
                 ))}
               </div>
 
-              <div className="flex items-center justify-center gap-2 text-[11px] text-muted-foreground/50 font-medium">
-                <span className="w-1.5 h-1.5 rounded-full bg-primary inline-block animate-pulse" />
-                Зашифровано · Быстро · Красиво
-              </div>
             </div>
           </div>
         )}
