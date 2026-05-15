@@ -650,6 +650,31 @@ export function ChatWindow({ chatId }: ChatWindowProps) {
 
   const filteredMessages = messages;
 
+  // These hooks MUST be called before any early returns to obey React's Rules of Hooks.
+  const _otherUserLastSeen = (chat?.otherUser as any)?.lastSeen ?? null;
+  const _otherUserStatus = chat?.otherUser?.status ?? "offline";
+  const lastSeenLabel = useLastSeen(_otherUserLastSeen, _otherUserStatus);
+
+  const _isChannel = chat?.type === "channel";
+  const adminUserIds = useMemo(() => {
+    if (!_isChannel || !chat) return new Set<number>();
+    return new Set<number>(
+      ((chat.members as any[]) || [])
+        .filter((m: any) => m.role === "owner" || m.role === "admin")
+        .map((m: any) => m.userId)
+    );
+  }, [_isChannel, chat]);
+
+  const lastAdminMessage = useMemo(() => {
+    if (!_isChannel || !messages || adminUserIds.size === 0) return null;
+    const msgs = messages as Message[];
+    for (let i = msgs.length - 1; i >= 0; i--) {
+      const m = msgs[i] as any;
+      if (adminUserIds.has(m.senderId) && m.type === "text" && m.text) return m;
+    }
+    return null;
+  }, [_isChannel, messages, adminUserIds]);
+
   if (isChatLoading) {
     return <div className="flex-1 flex flex-col items-center justify-center bg-card"><Skeleton className="w-24 h-24 rounded-full mb-6" /><Skeleton className="h-8 w-48 rounded-xl" /></div>;
   }
@@ -658,37 +683,15 @@ export function ChatWindow({ chatId }: ChatWindowProps) {
 
   const displayName = chat.type === "direct" ? (chat.otherUser?.displayName || chat.name || "Chat") : (chat.name || "Group");
   const avatarColor = chat.type === "direct" ? (chat.otherUser?.avatarColor || chat.avatarColor || "#333") : (chat.avatarColor || "#333");
-  const otherUserLastSeen = (chat.otherUser as any)?.lastSeen ?? null;
-  const otherUserStatus = chat.otherUser?.status ?? "offline";
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  const lastSeenLabel = useLastSeen(otherUserLastSeen, otherUserStatus);
+  const otherUserLastSeen = _otherUserLastSeen;
+  const otherUserStatus = _otherUserStatus;
   const isVerified = chat.type === "direct" && (chat.otherUser as any)?.isVerified;
-  const isChannel = chat.type === "channel";
+  const isChannel = _isChannel;
   const myMemberRole = (chat.members as any[])?.find((m: any) => m.userId === currentUserId)?.role;
   const isChannelAdmin = isChannel && (myMemberRole === "owner" || myMemberRole === "admin");
   const otherUserHasPrime = chat.type === "direct" && (chat.otherUser as any)?.hasPrime;
   const otherUserIsPlus   = chat.type === "direct" && (chat.otherUser as any)?.primeTier === "prime_plus";
   const autoDeleteLabel = formatAutoDeleteLabel(autoDeleteTimer);
-
-  // Last admin/owner message used as channel announcement
-  const adminUserIds = useMemo(() => {
-    if (!isChannel) return new Set<number>();
-    return new Set<number>(
-      ((chat.members as any[]) || [])
-        .filter((m: any) => m.role === "owner" || m.role === "admin")
-        .map((m: any) => m.userId)
-    );
-  }, [isChannel, chat.members]);
-
-  const lastAdminMessage = useMemo(() => {
-    if (!isChannel || !messages || adminUserIds.size === 0) return null;
-    const msgs = messages as Message[];
-    for (let i = msgs.length - 1; i >= 0; i--) {
-      const m = msgs[i] as any;
-      if (adminUserIds.has(m.senderId) && m.type === "text" && m.text) return m;
-    }
-    return null;
-  }, [isChannel, messages, adminUserIds]);
 
   return (
     <div className="flex-1 flex flex-col h-full bg-background relative overflow-hidden z-30">
