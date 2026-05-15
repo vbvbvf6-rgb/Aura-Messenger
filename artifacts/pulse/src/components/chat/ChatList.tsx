@@ -465,7 +465,9 @@ export function ChatList() {
                   : (chat.name || (chat.type === "channel" ? "Канал" : "Группа"));
 
               const lastMsgText = lastMessage
-                ? lastMessage.type === "text"
+                ? (lastMessage as any).isDeleted
+                  ? "🗑 Сообщение удалено"
+                  : lastMessage.type === "text"
                   ? lastMessage.text || ""
                   : lastMessage.type === "image"
                   ? "📷 Фото"
