@@ -184,7 +184,7 @@ export default function Login({ onLogin }: LoginProps) {
   };
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4 relative overflow-hidden">
+    <div className="min-h-[100dvh] bg-background flex items-center justify-center p-4 relative overflow-y-auto">
       <div
         className="absolute top-[-15%] left-[-10%] w-[55%] h-[55%] rounded-full blur-[120px] opacity-40 pointer-events-none"
         style={{ background: "radial-gradient(circle, hsl(16 100% 50% / 0.18), transparent 70%)" }}
@@ -200,12 +200,12 @@ export default function Login({ onLogin }: LoginProps) {
         transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
         className="w-full max-w-[380px] relative z-10"
       >
-        <div className="flex flex-col items-center mb-10">
+        <div className="flex flex-col items-center mb-6 sm:mb-10">
           <motion.div
             initial={{ scale: 0.7, opacity: 0, rotate: -10 }}
             animate={{ scale: 1, opacity: 1, rotate: 0 }}
             transition={{ type: "spring", stiffness: 200, damping: 18, delay: 0.15 }}
-            className="w-24 h-24 rounded-[28px] flex items-center justify-center mb-6 relative"
+            className="w-16 h-16 sm:w-24 sm:h-24 rounded-[22px] sm:rounded-[28px] flex items-center justify-center mb-4 sm:mb-6 relative"
             style={{
               background: "linear-gradient(135deg, hsl(16 100% 50% / 0.15) 0%, hsl(16 100% 50% / 0.05) 100%)",
               border: "1px solid hsl(16 100% 50% / 0.2)",
@@ -221,7 +221,7 @@ export default function Login({ onLogin }: LoginProps) {
             transition={{ delay: 0.25, duration: 0.5 }}
             className="text-center"
           >
-            <h1 className="text-4xl font-black text-foreground tracking-tight leading-none mb-2">
+            <h1 className="text-3xl sm:text-4xl font-black text-foreground tracking-tight leading-none mb-2">
               {getStepTitle()}
             </h1>
             <p className="text-muted-foreground text-[15px] font-medium">
@@ -337,14 +337,6 @@ export default function Login({ onLogin }: LoginProps) {
                   </motion.button>
                 </div>
 
-                <div className="mt-4 pt-4 border-t border-border text-center">
-                  <p className="text-sm font-medium text-muted-foreground">
-                    Нет аккаунта?{" "}
-                    <Link href="/register" className="text-primary hover:text-primary/80 transition-colors font-bold">
-                      Создать
-                    </Link>
-                  </p>
-                </div>
               </motion.div>
             )}
 
@@ -512,11 +504,26 @@ export default function Login({ onLogin }: LoginProps) {
           </AnimatePresence>
         </motion.div>
 
+        {step === "credentials" && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.45 }}
+            className="mt-4"
+          >
+            <Link href="/register">
+              <button className="w-full py-4 rounded-2xl border border-border bg-card/60 text-foreground font-black text-[15px] hover:bg-secondary transition-all">
+                Зарегистрироваться
+              </button>
+            </Link>
+          </motion.div>
+        )}
+
         <motion.p
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.6 }}
-          className="text-center text-[11px] text-muted-foreground/40 font-medium mt-6"
+          className="text-center text-[11px] text-muted-foreground/40 font-medium mt-6 pb-4"
         >
           Pulse Messenger · Ваши данные надёжно защищены
         </motion.p>
