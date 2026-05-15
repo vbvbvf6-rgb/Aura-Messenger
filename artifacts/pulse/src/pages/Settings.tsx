@@ -608,6 +608,134 @@ function SecurityQuestionSection({ lang, toast }: { lang: string; toast: any }) 
   );
 }
 
+function SpeakersSection({ lang }: { lang: string }) {
+  const [devices, setDevices] = useState<{ mic: MediaDeviceInfo[]; speaker: MediaDeviceInfo[]; camera: MediaDeviceInfo[] }>({ mic: [], speaker: [], camera: [] });
+  const [permission, setPermission] = useState<"unknown" | "granted" | "denied">("unknown");
+  const [testing, setTesting] = useState<null | "mic" | "speaker">(null);
+  const [micLevel, setMicLevel] = useState(0);
+
+  useEffect(() => {
+    navigator.mediaDevices?.enumerateDevices().then(devs => {
+      const mics = devs.filter(d => d.kind === "audioinput");
+      const speakers = devs.filter(d => d.kind === "audiooutput");
+      const cameras = devs.filter(d => d.kind === "videoinput");
+      setDevices({ mic: mics, speaker: speakers, camera: cameras });
+      if (mics.length > 0 && mics[0].label) setPermission("granted");
+    }).catch(() => {});
+  }, []);
+
+  const requestAccess = async () => {
+    try {
+      await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
+      const devs = await navigator.mediaDevices.enumerateDevices();
+      setDevices({ mic: devs.filter(d => d.kind === "audioinput"), speaker: devs.filter(d => d.kind === "audiooutput"), camera: devs.filter(d => d.kind === "videoinput") });
+      setPermission("granted");
+    } catch { setPermission("denied"); }
+  };
+
+  const testMic = async () => {
+    if (testing === "mic") { setTesting(null); setMicLevel(0); return; }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      setTesting("mic");
+      const ctx = new AudioContext();
+      const analyser = ctx.createAnalyser();
+      ctx.createMediaStreamSource(stream).connect(analyser);
+      analyser.fftSize = 64;
+      const arr = new Uint8Array(analyser.frequencyBinCount);
+      const tick = () => {
+        if (testing !== null) { stream.getTracks().forEach(t => t.stop()); ctx.close(); return; }
+        analyser.getByteFrequencyData(arr);
+        const avg = arr.reduce((a, b) => a + b, 0) / arr.length;
+        setMicLevel(avg);
+        requestAnimationFrame(tick);
+      };
+      tick();
+      setTimeout(() => { stream.getTracks().forEach(t => t.stop()); ctx.close(); setTesting(null); setMicLevel(0); }, 5000);
+    } catch { setPermission("denied"); }
+  };
+
+  const testSpeaker = async () => {
+    if (testing === "speaker") { setTesting(null); return; }
+    setTesting("speaker");
+    const ctx = new AudioContext();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    gain.gain.setValueAtTime(0.1, ctx.currentTime);
+    osc.frequency.setValueAtTime(440, ctx.currentTime);
+    osc.start();
+    setTimeout(() => { osc.stop(); ctx.close(); setTesting(null); }, 1000);
+  };
+
+  const devGroups = [
+    { key: "mic", icon: <Mic size={18}/>, color: "bg-orange-500/10 text-orange-500", title: lang === "ru" ? "Микрофоны" : "Microphones", devs: devices.mic, onTest: testMic, testLabel: testing === "mic" ? (lang === "ru" ? "Стоп" : "Stop") : (lang === "ru" ? "Тест" : "Test") },
+    { key: "speaker", icon: <Headphones size={18}/>, color: "bg-blue-500/10 text-blue-500", title: lang === "ru" ? "Динамики" : "Speakers", devs: devices.speaker, onTest: testSpeaker, testLabel: testing === "speaker" ? "♪" : (lang === "ru" ? "Тест" : "Test") },
+    { key: "camera", icon: <Camera size={18}/>, color: "bg-violet-500/10 text-violet-500", title: lang === "ru" ? "Камеры" : "Cameras", devs: devices.camera },
+  ] as const;
+
+  return (
+    <div className="max-w-2xl mx-auto space-y-6">
+      {permission === "unknown" && (
+        <div className="bg-card border border-border rounded-2xl p-4 flex items-center gap-3">
+          <div className="p-2 bg-primary/10 rounded-xl text-primary shrink-0"><Mic size={16}/></div>
+          <div className="flex-1">
+            <p className="text-sm font-medium">{lang === "ru" ? "Требуется доступ к устройствам" : "Device access required"}</p>
+            <p className="text-xs text-muted-foreground">{lang === "ru" ? "Нажмите, чтобы обнаружить микрофоны, камеру и динамики" : "Click to detect microphones, camera and speakers"}</p>
+          </div>
+          <button onClick={requestAccess} className="px-3 py-1.5 bg-primary text-primary-foreground rounded-xl text-xs font-bold shrink-0">{lang === "ru" ? "Разрешить" : "Allow"}</button>
+        </div>
+      )}
+      {permission === "denied" && (
+        <div className="bg-destructive/10 border border-destructive/20 rounded-2xl p-4 flex items-center gap-3">
+          <div className="p-2 bg-destructive/20 rounded-xl text-destructive shrink-0"><Mic size={16}/></div>
+          <p className="text-sm text-destructive">{lang === "ru" ? "Доступ к устройствам заблокирован. Разрешите его в настройках браузера." : "Device access blocked. Enable it in browser settings."}</p>
+        </div>
+      )}
+      {testing === "mic" && (
+        <div className="bg-card border border-border rounded-2xl p-4">
+          <p className="text-xs text-muted-foreground mb-2">{lang === "ru" ? "Уровень микрофона:" : "Mic level:"}</p>
+          <div className="h-2 bg-muted rounded-full overflow-hidden">
+            <div className="h-full bg-gradient-to-r from-green-500 to-green-400 rounded-full transition-all duration-75" style={{ width: `${Math.min(100, (micLevel / 128) * 100)}%` }}/>
+          </div>
+        </div>
+      )}
+      {devGroups.map(group => (
+        <Section key={group.key} title={group.title} icon={group.icon}>
+          {group.devs.length === 0 ? (
+            <div className="p-4 flex items-center gap-3">
+              <div className={`p-2 rounded-xl shrink-0 ${group.color}`}>{group.icon}</div>
+              <p className="text-sm text-muted-foreground">{lang === "ru" ? "Устройства не обнаружены" : "No devices found"}</p>
+            </div>
+          ) : (
+            group.devs.map((dev, idx) => (
+              <div key={dev.deviceId} className={`p-4 flex items-center gap-3 ${idx < group.devs.length - 1 ? "border-b border-border" : ""}`}>
+                <div className={`p-2 rounded-xl shrink-0 ${group.color}`}>{group.icon}</div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate">{dev.label || `${group.title} ${idx + 1}`}</p>
+                  {idx === 0 && <p className="text-[11px] text-muted-foreground">{lang === "ru" ? "По умолчанию" : "Default"}</p>}
+                </div>
+                {(group.key === "mic" || group.key === "speaker") && idx === 0 && (
+                  <button onClick={group.onTest} className="text-xs font-bold px-2.5 py-1 rounded-lg border border-border hover:bg-secondary transition-colors shrink-0">
+                    {group.testLabel}
+                  </button>
+                )}
+                {idx === 0 && <span className="text-[10px] font-bold px-2 py-1 bg-green-500/10 text-green-500 border border-green-500/20 rounded-lg shrink-0">{lang === "ru" ? "Активен" : "Active"}</span>}
+              </div>
+            ))
+          )}
+        </Section>
+      ))}
+      <div className="bg-card border border-border rounded-2xl p-4 flex items-start gap-3">
+        <div className="p-2 bg-primary/10 rounded-xl text-primary shrink-0"><Headphones size={16}/></div>
+        <p className="text-sm text-muted-foreground leading-relaxed">
+          {lang === "ru" ? "Устройство по умолчанию выбирается системой. Для смены устройства используйте настройки ОС или браузера." : "The default device is selected by your system. Change it in your OS or browser settings."}
+        </p>
+      </div>
+    </div>
+  );
+}
+
 function NotificationPermissionBanner() {
   const { permission, requestPermission, isSupported } = useNotifications();
   const [requesting, setRequesting] = React.useState(false);
@@ -689,6 +817,279 @@ function NavItem({ id, icon, color, label, badge, badgeAmber, active, onClick, h
       )}
       <ChevronRight size={15} className={cn(isActive ? "text-primary" : "text-muted-foreground", "shrink-0")} />
     </button>
+  );
+}
+
+// ─── FAQ Section ──────────────────────────────────────────────────────────────
+
+function FaqSection({ lang }: { lang: string }) {
+  const [open, setOpen] = useState<number | null>(null);
+
+  const items = lang === "ru" ? [
+    { q: "Как создать группу или канал?", a: "Нажмите иконку карандаша в верхнем углу списка чатов → «Создать группу» или «Создать канал». Добавьте участников и задайте название." },
+    { q: "Как включить двухфакторную аутентификацию?", a: "Настройки → Конфиденциальность и безопасность → Двухфакторная аутентификация. Отсканируйте QR-код в любом приложении-аутентификаторе (Google Authenticator, Authy)." },
+    { q: "Что такое Pulse Prime и Prime+?", a: "Prime — платная подписка с золотым кольцом, значком ⭐, эксклюзивными темами и 2× Spark. Prime+ добавляет алмазное кольцо, 3× Spark, ежемесячный эпический подарок, видео-аватар и закрытый Prime+ Lounge." },
+    { q: "Как работают исчезающие сообщения?", a: "В чате → ⋯ меню → «Исчезающие сообщения». Выберите таймер (5с, 1м, 1ч, 1д, 1нед). Сообщения автоматически удаляются после прочтения по истечении времени." },
+    { q: "Что такое Spark ⚡?", a: "Spark — внутренняя валюта Pulse. Её можно заработать через ежедневные бонусы и задания, или купить в Кошельке. Spark тратится на подарки и подписку Prime." },
+    { q: "Как установить PIN-блокировку экрана?", a: "Настройки → Конфиденциальность и безопасность → Блокировка экрана. Задайте 4–8 значный PIN-код. Приложение заблокируется через 1 минуту бездействия." },
+    { q: "Как отправить подарок?", a: "Откройте любой чат → нажмите иконку 🎁 в поле ввода. Выберите подарок по редкости и стоимости, добавьте сообщение. Подарок можно отправить анонимно." },
+    { q: "Как работают истории?", a: "Истории видны 24 часа. Нажмите на аватар в верхней панели, чтобы посмотреть. Создать историю: значок камеры в истории друга или из профиля." },
+    { q: "Как найти человека?", a: "Поиск по нику в глобальном поиске (лупа) — введите @username. В разделе «Контакты» можно добавить пользователей и управлять списком." },
+    { q: "Как сменить тему оформления?", a: "Настройки → Мой аккаунт → Темы. Тёмная/светлая тема — иконка луны вверху. Pulse Prime открывает 8+ эксклюзивных тем (Obsidian, Midnight, Forest и др.)." },
+    { q: "Как удалить сообщение?", a: "Долгое нажатие на сообщение → «Удалить». Можно удалить только у себя или у всех (в течение 48 часов)." },
+    { q: "Как работают реакции на сообщения?", a: "Долгое нажатие на сообщение → выберите эмодзи из панели реакций. Prime+ позволяет ставить двойные реакции." },
+  ] : [
+    { q: "How to create a group or channel?", a: "Tap the pencil icon at the top of the chat list → 'Create Group' or 'Create Channel'. Add members and set a name." },
+    { q: "How to enable Two-Factor Authentication?", a: "Settings → Privacy & Security → Two-Factor Authentication. Scan the QR code with any authenticator app (Google Authenticator, Authy)." },
+    { q: "What is Pulse Prime and Prime+?", a: "Prime is a paid subscription with a gold ring, ⭐ badge, exclusive themes and 2× Spark. Prime+ adds a diamond ring, 3× Spark, monthly epic gift, video avatar and exclusive Prime+ Lounge." },
+    { q: "How do disappearing messages work?", a: "In any chat → ⋯ menu → 'Disappearing Messages'. Choose a timer (5s, 1m, 1h, 1d, 1wk). Messages delete automatically after being read when the timer expires." },
+    { q: "What is Spark ⚡?", a: "Spark is Pulse's in-app currency. Earn it through daily bonuses and tasks, or buy it in the Wallet. Spend Spark on gifts and Prime subscriptions." },
+    { q: "How to set a screen lock PIN?", a: "Settings → Privacy & Security → Screen Lock. Set a 4–8 digit PIN. The app locks after 1 minute of inactivity." },
+    { q: "How to send a gift?", a: "Open any chat → tap the 🎁 icon in the input area. Choose a gift by rarity and cost, add a message. Gifts can be sent anonymously." },
+    { q: "How do stories work?", a: "Stories are visible for 24 hours. Tap an avatar in the top bar to view. Create a story from your profile or the stories bar." },
+    { q: "How to find someone?", a: "Use global search (magnifier) and type @username. In 'Contacts' you can add users and manage your contact list." },
+    { q: "How to change the theme?", a: "Settings → My Account → Themes. Toggle dark/light with the moon icon at the top. Pulse Prime unlocks 8+ exclusive themes (Obsidian, Midnight, Forest, etc.)." },
+    { q: "How to delete a message?", a: "Long-press a message → 'Delete'. You can delete for yourself only, or for everyone (within 48 hours)." },
+    { q: "How do message reactions work?", a: "Long-press a message → choose an emoji from the reaction panel. Prime+ allows double reactions." },
+  ];
+
+  return (
+    <div className="max-w-2xl mx-auto space-y-2">
+      <div className="bg-card border border-border rounded-2xl overflow-hidden">
+        {items.map((item, i) => (
+          <div key={i} className={`${i < items.length - 1 ? "border-b border-border" : ""}`}>
+            <button
+              onClick={() => setOpen(open === i ? null : i)}
+              className="w-full flex items-center gap-3 px-4 py-3.5 text-left hover:bg-secondary/50 transition-colors"
+            >
+              <div className="w-6 h-6 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                <HelpCircle size={13} className="text-primary" />
+              </div>
+              <span className="flex-1 text-sm font-semibold text-foreground leading-snug">{item.q}</span>
+              <ChevronDown size={15} className={`text-muted-foreground shrink-0 transition-transform ${open === i ? "rotate-180" : ""}`} />
+            </button>
+            {open === i && (
+              <div className="px-4 pb-4 pt-0">
+                <div className="ml-9 text-sm text-muted-foreground leading-relaxed bg-secondary/30 rounded-xl p-3">
+                  {item.a}
+                </div>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─── Features Section ─────────────────────────────────────────────────────────
+
+function FeaturesSection({ lang, navigate }: { lang: string; navigate: (path: string) => void }) {
+  const features = [
+    {
+      emoji: "💬",
+      title: lang === "ru" ? "Чаты" : "Chats",
+      desc: lang === "ru" ? "Личные, групповые чаты и каналы. Ответы, реакции, правка, поиск, пересылка, удаление, закрепление сообщений." : "Direct, group chats and channels. Replies, reactions, edit, search, forward, delete, pin messages.",
+      items: lang === "ru" ? ["Личные и групповые чаты", "Каналы для вещания", "Ответы и цитаты", "Реакции эмодзи", "Поиск в переписке"] : ["Direct & group chats", "Broadcast channels", "Replies & quotes", "Emoji reactions", "In-chat search"],
+      link: "/",
+      color: "bg-blue-500/10 text-blue-500 border-blue-500/20",
+    },
+    {
+      emoji: "📞",
+      title: lang === "ru" ? "Звонки" : "Calls",
+      desc: lang === "ru" ? "Аудио и видеозвонки с красивым экраном принятия, историей звонков и эффектами." : "Audio and video calls with a beautiful accept screen, call history and effects.",
+      items: lang === "ru" ? ["Аудио и видеозвонки", "История звонков", "Экран принятия/отклонения", "Полноэкранный режим"] : ["Audio & video calls", "Call history", "Accept / decline screen", "Full-screen mode"],
+      link: "/calls",
+      color: "bg-green-500/10 text-green-500 border-green-500/20",
+    },
+    {
+      emoji: "🎁",
+      title: lang === "ru" ? "Подарки" : "Gifts",
+      desc: lang === "ru" ? "Отправляйте анимированные подарки четырёх редкостей. Рейтинг дарителей, анонимные подарки, витрина." : "Send animated gifts of four rarities. Sender leaderboard, anonymous gifts, gift showcase.",
+      items: lang === "ru" ? ["4 уровня редкости", "Анонимная отправка", "Рейтинг дарителей", "Ежемесячный подарок (Prime+)"] : ["4 rarity tiers", "Anonymous sending", "Sender leaderboard", "Monthly gift (Prime+)"],
+      link: "/gifts",
+      color: "bg-pink-500/10 text-pink-500 border-pink-500/20",
+    },
+    {
+      emoji: "📖",
+      title: lang === "ru" ? "Истории" : "Stories",
+      desc: lang === "ru" ? "24-часовые истории с полноэкранным просмотром. Бар историй и группировка по пользователям." : "24-hour stories with full-screen viewer. Stories bar and grouping by user.",
+      items: lang === "ru" ? ["Истории 24 часа", "Полноэкранный просмотр", "Бар историй", "Просмотр по порядку"] : ["24-hour stories", "Full-screen viewer", "Stories bar", "Sequential viewing"],
+      link: "/stories",
+      color: "bg-orange-500/10 text-orange-500 border-orange-500/20",
+    },
+    {
+      emoji: "🔒",
+      title: lang === "ru" ? "Безопасность" : "Security",
+      desc: lang === "ru" ? "2FA через TOTP, PIN-блокировка экрана, исчезающие сообщения, управление сессиями." : "TOTP 2FA, screen lock PIN, disappearing messages, session management.",
+      items: lang === "ru" ? ["2FA (Google Auth, Authy)", "PIN-блокировка экрана", "Исчезающие сообщения", "Завершение сессий"] : ["TOTP 2FA", "Screen lock PIN", "Disappearing messages", "Session management"],
+      link: "/settings",
+      color: "bg-slate-500/10 text-slate-500 border-slate-500/20",
+    },
+    {
+      emoji: "⚡",
+      title: "Spark & Wallet",
+      desc: lang === "ru" ? "Внутренняя валюта для подарков и Prime. Ежедневные бонусы, задания, история транзакций, запросы Spark." : "In-app currency for gifts and Prime. Daily bonuses, tasks, transaction history, Spark requests.",
+      items: lang === "ru" ? ["Ежедневный бонус", "История транзакций", "Запросы Spark", "Покупка Spark"] : ["Daily bonus", "Transaction history", "Spark requests", "Buy Spark"],
+      link: "/wallet",
+      color: "bg-yellow-500/10 text-yellow-500 border-yellow-500/20",
+    },
+    {
+      emoji: "⭐",
+      title: "Pulse Prime",
+      desc: lang === "ru" ? "Два уровня подписки с золотым и алмазным кольцами, эксклюзивными темами, мультипликаторами Spark и закрытым сообществом." : "Two subscription tiers with gold and diamond rings, exclusive themes, Spark multipliers and a closed community.",
+      items: lang === "ru" ? ["Золотое/алмазное кольцо", "Эксклюзивные темы", "2× или 3× Spark", "Prime+ Lounge"] : ["Gold/diamond ring", "Exclusive themes", "2× or 3× Spark", "Prime+ Lounge"],
+      link: "/prime",
+      color: "bg-amber-500/10 text-amber-500 border-amber-500/20",
+    },
+    {
+      emoji: "🎨",
+      title: lang === "ru" ? "Стикеры и эмодзи" : "Stickers & Emoji",
+      desc: lang === "ru" ? "Уникальные SVG-стикеры, анимированные эмодзи, эффекты отправки (конфетти, снег, огонь)." : "Unique SVG stickers, animated emoji, send effects (confetti, snow, fire).",
+      items: lang === "ru" ? ["SVG стикеры", "Анимированные эмодзи", "Эффект конфетти", "Эффекты снег и огонь"] : ["SVG stickers", "Animated emoji", "Confetti effect", "Snow & fire effects"],
+      link: "/",
+      color: "bg-purple-500/10 text-purple-500 border-purple-500/20",
+    },
+  ];
+
+  return (
+    <div className="max-w-2xl mx-auto space-y-3">
+      {features.map((f, i) => (
+        <div key={i} className={`bg-card border rounded-2xl overflow-hidden ${f.color}`}>
+          <div className="p-4 flex items-start gap-4">
+            <span className="text-3xl shrink-0 mt-0.5">{f.emoji}</span>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-1">
+                <p className="font-bold text-sm text-foreground">{f.title}</p>
+              </div>
+              <p className="text-xs text-muted-foreground leading-relaxed mb-3">{f.desc}</p>
+              <div className="flex flex-wrap gap-1.5">
+                {f.items.map((item, j) => (
+                  <span key={j} className={`text-[10px] font-semibold px-2 py-0.5 rounded-lg border ${f.color}`}>{item}</span>
+                ))}
+              </div>
+            </div>
+            <button onClick={() => navigate(f.link)} className="shrink-0 p-1.5 rounded-lg hover:bg-secondary transition-colors text-muted-foreground">
+              <ChevronRight size={15}/>
+            </button>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ─── Support Section ──────────────────────────────────────────────────────────
+
+function SupportSection({ lang, user, t, currentStatusOpt }: { lang: string; user: any; t: (key: string) => string; currentStatusOpt: any }) {
+  const [copied, setCopied] = useState(false);
+
+  const copyDebugInfo = () => {
+    const info = [
+      `Pulse Messenger v2.0.0`,
+      `User: @${user?.username} (ID: ${user?.id})`,
+      `Browser: ${navigator.userAgent}`,
+      `Platform: ${navigator.platform}`,
+      `Language: ${navigator.language}`,
+      `Screen: ${window.screen.width}×${window.screen.height}`,
+      `Time: ${new Date().toISOString()}`,
+    ].join("\n");
+    navigator.clipboard.writeText(info).catch(() => {});
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const systemStats = [
+    { label: lang === "ru" ? "Браузер" : "Browser", value: navigator.userAgent.includes("Chrome") ? "Chrome" : navigator.userAgent.includes("Firefox") ? "Firefox" : navigator.userAgent.includes("Safari") ? "Safari" : lang === "ru" ? "Другой" : "Other" },
+    { label: "Platform", value: navigator.platform || "—" },
+    { label: lang === "ru" ? "Разрешение" : "Resolution", value: `${window.screen.width}×${window.screen.height}` },
+    { label: lang === "ru" ? "Язык" : "Language", value: navigator.language },
+    { label: "User ID", value: String(user?.id ?? "—") },
+    { label: "@username", value: `@${user?.username ?? "—"}` },
+  ];
+
+  return (
+    <div className="max-w-2xl mx-auto space-y-6">
+      {/* About card */}
+      <Section title={t("settings.about")} icon={<Zap size={13}/>}>
+        <div className="p-4">
+          <div className="flex items-center gap-4 mb-4">
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary to-orange-600 flex items-center justify-center shrink-0 shadow-lg">
+              <Zap size={26} className="text-white fill-white"/>
+            </div>
+            <div>
+              <p className="font-black text-base">Pulse Messenger</p>
+              <p className="text-xs text-muted-foreground">Version 2.0.0 — Production</p>
+              <div className="flex items-center gap-1.5 mt-1">
+                <span className="w-2 h-2 rounded-full bg-green-500"/>
+                <span className="text-[11px] text-green-500 font-medium">{lang === "ru" ? "Все системы работают" : "All systems operational"}</span>
+              </div>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            {[
+              { label: lang === "ru" ? "Аккаунт" : "Account", value: `@${user?.username}` },
+              { label: "ID", value: String(user?.id ?? "—") },
+              { label: lang === "ru" ? "Статус" : "Status", value: currentStatusOpt?.label ?? "—" },
+              { label: lang === "ru" ? "Верификация" : "Verified", value: user?.isVerified ? (lang === "ru" ? "✓ Да" : "✓ Yes") : (lang === "ru" ? "Нет" : "No") },
+            ].map((stat, i) => (
+              <div key={i} className="bg-muted/40 rounded-xl p-2.5">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold mb-0.5">{stat.label}</p>
+                <p className="text-sm font-semibold text-foreground truncate">{stat.value}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </Section>
+
+      {/* Contact options */}
+      <div className="bg-card rounded-2xl border border-border overflow-hidden divide-y divide-border">
+        {[
+          { icon: <MessageSquare size={14} className="text-primary"/>, bg: "bg-primary/15", title: lang === "ru" ? "Служба поддержки" : "Support Team", desc: lang === "ru" ? "Задать вопрос или сообщить о проблеме" : "Ask a question or report an issue", href: "/support" },
+          { icon: <AlertTriangle size={14} className="text-red-400"/>, bg: "bg-red-500/15", title: lang === "ru" ? "Сообщить об ошибке" : "Report a Bug", desc: lang === "ru" ? "Помогите нам улучшить Pulse" : "Help us improve Pulse", href: "/support" },
+          { icon: <Shield size={14} className="text-green-400"/>, bg: "bg-green-500/15", title: lang === "ru" ? "Конфиденциальность" : "Privacy Policy", desc: lang === "ru" ? "Политика конфиденциальности и GDPR" : "Privacy policy and data handling", href: "/support" },
+          { icon: <HelpCircle size={14} className="text-blue-400"/>, bg: "bg-blue-500/15", title: lang === "ru" ? "Часто задаваемые вопросы" : "FAQ", desc: lang === "ru" ? "Ответы на популярные вопросы" : "Answers to common questions", onClick: "faq" },
+        ].map((item, i) => (
+          item.onClick ? (
+            <div key={i} className="flex items-center gap-3 px-4 py-3.5 cursor-default opacity-70">
+              <div className={`w-8 h-8 rounded-xl ${item.bg} flex items-center justify-center shrink-0`}>{item.icon}</div>
+              <div className="flex-1">
+                <p className="font-semibold text-foreground text-sm">{item.title}</p>
+                <p className="text-xs text-muted-foreground">{item.desc}</p>
+              </div>
+              <ChevronRight size={15} className="text-muted-foreground"/>
+            </div>
+          ) : (
+            <a key={i} href={item.href} className="flex items-center gap-3 px-4 py-3.5 hover:bg-secondary/50 transition-colors">
+              <div className={`w-8 h-8 rounded-xl ${item.bg} flex items-center justify-center shrink-0`}>{item.icon}</div>
+              <div className="flex-1">
+                <p className="font-semibold text-foreground text-sm">{item.title}</p>
+                <p className="text-xs text-muted-foreground">{item.desc}</p>
+              </div>
+              <ChevronRight size={15} className="text-muted-foreground"/>
+            </a>
+          )
+        ))}
+      </div>
+
+      {/* System info */}
+      <Section title={lang === "ru" ? "Системная информация" : "System Info"} icon={<Monitor size={13}/>}>
+        <div className="p-4 space-y-2">
+          {systemStats.map((stat, i) => (
+            <div key={i} className="flex items-center justify-between text-xs">
+              <span className="text-muted-foreground">{stat.label}</span>
+              <span className="font-mono font-semibold text-foreground max-w-[60%] truncate text-right">{stat.value}</span>
+            </div>
+          ))}
+          <button
+            onClick={copyDebugInfo}
+            className="mt-3 w-full flex items-center justify-center gap-2 py-2 rounded-xl border border-border text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+          >
+            {copied ? <><CheckCircle size={12} className="text-green-500"/> {lang === "ru" ? "Скопировано!" : "Copied!"}</> : <><Copy size={12}/> {lang === "ru" ? "Скопировать для поддержки" : "Copy for support"}</>}
+          </button>
+        </div>
+      </Section>
+    </div>
   );
 }
 
@@ -1825,31 +2226,7 @@ export default function Settings() {
           )}
 
           {/* ─── SPEAKERS & CAMERA ────────────────────────── */}
-          {displaySection === "speakers" && (
-            <div className="max-w-2xl mx-auto space-y-6">
-              <Section title={lang==="ru"?"Устройства ввода/вывода":"Input/Output Devices"} icon={<Headphones size={13}/>}>
-                {[
-                  { icon:<Mic size={22} className="text-orange-500"/>, bg:"bg-orange-500/10 border-orange-500/20", title:lang==="ru"?"Микрофон":"Microphone", desc:lang==="ru"?"Системный микрофон по умолчанию":"System default microphone" },
-                  { icon:<Headphones size={22} className="text-blue-500"/>, bg:"bg-blue-500/10 border-blue-500/20", title:lang==="ru"?"Динамики":"Speakers", desc:lang==="ru"?"Системный динамик по умолчанию":"System default speakers" },
-                  { icon:<Camera size={22} className="text-violet-500"/>, bg:"bg-violet-500/10 border-violet-500/20", title:lang==="ru"?"Камера":"Camera", desc:lang==="ru"?"Системная камера по умолчанию":"System default camera" },
-                ].map((dev, i, arr) => (
-                  <div key={i} className={`p-4 flex items-center gap-4 ${i < arr.length-1 ? "border-b border-border" : ""}`}>
-                    <div className={`w-12 h-12 rounded-2xl border flex items-center justify-center shrink-0 ${dev.bg}`}>{dev.icon}</div>
-                    <div className="flex-1">
-                      <p className="text-sm font-semibold">{dev.title}</p>
-                      <p className="text-xs text-muted-foreground">{dev.desc}</p>
-                    </div>
-                    <span className="text-xs font-bold px-2.5 py-1 bg-green-500/10 text-green-500 border border-green-500/20 rounded-lg shrink-0">{lang==="ru"?"Активен":"Active"}</span>
-                  </div>
-                ))}
-              </Section>
-              <div className="bg-card border border-border rounded-2xl p-4">
-                <p className="text-sm text-muted-foreground text-center">
-                  {lang==="ru"?"Управление устройствами доступно через настройки браузера и ОС.":"Manage devices through your browser and OS settings."}
-                </p>
-              </div>
-            </div>
-          )}
+          {displaySection === "speakers" && <SpeakersSection lang={lang} />}
 
           {/* ─── BATTERY & ANIMATIONS ─────────────────────── */}
           {displaySection === "battery" && (
@@ -1857,16 +2234,28 @@ export default function Settings() {
               <Section title={lang==="ru"?"Производительность":"Performance"} icon={<Battery size={13}/>}>
                 <Row icon={<Smartphone size={18}/>} color="bg-green-500/10 text-green-500"
                   label={t("settings.reduceAnimations")} desc={t("settings.reduceAnimationsDesc")}
-                  right={<Switch checked={reduceAnimations} onCheckedChange={v => { setReduceAnimations(v); setLs("pulse-reduce-animations", v); }}/>}/>
+                  right={<Switch checked={reduceAnimations} onCheckedChange={v => { setReduceAnimations(v); setLs("pulse-reduce-animations", v); toast({ title: t("common.saved") }); }}/>}/>
                 <Row icon={<Battery size={18}/>} color="bg-emerald-500/10 text-emerald-500"
                   label={lang==="ru"?"Режим экономии заряда":"Power Saving Mode"}
                   desc={lang==="ru"?"Отключить фоновые анимации и эффекты":"Disable background animations and effects"}
                   right={<Switch checked={powerSaving} onCheckedChange={v => { setPowerSaving(v); setLs("pulse-power-saving", v); toast({ title: t("common.saved") }); }}/>}/>
-                <Row icon={<Zap size={18}/>} color="bg-yellow-500/10 text-yellow-500"
+                <Row icon={<Gift size={18}/>} color="bg-yellow-500/10 text-yellow-500"
                   label={lang==="ru"?"Анимированные подарки":"Animated Gifts"}
-                  desc={lang==="ru"?"Скоро — функция подарков находится в разработке":"Coming soon — gifts feature is in development"}
-                  right={<span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/25">Soon</span>}/>
+                  desc={lang==="ru"?"Воспроизводить анимацию при получении подарков":"Play animation when receiving gifts"}
+                  right={<Switch checked={animatedEmoji} onCheckedChange={v => { setAnimatedEmoji(v); setLs("pulse-animated-emoji", v); toast({ title: t("common.saved") }); }}/>}/>
+                <Row icon={<Zap size={18}/>} color="bg-blue-500/10 text-blue-500"
+                  label={lang==="ru"?"Эффекты сообщений":"Message Effects"}
+                  desc={lang==="ru"?"Конфетти, снег и огонь при отправке":"Confetti, snow and fire on send"}
+                  right={<Switch checked={linkPreview} onCheckedChange={v => { setLinkPreview(v); setLs("pulse-msg-effects", v); toast({ title: t("common.saved") }); }}/>}/>
               </Section>
+              <div className="bg-card border border-border rounded-2xl p-4 flex items-start gap-3">
+                <div className="p-2 bg-emerald-500/10 text-emerald-500 rounded-xl shrink-0"><Battery size={16}/></div>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  {lang==="ru"
+                    ? "Режим экономии заряда отключает фоновые анимации и частицы, сохраняя ключевые переходы интерфейса."
+                    : "Power saving mode disables background animations and particles while keeping essential UI transitions."}
+                </p>
+              </div>
             </div>
           )}
 
@@ -1989,97 +2378,13 @@ export default function Settings() {
 
 
           {/* ─── PULSE FAQ ─────────────────────────────────── */}
-          {displaySection === "faq" && (
-            <div className="max-w-2xl mx-auto space-y-3">
-              {[
-                { q:lang==="ru"?"Как создать группу?":"How to create a group?", a:lang==="ru"?"Нажмите иконку карандаша в списке чатов и выберите «Создать группу».":"Tap the pencil icon in the chat list and select 'Create Group'." },
-                { q:lang==="ru"?"Как включить 2FA?":"How to enable 2FA?", a:lang==="ru"?"Настройки → Конфиденциальность и безопасность → Двухфакторная аутентификация.":"Settings → Privacy & Security → Two-Factor Authentication." },
-                { q:lang==="ru"?"Что такое Pulse Prime?":"What is Pulse Prime?", a:lang==="ru"?"Pulse Prime — платная подписка с эксклюзивными темами, скрытым статусом и другими привилегиями.":"Pulse Prime is a paid subscription with exclusive themes, hidden status, and other perks." },
-                { q:lang==="ru"?"Как удалить аккаунт?":"How to delete account?", a:lang==="ru"?"Свяжитесь с поддержкой через раздел «Поддержка» в настройках.":"Contact support through the 'Support' section in settings." },
-                { q:lang==="ru"?"Как работают стикеры?":"How do stickers work?", a:lang==="ru"?"Нажмите иконку смайлика в поле ввода сообщения для открытия панели стикеров.":"Tap the smile icon in the message input to open the sticker panel." },
-                { q:lang==="ru"?"Как установить PIN-блокировку?":"How to set a screen lock PIN?", a:lang==="ru"?"Настройки → Конфиденциальность → Блокировка экрана.":"Settings → Privacy & Security → Screen Lock." },
-              ].map((item, i) => (
-                <div key={i} className="bg-card border border-border rounded-2xl p-4">
-                  <p className="font-semibold text-sm mb-2">{item.q}</p>
-                  <p className="text-xs text-muted-foreground leading-relaxed">{item.a}</p>
-                </div>
-              ))}
-            </div>
-          )}
+          {displaySection === "faq" && <FaqSection lang={lang} />}
 
           {/* ─── PULSE FEATURES ────────────────────────────── */}
-          {displaySection === "features" && (
-            <div className="max-w-2xl mx-auto space-y-3">
-              {[
-                { emoji:"💬", title:lang==="ru"?"Чаты":"Chats", desc:lang==="ru"?"Личные, групповые и канальные чаты с историей, ответами, реакциями и поиском":"Direct, group and channel chats with history, replies, reactions and search" },
-                { emoji:"📞", title:lang==="ru"?"Звонки":"Calls", desc:lang==="ru"?"Аудио и видеозвонки с экраном принятия/отклонения и историей":"Audio and video calls with accept/decline screens and call history" },
-                { emoji:"🎁", title:lang==="ru"?"Подарки":"Gifts", desc:lang==="ru"?"Анимированные подарки: обычный, редкий, эпический, легендарный":"Animated gifts with rarities: common, rare, epic, legendary" },
-                { emoji:"📖", title:lang==="ru"?"Истории":"Stories", desc:lang==="ru"?"24-часовые истории с полноэкранным просмотром":"24-hour stories with full-screen viewer" },
-                { emoji:"👥", title:lang==="ru"?"Контакты":"Contacts", desc:lang==="ru"?"Список контактов с поиском и управлением":"Contact list with search and management" },
-
-                { emoji:"🔒", title:lang==="ru"?"Безопасность":"Security", desc:lang==="ru"?"2FA, PIN-блокировка, исчезающие сообщения, приватность":"2FA, PIN lock, disappearing messages, privacy controls" },
-                { emoji:"⭐", title:"Pulse Prime", desc:lang==="ru"?"Эксклюзивные темы, скрытый статус и другие привилегии":"Exclusive themes, hidden online status, and other perks" },
-                { emoji:"🎨", title:lang==="ru"?"Стикеры":"Stickers", desc:lang==="ru"?"Уникальные SVG-стикеры для выражения эмоций":"Unique SVG stickers to express emotions" },
-              ].map((f, i) => (
-                <div key={i} className="bg-card border border-border rounded-2xl p-4 flex items-start gap-4">
-                  <span className="text-3xl shrink-0">{f.emoji}</span>
-                  <div>
-                    <p className="font-semibold text-sm mb-1">{f.title}</p>
-                    <p className="text-xs text-muted-foreground leading-relaxed">{f.desc}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+          {displaySection === "features" && <FeaturesSection lang={lang} navigate={(path: string) => { window.location.href = path; }} />}
 
           {/* ─── SUPPORT ───────────────────────────────────── */}
-          {displaySection === "support" && (
-            <div className="max-w-2xl mx-auto space-y-6">
-              <Section title={t("settings.about")} icon={<Zap size={13}/>}>
-                <div className="p-4">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary to-orange-700 flex items-center justify-center shrink-0"><Zap size={22} className="text-white fill-white"/></div>
-                    <div>
-                      <p className="font-bold text-base">Pulse Messenger</p>
-                      <p className="text-xs text-muted-foreground">{t("settings.version")}</p>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
-                    <div className="bg-muted/50 rounded-xl p-2.5">
-                      <p className="font-medium text-foreground mb-0.5">{t("settings.accountInfo")}</p>
-                      <p>@{user?.username}</p><p>ID: {user?.id}</p>
-                    </div>
-                    <div className="bg-muted/50 rounded-xl p-2.5">
-                      <p className="font-medium text-foreground mb-0.5">{t("settings.statusInfo")}</p>
-                      <div className="flex items-center gap-1.5">
-                        <span className={`w-2 h-2 rounded-full ${currentStatusOpt?.color}`}/>
-                        {currentStatusOpt?.label}
-                      </div>
-                      <p>{user?.isVerified ? t("settings.verified") : t("settings.notVerified")}</p>
-                    </div>
-                  </div>
-                </div>
-              </Section>
-              <div className="bg-card rounded-2xl border border-border overflow-hidden divide-y divide-border">
-                <a href="/support" className="flex items-center gap-3 px-4 py-3.5 hover:bg-secondary/50 transition-colors">
-                  <div className="w-8 h-8 rounded-xl bg-primary/15 flex items-center justify-center shrink-0"><MessageSquare size={14} className="text-primary"/></div>
-                  <div className="flex-1">
-                    <p className="font-semibold text-foreground text-sm">{lang==="ru"?"Служба поддержки":"Support Team"}</p>
-                    <p className="text-xs text-muted-foreground">{lang==="ru"?"Задать вопрос, решить проблему":"Ask a question or report an issue"}</p>
-                  </div>
-                  <ChevronRight size={15} className="text-muted-foreground"/>
-                </a>
-                <a href="/support" className="flex items-center gap-3 px-4 py-3.5 hover:bg-secondary/50 transition-colors">
-                  <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-red-500 to-orange-600 flex items-center justify-center shrink-0"><AlertTriangle size={14} className="text-white"/></div>
-                  <div className="flex-1">
-                    <p className="font-semibold text-foreground text-sm">{lang==="ru"?"Сообщить об ошибке":"Report a Bug"}</p>
-                    <p className="text-xs text-muted-foreground">{lang==="ru"?"Помогите нам улучшить Pulse":"Help us improve Pulse"}</p>
-                  </div>
-                  <ChevronRight size={15} className="text-muted-foreground"/>
-                </a>
-              </div>
-            </div>
-          )}
+          {displaySection === "support" && <SupportSection lang={lang} user={user} t={t} currentStatusOpt={currentStatusOpt} />}
 
         </div>
       </div>

@@ -1,8 +1,41 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Trophy } from "lucide-react";
+import { Trophy, Crown, Sparkles, BadgeCheck } from "lucide-react";
+
+interface LeaderboardEntry {
+  userId: number;
+  username: string;
+  displayName: string;
+  avatarColor: string;
+  avatarUrl?: string;
+  hasPrime: boolean;
+  primeTier?: string;
+  isVerified: boolean;
+  giftCount: number;
+  totalStars: number;
+  totalValue: number;
+}
+
+const MEDAL = ["🥇", "🥈", "🥉"];
+const RARITY_COLORS = ["text-yellow-400", "text-slate-400", "text-amber-600"];
 
 export function GiftLeaderboard({ userId: _userId }: { userId: number }) {
+  const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const token = sessionStorage.getItem("pulse-token");
+    fetch("/api/gifts/leaderboard?limit=10", {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    })
+      .then(r => r.json())
+      .then(data => {
+        if (Array.isArray(data)) setEntries(data);
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 16 }}
@@ -15,13 +48,55 @@ export function GiftLeaderboard({ userId: _userId }: { userId: number }) {
           <Trophy size={14} className="text-amber-400" />
         </div>
         <span className="text-sm font-black text-foreground">Рейтинг подарков</span>
-        <span className="ml-auto text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/25">Soon</span>
       </div>
-      <div className="flex flex-col items-center gap-2 py-6 px-4 text-muted-foreground">
-        <span className="text-3xl">🏆</span>
-        <p className="text-sm font-semibold text-foreground/70">Рейтинг подарков — скоро</p>
-        <p className="text-xs text-center opacity-60">Функция появится в ближайшем обновлении</p>
-      </div>
+
+      {loading ? (
+        <div className="flex items-center justify-center py-8">
+          <div className="w-5 h-5 border-2 border-amber-400 border-t-transparent rounded-full animate-spin" />
+        </div>
+      ) : entries.length === 0 ? (
+        <div className="flex flex-col items-center gap-2 py-6 px-4 text-muted-foreground">
+          <span className="text-3xl">🏆</span>
+          <p className="text-sm font-semibold text-foreground/70">Пока нет данных</p>
+          <p className="text-xs text-center opacity-60">Отправьте первый подарок, чтобы попасть в рейтинг</p>
+        </div>
+      ) : (
+        <div className="divide-y divide-border">
+          {entries.map((entry, idx) => (
+            <div key={entry.userId} className={`flex items-center gap-3 px-4 py-3 ${idx === 0 ? "bg-amber-500/5" : ""}`}>
+              <span className="text-lg w-6 text-center shrink-0">
+                {idx < 3 ? MEDAL[idx] : <span className="text-xs font-bold text-muted-foreground">{idx + 1}</span>}
+              </span>
+              <div
+                className="w-9 h-9 rounded-full shrink-0 flex items-center justify-center text-white font-bold text-sm overflow-hidden"
+                style={{ backgroundColor: entry.avatarColor || "#6366f1" }}
+              >
+                {entry.avatarUrl
+                  ? <img src={entry.avatarUrl} alt="" className="w-full h-full object-cover" />
+                  : (entry.displayName?.[0]?.toUpperCase() || "?")}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-1">
+                  <span className="text-sm font-bold truncate">{entry.displayName || entry.username}</span>
+                  {entry.isVerified && <BadgeCheck size={12} className="text-primary shrink-0" />}
+                  {entry.hasPrime && entry.primeTier === "prime_plus"
+                    ? <Sparkles size={11} className="text-purple-400 shrink-0" />
+                    : entry.hasPrime
+                    ? <Crown size={11} className="text-yellow-400 shrink-0" />
+                    : null}
+                </div>
+                <p className="text-[11px] text-muted-foreground">@{entry.username}</p>
+              </div>
+              <div className="text-right shrink-0">
+                <p className={`text-sm font-black ${idx < 3 ? RARITY_COLORS[idx] : "text-foreground"}`}>
+                  {entry.totalValue.toLocaleString()} ⚡
+                </p>
+                <p className="text-[10px] text-muted-foreground">{entry.giftCount} подарков</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </motion.div>
   );
 }

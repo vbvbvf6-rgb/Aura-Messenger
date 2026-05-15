@@ -221,6 +221,124 @@ function PrimeCountdown({ expiresAt, tier, onRenew }: { expiresAt: string; tier:
   );
 }
 
+// ─── Monthly Gift Claim ───────────────────────────────────────────────────────
+
+function MonthlyGiftClaim() {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [status, setStatus] = useState<{ available: boolean; daysLeft: number; lastGiftAt: string | null } | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [claimed, setClaimed] = useState<any>(null);
+
+  useEffect(() => {
+    const token = sessionStorage.getItem("pulse-token");
+    fetch("/api/wallet/monthly-gift/status", { headers: token ? { Authorization: `Bearer ${token}` } : {} })
+      .then(r => r.json())
+      .then(data => { if (!data.error) setStatus(data); })
+      .catch(() => {});
+  }, []);
+
+  const handleClaim = async () => {
+    setLoading(true);
+    try {
+      const token = sessionStorage.getItem("pulse-token");
+      const res = await fetch("/api/wallet/monthly-gift", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast({ variant: "destructive", title: "Ошибка", description: data.error || "Не удалось получить подарок" });
+      } else {
+        setClaimed(data);
+        setStatus(prev => prev ? { ...prev, available: false, daysLeft: 30 } : prev);
+        queryClient.invalidateQueries({ queryKey: ["/api/users/me"] });
+        toast({ title: data.type === "gift" ? `Подарок получен! ${data.gift?.emoji ?? "🎁"}` : "Spark начислен!", description: data.type === "gift" ? `Вы получили: ${data.gift?.name}` : `+${data.amount} ⚡ на баланс` });
+      }
+    } catch {
+      toast({ variant: "destructive", title: "Ошибка соединения" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (!status) return null;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="relative rounded-2xl overflow-hidden border border-fuchsia-500/30 p-4"
+      style={{ background: "linear-gradient(135deg, rgba(217,70,239,0.12), rgba(168,85,247,0.06))" }}
+    >
+      <div className="absolute top-0 right-0 w-24 h-24 bg-fuchsia-500/10 rounded-full blur-2xl pointer-events-none" />
+      <div className="flex items-start gap-3 relative z-10">
+        <motion.div
+          animate={status.available ? { scale: [1, 1.12, 1], rotate: [0, 5, -5, 0] } : {}}
+          transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+          className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl border border-fuchsia-500/30 shrink-0"
+          style={{ background: "rgba(217,70,239,0.15)" }}
+        >
+          {claimed ? (claimed.type === "gift" ? (claimed.gift?.emoji ?? "🎁") : "⚡") : "🎁"}
+        </motion.div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-0.5">
+            <p className="text-sm font-bold text-foreground">Ежемесячный эпический подарок</p>
+            {status.available && !claimed && (
+              <motion.span animate={{ opacity: [1, 0.5, 1] }} transition={{ duration: 1.5, repeat: Infinity }}
+                className="text-[9px] font-black px-2 py-0.5 rounded-full bg-green-500/20 text-green-400 border border-green-500/30 uppercase">
+                Доступен!
+              </motion.span>
+            )}
+          </div>
+          {claimed ? (
+            <p className="text-xs text-green-400 font-medium">
+              {claimed.type === "gift" ? `Получено: ${claimed.gift?.name} ✓` : `+${claimed.amount} ⚡ начислено ✓`}
+            </p>
+          ) : status.available ? (
+            <p className="text-xs text-muted-foreground">Ваш ежемесячный эпический подарок готов к получению</p>
+          ) : (
+            <p className="text-xs text-muted-foreground">
+              Следующий подарок через <span className="font-bold text-foreground">{status.daysLeft} дн.</span>
+            </p>
+          )}
+        </div>
+        {!claimed && status.available && (
+          <motion.button
+            whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
+            onClick={handleClaim}
+            disabled={loading}
+            className="shrink-0 px-4 py-2 rounded-xl font-black text-xs text-white disabled:opacity-60"
+            style={{ background: "linear-gradient(135deg, #d946ef, #a855f7)", boxShadow: "0 0 14px rgba(217,70,239,0.4)" }}
+          >
+            {loading ? "..." : "Забрать"}
+          </motion.button>
+        )}
+        {!claimed && !status.available && (
+          <div className="shrink-0 flex flex-col items-center">
+            <span className="text-lg font-black text-muted-foreground">{status.daysLeft}</span>
+            <span className="text-[9px] text-muted-foreground">дн.</span>
+          </div>
+        )}
+      </div>
+      {!claimed && status.available && (
+        <div className="mt-3 flex gap-2 relative z-10">
+          {["💎", "🌸", "👑", "⭐", "🔥"].map((emoji, i) => (
+            <motion.div key={i}
+              animate={{ y: [0, -4, 0] }}
+              transition={{ duration: 2, repeat: Infinity, delay: i * 0.3, ease: "easeInOut" }}
+              className="w-8 h-8 rounded-xl border border-fuchsia-500/20 flex items-center justify-center text-sm"
+              style={{ background: "rgba(168,85,247,0.1)" }}
+            >
+              {emoji}
+            </motion.div>
+          ))}
+        </div>
+      )}
+    </motion.div>
+  );
+}
+
 // ─── Feature row ─────────────────────────────────────────────────────────────
 
 function FeatureRow({ icon: Icon, text, color, bg }: { icon: React.ElementType; text: string; color: string; bg: string }) {
@@ -484,7 +602,10 @@ export default function Prime() {
 
         {/* Prime+ exclusive live actions */}
         {isSubscribedPlus && (
-          <PrimePlusPanel navigate={navigate} toast={toast} queryClient={queryClient} />
+          <>
+            <PrimePlusPanel navigate={navigate} toast={toast} queryClient={queryClient} />
+            <MonthlyGiftClaim />
+          </>
         )}
 
         {/* Tab switcher */}
@@ -797,7 +918,7 @@ export default function Prime() {
                   </motion.div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-bold text-foreground">Ежемесячный эпический подарок</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">Каждый месяц на ваш счёт начисляется эпический подарок стоимостью от 500 ⚡ — бесплатно</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">Prime+ пользователи получают эпический подарок каждый месяц — бесплатно</p>
                   </div>
                 </div>
                 <div className="mt-3 flex gap-2 relative z-10">
@@ -813,6 +934,7 @@ export default function Prime() {
                   ))}
                   <div className="w-9 h-9 rounded-xl border border-border flex items-center justify-center text-xs text-muted-foreground font-bold">+∞</div>
                 </div>
+                <p className="mt-2 text-[11px] text-purple-400 font-semibold relative z-10">✓ Доступно подписчикам Prime+ — используйте кнопку «Забрать» вверху страницы</p>
               </div>
 
               {/* Plan picker */}
