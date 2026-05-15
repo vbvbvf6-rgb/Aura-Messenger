@@ -157,12 +157,12 @@ export function Sidebar({ mobileSidebarOpen, onMobileClose, onMobileOpen, onOpen
       {canAddAccount && (
         <DropdownMenuItem
           onClick={openAddAccount}
-          className="flex items-center gap-2 text-primary focus:text-primary cursor-pointer mt-1"
+          className="flex items-center gap-2 text-primary data-[highlighted]:bg-primary data-[highlighted]:text-white cursor-pointer mt-1 rounded-xl"
         >
           <UserPlus size={15} />
           Добавить аккаунт
           {savedAccounts.length > 0 && (
-            <span className="ml-auto text-[10px] font-bold uppercase tracking-wider text-primary/60 bg-primary/10 px-1.5 py-0.5 rounded">{savedAccounts.length}/3</span>
+            <span className="ml-auto text-[10px] font-bold uppercase tracking-wider text-primary/70 bg-primary/10 px-1.5 py-0.5 rounded">{savedAccounts.length}/3</span>
           )}
         </DropdownMenuItem>
       )}
@@ -315,8 +315,8 @@ export function Sidebar({ mobileSidebarOpen, onMobileClose, onMobileOpen, onOpen
             {isAdmin && (
               <>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem asChild className="rounded-xl cursor-pointer">
-                  <Link href="/admin" className="flex items-center w-full text-indigo-400 focus:text-indigo-400">
+                <DropdownMenuItem asChild className="rounded-xl cursor-pointer data-[highlighted]:bg-indigo-500 data-[highlighted]:text-white">
+                  <Link href="/admin" className="flex items-center w-full text-indigo-400">
                     <Shield size={16} className="mr-2.5" />
                     <span className="font-semibold">{t("menu.administrator")}</span>
                   </Link>
@@ -324,7 +324,7 @@ export function Sidebar({ mobileSidebarOpen, onMobileClose, onMobileOpen, onOpen
               </>
             )}
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={logout} className="rounded-xl text-destructive focus:text-destructive cursor-pointer">
+            <DropdownMenuItem onClick={logout} className="rounded-xl text-destructive data-[highlighted]:bg-destructive data-[highlighted]:text-white cursor-pointer">
               <LogOut size={16} className="mr-2.5" />
               <span className="font-semibold">{t("menu.logout")}</span>
             </DropdownMenuItem>
