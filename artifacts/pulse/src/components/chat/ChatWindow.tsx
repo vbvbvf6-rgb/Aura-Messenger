@@ -676,8 +676,6 @@ export function ChatWindow({ chatId }: ChatWindowProps) {
     if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
   }, [searchMatchIndex, matchingMessageIds]);
 
-  const filteredMessages = messages;
-
   // These hooks MUST be called before any early returns to obey React's Rules of Hooks.
   const _otherUserLastSeen = (chat?.otherUser as any)?.lastSeen ?? null;
   const _otherUserStatus = chat?.otherUser?.status ?? "offline";
@@ -702,6 +700,18 @@ export function ChatWindow({ chatId }: ChatWindowProps) {
     }
     return null;
   }, [_isChannel, messages, adminUserIds]);
+
+  // In channels: only top-level posts (no replyToId = not a comment) from admins/owners.
+  // Comments live in ChannelThread, not the main feed.
+  const filteredMessages = useMemo(() => {
+    if (!_isChannel) return messages;
+    const msgs = (messages as any[]) || [];
+    const topLevel = msgs.filter((m: any) => !m.replyToId);
+    if (adminUserIds.size > 0) {
+      return topLevel.filter((m: any) => adminUserIds.has(m.senderId));
+    }
+    return topLevel;
+  }, [messages, _isChannel, adminUserIds]);
 
   if (isChatLoading) {
     return <div className="flex-1 flex flex-col items-center justify-center bg-card"><Skeleton className="w-24 h-24 rounded-full mb-6" /><Skeleton className="h-8 w-48 rounded-xl" /></div>;
