@@ -275,6 +275,13 @@ function CommentThread({ post, onCountChange }: { post: any; onCountChange: (n: 
             : old
         );
         onCountChange((post.commentsCount || 0) + 1);
+      },
+      onError: (err: any) => {
+        const msg = err?.response?.data?.error || err?.message || "";
+        const code = err?.response?.data?.code || "";
+        if (code === "MODERATION_BLOCKED") {
+          setCommentText(text);
+        }
       }
     });
   };
@@ -778,6 +785,7 @@ export default function Feed() {
   const [newPostImage, setNewPostImage] = useState<string | null>(null);
   const [newPostTopic, setNewPostTopic] = useState<TopicId | null>(null);
   const [imageLoading, setImageLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedTopic, setSelectedTopic] = useState<TopicId | null>(null);
   const { data: posts, isLoading, refetch } = useGetPosts({ query: { refetchInterval: 20000 } } as any);
   const { data: me } = useGetMe();
@@ -828,44 +836,17 @@ export default function Feed() {
   const handleCreatePost = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newPostText.trim() && !newPostImage) return;
+    if (isSubmitting) return;
+
     const text = newPostText;
     const image = newPostImage;
     const topic = newPostTopic;
-    setNewPostText("");
-    setNewPostImage(null);
-    setNewPostTopic(null);
-    setShowCreatePost(false);
 
-    const optimisticId = -Date.now();
-    const optimisticPost = {
-      id: optimisticId,
-      text: text || " ",
-      imageUrl: image || null,
-      topic: topic || null,
-      likesCount: 0,
-      commentsCount: 0,
-      isLiked: false,
-      createdAt: new Date().toISOString(),
-      userId: currentUserId,
-      moderationStatus: 'approved',
-      author: me ? {
-        id: me.id,
-        displayName: me.displayName,
-        username: (me as any).username,
-        avatarUrl: (me as any).avatarUrl || null,
-        avatarColor: me.avatarColor,
-        isVerified: (me as any).isVerified,
-      } : null,
-      _optimistic: true,
-    };
-
-    queryClient.setQueryData(["/api/posts"], (old: any) =>
-      Array.isArray(old) ? [optimisticPost, ...old] : [optimisticPost]
-    );
+    setIsSubmitting(true);
 
     try {
       const token = sessionStorage.getItem("pulse-token");
-      await fetch("/api/posts", {
+      const res = await fetch("/api/posts", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -873,13 +854,37 @@ export default function Feed() {
         },
         body: JSON.stringify({ text: text || " ", imageUrl: image || undefined, topic: topic || undefined }),
       });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        if (res.status === 422 && data.code === "MODERATION_BLOCKED") {
+          toast({
+            title: "🚫 Пост заблокирован модерацией",
+            description: data.error || "Контент нарушает правила сообщества",
+            variant: "destructive",
+          });
+        } else if (res.status === 429 && data.code === "FEED_MUTED") {
+          toast({
+            title: "⏳ Вы временно ограничены",
+            description: data.error,
+            variant: "destructive",
+          });
+        } else {
+          toast({ title: "Не удалось опубликовать пост", description: data.error || "Попробуйте ещё раз", variant: "destructive" });
+        }
+        return;
+      }
+
+      setNewPostText("");
+      setNewPostImage(null);
+      setNewPostTopic(null);
+      setShowCreatePost(false);
+      queryClient.invalidateQueries({ queryKey: ["/api/posts"] });
     } catch {
-      queryClient.setQueryData(["/api/posts"], (old: any) =>
-        Array.isArray(old) ? old.filter((p: any) => p.id !== optimisticId) : old
-      );
       toast({ title: "Не удалось опубликовать пост", description: "Попробуйте ещё раз", variant: "destructive" });
     } finally {
-      queryClient.invalidateQueries({ queryKey: ["/api/posts"] });
+      setIsSubmitting(false);
     }
   };
 
@@ -988,10 +993,11 @@ export default function Feed() {
                     </label>
                     <button
                       type="submit"
-                      disabled={imageLoading || (!newPostText.trim() && !newPostImage)}
-                      className="px-5 py-2 bg-primary text-primary-foreground rounded-xl text-sm font-medium disabled:opacity-50 hover:bg-primary/90 transition-colors"
+                      disabled={imageLoading || isSubmitting || (!newPostText.trim() && !newPostImage)}
+                      className="px-5 py-2 bg-primary text-primary-foreground rounded-xl text-sm font-medium disabled:opacity-50 hover:bg-primary/90 transition-colors flex items-center gap-2"
                     >
-                      {imageLoading ? "Обработка..." : "Опубликовать"}
+                      {isSubmitting && <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
+                      {imageLoading ? "Обработка..." : isSubmitting ? "Проверка..." : "Опубликовать"}
                     </button>
                   </div>
                 </form>

@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db, postsTable, postLikesTable, postCommentsTable, usersTable } from "@workspace/db";
 import { eq, desc, and, sql } from "drizzle-orm";
-import { moderateContent } from "../lib/moderation";
+import { moderateContent, localModerationCheck } from "../lib/moderation";
 
 const router = Router();
 
@@ -27,6 +27,27 @@ async function buildPost(postId: number, currentUserId: number) {
     isLiked: !!likeRow,
     appeal,
   };
+}
+
+// Count how many posts/comments have been blocked for this user in the last 24h
+async function countRecentStrikes(userId: number): Promise<number> {
+  try {
+    const rows = await db.execute(sql`
+      SELECT COUNT(*) AS cnt FROM posts
+      WHERE user_id = ${userId}
+        AND moderation_status = 'rejected'
+        AND created_at > NOW() - INTERVAL '24 hours'
+    `);
+    return Number((rows.rows[0] as any)?.cnt || 0);
+  } catch {
+    return 0;
+  }
+}
+
+// Check if user is auto-muted from posting due to strikes
+async function isUserFeedMuted(userId: number): Promise<boolean> {
+  const strikes = await countRecentStrikes(userId);
+  return strikes >= 3;
 }
 
 // ── Routes ────────────────────────────────────────────────────────────────────
@@ -60,15 +81,72 @@ router.post("/posts", async (req, res) => {
     const { text, imageUrl, topic } = req.body;
     if (!text && !imageUrl) return res.status(400).json({ error: "text or image required" });
 
-    const [post] = await db.insert(postsTable).values({ userId: uid, text, imageUrl, topic: topic || null }).returning();
+    // ── Strike check: auto-mute after 3 blocked posts in 24h ─────────────────
+    if (await isUserFeedMuted(uid)) {
+      return res.status(429).json({
+        error: "Вы временно ограничены в публикациях из-за нарушений правил. Ограничение снимается через 24 часа.",
+        code: "FEED_MUTED",
+      });
+    }
+
+    // ── Synchronous local regex check (instant, no network) ──────────────────
+    if (text) {
+      const localResult = localModerationCheck(text);
+      if (localResult) {
+        // Insert as rejected immediately so it counts as a strike
+        const [blocked] = await db.insert(postsTable).values({
+          userId: uid, text, imageUrl, topic: topic || null,
+          moderationStatus: "rejected",
+          moderationReason: localResult.reason,
+          moderationConfidence: localResult.confidence,
+          moderationCategories: localResult.categories,
+        } as any).returning();
+        return res.status(422).json({
+          error: localResult.reason,
+          code: "MODERATION_BLOCKED",
+          categories: localResult.categories,
+        });
+      }
+    }
+
+    // ── Synchronous AI moderation check (blocks response until done) ──────────
+    if (text && text.trim().length >= 5) {
+      try {
+        const aiResult = await moderateContent(text);
+        if (aiResult.flagged && aiResult.confidence >= 20) {
+          // Insert as rejected so it counts as a strike
+          await db.insert(postsTable).values({
+            userId: uid, text, imageUrl, topic: topic || null,
+            moderationStatus: "rejected",
+            moderationReason: aiResult.reason || "Контент нарушает правила сообщества",
+            moderationConfidence: aiResult.confidence,
+            moderationCategories: aiResult.categories,
+          } as any).returning();
+          return res.status(422).json({
+            error: aiResult.reason || "Контент нарушает правила сообщества",
+            code: "MODERATION_BLOCKED",
+            categories: aiResult.categories,
+            confidence: aiResult.confidence,
+          });
+        }
+      } catch {
+        // AI timed out — fall through to insert, run async below as backup
+      }
+    }
+
+    // ── Clean content — insert and publish ────────────────────────────────────
+    const [post] = await db.insert(postsTable).values({
+      userId: uid, text, imageUrl, topic: topic || null,
+    }).returning();
     const built = await buildPost(post.id, uid);
     res.status(201).json(built);
 
-    // Async AI moderation (don't block response)
+    // Async AI re-check as safety net (catches anything that slipped through timeout)
     setImmediate(async () => {
+      if (!text || text.trim().length < 5) return;
       try {
         const result = await moderateContent(text);
-        if (result.flagged && result.confidence >= 40) {
+        if (result.flagged && result.confidence >= 20) {
           await db.execute(sql`
             UPDATE posts SET
               moderation_status = 'rejected',
@@ -153,10 +231,50 @@ router.post("/posts/:postId/comments", async (req, res) => {
     const postId = Number(req.params.postId);
     const { text } = req.body;
     if (!text || !String(text).trim()) return res.status(400).json({ error: "text required" });
-    const [comment] = await db.insert(postCommentsTable).values({ postId, userId: uid, text: String(text).trim() }).returning();
+
+    const clean = String(text).trim();
+
+    // ── Sync local check for comments ─────────────────────────────────────────
+    const localResult = localModerationCheck(clean);
+    if (localResult) {
+      return res.status(422).json({
+        error: localResult.reason,
+        code: "MODERATION_BLOCKED",
+      });
+    }
+
+    // ── Sync AI check for comments ────────────────────────────────────────────
+    if (clean.length >= 5) {
+      try {
+        const aiResult = await moderateContent(clean);
+        if (aiResult.flagged && aiResult.confidence >= 25) {
+          return res.status(422).json({
+            error: aiResult.reason || "Комментарий нарушает правила сообщества",
+            code: "MODERATION_BLOCKED",
+          });
+        }
+      } catch {
+        // AI timeout — allow through, async check below
+      }
+    }
+
+    // ── Insert comment ────────────────────────────────────────────────────────
+    const [comment] = await db.insert(postCommentsTable).values({ postId, userId: uid, text: clean }).returning();
     await db.execute(sql`UPDATE posts SET comments_count = comments_count + 1 WHERE id = ${postId}`);
     const author = await db.query.usersTable.findFirst({ where: eq(usersTable.id, uid) });
     res.status(201).json({ ...comment, author: author ?? null });
+
+    // Async AI safety net for comments
+    setImmediate(async () => {
+      if (clean.length < 5) return;
+      try {
+        const result = await moderateContent(clean);
+        if (result.flagged && result.confidence >= 25) {
+          await db.execute(sql`DELETE FROM post_comments WHERE id = ${comment.id}`);
+          await db.execute(sql`UPDATE posts SET comments_count = GREATEST(0, comments_count - 1) WHERE id = ${postId}`);
+        }
+      } catch {}
+    });
   } catch (err) {
     req.log.error(err);
     res.status(500).json({ error: "Internal server error" });
