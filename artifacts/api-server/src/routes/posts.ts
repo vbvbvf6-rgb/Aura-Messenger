@@ -2,6 +2,7 @@ import { Router } from "express";
 import { db, postsTable, postLikesTable, postCommentsTable, usersTable } from "@workspace/db";
 import { eq, desc, and, sql } from "drizzle-orm";
 import { moderateContent, localModerationCheck, checkCustomBannedWords } from "../lib/moderation";
+import { getBanwords, findBanword } from "../lib/banwords";
 
 const router = Router();
 
@@ -87,6 +88,19 @@ router.post("/posts", async (req, res) => {
         error: "Вы временно ограничены в публикациях из-за нарушений правил. Ограничение снимается через 24 часа.",
         code: "FEED_MUTED",
       });
+    }
+
+    // ── Banwords table check (admin-managed, same source as messages) ──────────
+    if (text) {
+      const banwords = await getBanwords();
+      const hit = findBanword(text, banwords);
+      if (hit) {
+        return res.status(422).json({
+          error: "Пост содержит запрещённое слово и не может быть опубликован.",
+          code: "MODERATION_BLOCKED",
+          categories: ["banned_word"],
+        });
+      }
     }
 
     // ── Custom banned words check ─────────────────────────────────────────────
