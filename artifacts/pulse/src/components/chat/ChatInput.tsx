@@ -146,6 +146,7 @@ export function ChatInput({ chatId, onMessageSent, replyTo, editMessage, onCance
   const [selectedEffect, setSelectedEffect] = useState<string | null>(null);
   const [showEffectPicker, setShowEffectPicker] = useState(false);
   const [showMemeGifPicker, setShowMemeGifPicker] = useState(false);
+  const [showMobileActions, setShowMobileActions] = useState(false);
 
   const isPrimePlus = !!(me as any)?.hasPrime && (me as any)?.primeTier === "prime_plus";
   const isPrime = !!(me as any)?.hasPrime;
@@ -1082,6 +1083,91 @@ export function ChatInput({ chatId, onMessageSent, replyTo, editMessage, onCance
           )}
         </AnimatePresence>
 
+        {/* Mobile action sheet — only visible on small screens */}
+        <AnimatePresence>
+          {showMobileActions && (
+            <motion.div
+              initial={{ opacity: 0, y: 8, scale: 0.97 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 8, scale: 0.97 }}
+              transition={{ type: "spring", damping: 28, stiffness: 340 }}
+              className="md:hidden mb-2 bg-card border border-border rounded-[22px] shadow-2xl overflow-hidden"
+            >
+              <div className="grid grid-cols-4 gap-0 divide-x divide-border">
+                <button
+                  type="button"
+                  onClick={() => { fileInputRef.current?.click(); setShowMobileActions(false); }}
+                  className="flex flex-col items-center gap-1.5 py-4 px-2 hover:bg-secondary/60 transition-colors text-muted-foreground hover:text-foreground active:bg-secondary"
+                >
+                  <div className="w-10 h-10 rounded-2xl bg-blue-500/15 flex items-center justify-center">
+                    <Paperclip size={19} className="text-blue-400" />
+                  </div>
+                  <span className="text-[10px] font-bold leading-none">Файл</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setShowPollCreator(v => !v); setPollError(""); setShowMobileActions(false); }}
+                  className="flex flex-col items-center gap-1.5 py-4 px-2 hover:bg-secondary/60 transition-colors text-muted-foreground hover:text-foreground active:bg-secondary"
+                >
+                  <div className="w-10 h-10 rounded-2xl bg-green-500/15 flex items-center justify-center">
+                    <BarChart2 size={19} className="text-green-400" />
+                  </div>
+                  <span className="text-[10px] font-bold leading-none">Опрос</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setText("/memer"); setShowMemeGifPicker(true); setShowMobileActions(false); }}
+                  className="flex flex-col items-center gap-1.5 py-4 px-2 hover:bg-secondary/60 transition-colors text-muted-foreground hover:text-foreground active:bg-secondary"
+                >
+                  <div className="w-10 h-10 rounded-2xl bg-orange-500/15 flex items-center justify-center">
+                    <span className="text-lg leading-none">😂</span>
+                  </div>
+                  <span className="text-[10px] font-bold leading-none">Мемы</span>
+                </button>
+                {isPrime ? (
+                  <button
+                    type="button"
+                    onClick={() => { const next = !showScheduler; setShowScheduler(next); if (next) { setShowScheduledList(false); fetchScheduledMessages(); } setShowMobileActions(false); }}
+                    className="flex flex-col items-center gap-1.5 py-4 px-2 hover:bg-secondary/60 transition-colors text-muted-foreground hover:text-foreground active:bg-secondary relative"
+                  >
+                    <div className={`w-10 h-10 rounded-2xl flex items-center justify-center ${showScheduler ? "bg-primary/20" : "bg-violet-500/15"}`}>
+                      <CalendarClock size={19} className={showScheduler ? "text-primary" : "text-violet-400"} />
+                    </div>
+                    <span className="text-[10px] font-bold leading-none">План</span>
+                    {scheduledMessages.length > 0 && (
+                      <span className="absolute top-3 right-3 min-w-[14px] h-3.5 px-0.5 bg-primary text-primary-foreground text-[8px] font-black rounded-full flex items-center justify-center">
+                        {scheduledMessages.length}
+                      </span>
+                    )}
+                  </button>
+                ) : isPrimePlus ? (
+                  <button
+                    type="button"
+                    onClick={() => { setShowEffectPicker(v => !v); setShowMobileActions(false); }}
+                    className="flex flex-col items-center gap-1.5 py-4 px-2 hover:bg-secondary/60 transition-colors text-muted-foreground hover:text-foreground active:bg-secondary"
+                  >
+                    <div className={`w-10 h-10 rounded-2xl flex items-center justify-center ${selectedEffect ? "bg-purple-500/20" : "bg-purple-500/15"}`}>
+                      <Wand2 size={19} className="text-purple-400" />
+                    </div>
+                    <span className="text-[10px] font-bold leading-none">Эффект</span>
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => { startRecording(); setShowMobileActions(false); }}
+                    className="flex flex-col items-center gap-1.5 py-4 px-2 hover:bg-secondary/60 transition-colors text-muted-foreground hover:text-foreground active:bg-secondary"
+                  >
+                    <div className="w-10 h-10 rounded-2xl bg-rose-500/15 flex items-center justify-center">
+                      <Mic size={19} className="text-rose-400" />
+                    </div>
+                    <span className="text-[10px] font-bold leading-none">Голос</span>
+                  </button>
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         <div className={`p-1.5 bg-card border rounded-[28px] transition-all flex items-end gap-1.5 shadow-sm focus-within:shadow-md focus-within:border-primary/50 ${editMessage ? "border-primary/50 bg-primary/5" : "border-border"}`}>
           
           <AnimatePresence mode="wait">
@@ -1129,11 +1215,11 @@ export function ChatInput({ chatId, onMessageSent, replyTo, editMessage, onCance
                 {!editMessage && (
                   <>
                     <button type="button" onClick={() => { setShowEmoji(v => !v); }}
-                      className={`w-12 h-12 flex items-center justify-center rounded-full transition-colors shrink-0 mb-[2px] ${showEmoji ? "bg-primary/15 text-primary" : "text-muted-foreground hover:bg-secondary hover:text-foreground"}`}>
+                      className={`w-10 h-10 md:w-12 md:h-12 flex items-center justify-center rounded-full transition-colors shrink-0 mb-[2px] ${showEmoji ? "bg-primary/15 text-primary" : "text-muted-foreground hover:bg-secondary hover:text-foreground"}`}>
                       <span className="text-xl leading-none">😀</span>
                     </button>
                     {isPrimePlus && (
-                      <div className="relative">
+                      <div className="relative hidden md:block">
                         <button
                           type="button"
                           onClick={() => setShowEffectPicker(v => !v)}
@@ -1196,18 +1282,25 @@ export function ChatInput({ chatId, onMessageSent, replyTo, editMessage, onCance
                 {!editMessage && !text.trim() && imagePreviews.length === 0 && (
                   <>
                     <button type="button" onClick={() => fileInputRef.current?.click()}
-                      className="w-12 h-12 flex items-center justify-center rounded-full text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors shrink-0 mb-[2px]">
+                      className="hidden md:flex w-12 h-12 items-center justify-center rounded-full text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors shrink-0 mb-[2px]">
                       <Paperclip size={20} />
                     </button>
                     <button type="button" onClick={() => { setShowPollCreator(v => !v); setPollError(""); }}
-                      className={`w-12 h-12 flex items-center justify-center rounded-full transition-colors shrink-0 mb-[2px] ${showPollCreator ? "bg-primary/15 text-primary" : "text-muted-foreground hover:bg-secondary hover:text-foreground"}`}>
+                      className={`hidden md:flex w-12 h-12 items-center justify-center rounded-full transition-colors shrink-0 mb-[2px] ${showPollCreator ? "bg-primary/15 text-primary" : "text-muted-foreground hover:bg-secondary hover:text-foreground"}`}>
                       <BarChart2 size={20} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowMobileActions(v => !v)}
+                      className={`flex md:hidden w-10 h-10 items-center justify-center rounded-full transition-all shrink-0 mb-[2px] ${showMobileActions ? "bg-primary/15 text-primary rotate-45" : "text-muted-foreground hover:bg-secondary hover:text-foreground"}`}
+                    >
+                      <Plus size={18} />
                     </button>
                   </>
                 )}
 
                 {hasContent && !editMessage && isPrime && (
-                  <div className="relative shrink-0 mb-[2px]">
+                  <div className="relative shrink-0 mb-[2px] hidden md:block">
                     <button
                       type="button"
                       onClick={() => {
