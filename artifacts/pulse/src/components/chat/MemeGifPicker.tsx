@@ -1,31 +1,37 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, X, Loader2 } from "lucide-react";
+import { X, Loader2, RefreshCw, AlertCircle } from "lucide-react";
+import { cn } from "@/lib/utils";
 
-const TENOR_KEY = "LIVDSRZULELA";
-
-interface GifResult {
-  id: string;
-  url: string;
-  preview: string;
+interface Meme {
+  postLink: string;
+  subreddit: string;
   title: string;
+  url: string;
+  author: string;
+  ups: number;
+  preview: string[];
 }
 
-async function fetchGifs(query: string): Promise<GifResult[]> {
-  const endpoint = query.trim()
-    ? `https://g.tenor.com/v1/search?q=${encodeURIComponent(query + " meme")}&key=${TENOR_KEY}&limit=24&contentfilter=medium&media_filter=minimal`
-    : `https://g.tenor.com/v1/trending?key=${TENOR_KEY}&limit=24&contentfilter=medium&media_filter=minimal`;
+const CATEGORIES: { label: string; emoji: string; sub: string }[] = [
+  { label: "Мемы",    emoji: "🔥", sub: "memes" },
+  { label: "Жёстко",  emoji: "💀", sub: "dankmemes" },
+  { label: "Смешное", emoji: "😂", sub: "funny" },
+  { label: "Кринж",   emoji: "💅", sub: "facepalm" },
+  { label: "Работа",  emoji: "💼", sub: "ProgrammerHumor" },
+  { label: "Животные",emoji: "🐾", sub: "AnimalsBeingDerps" },
+];
 
-  const res = await fetch(endpoint);
-  if (!res.ok) throw new Error("Tenor error");
+async function fetchMemes(subreddit: string, count = 20): Promise<Meme[]> {
+  const res = await fetch(`https://meme-api.com/gimme/${subreddit}/${count}`);
+  if (!res.ok) throw new Error("API error");
   const data = await res.json();
-
-  return ((data.results || []) as any[]).map((item: any) => ({
-    id: item.id,
-    url: item.media?.[0]?.gif?.url || item.media?.[0]?.mediumgif?.url || "",
-    preview: item.media?.[0]?.tinygif?.url || item.media?.[0]?.nanogif?.url || item.media?.[0]?.gif?.url || "",
-    title: item.title || "",
-  })).filter((g: GifResult) => g.url);
+  const memes: Meme[] = (data.memes || []);
+  return memes.filter(m =>
+    m.url &&
+    !m.url.endsWith(".gif") &&
+    /\.(jpg|jpeg|png|webp)(\?.*)?$/i.test(m.url)
+  );
 }
 
 interface MemeGifPickerProps {
@@ -34,19 +40,21 @@ interface MemeGifPickerProps {
 }
 
 export function MemeGifPicker({ onSelect, onClose }: MemeGifPickerProps) {
-  const [query, setQuery] = useState("");
-  const [gifs, setGifs] = useState<GifResult[]>([]);
+  const [categoryIdx, setCategoryIdx] = useState(0);
+  const [memes, setMemes] = useState<Meme[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const [seed, setSeed] = useState(0);
 
-  const load = useCallback(async (q: string) => {
+  const cat = CATEGORIES[categoryIdx];
+
+  const load = useCallback(async (sub: string) => {
     setLoading(true);
     setError(false);
+    setMemes([]);
     try {
-      const results = await fetchGifs(q);
-      setGifs(results);
+      const results = await fetchMemes(sub);
+      setMemes(results);
     } catch {
       setError(true);
     } finally {
@@ -55,15 +63,8 @@ export function MemeGifPicker({ onSelect, onClose }: MemeGifPickerProps) {
   }, []);
 
   useEffect(() => {
-    load("");
-    setTimeout(() => inputRef.current?.focus(), 80);
-  }, []);
-
-  const handleChange = (val: string) => {
-    setQuery(val);
-    if (timerRef.current) clearTimeout(timerRef.current);
-    timerRef.current = setTimeout(() => load(val), 450);
-  };
+    load(cat.sub);
+  }, [categoryIdx, seed]);
 
   return (
     <motion.div
@@ -73,77 +74,127 @@ export function MemeGifPicker({ onSelect, onClose }: MemeGifPickerProps) {
       transition={{ type: "spring", damping: 26, stiffness: 320 }}
       className="absolute bottom-full left-0 right-0 mb-2 bg-card border border-border rounded-[22px] shadow-2xl overflow-hidden z-50"
     >
+      {/* Header */}
       <div className="flex items-center gap-2 px-3 py-2.5 border-b border-border bg-secondary/40">
-        <span className="text-base shrink-0">🎭</span>
-        <div className="flex-1 flex items-center gap-1.5 bg-secondary rounded-xl px-3 py-1.5">
-          <Search size={13} className="text-muted-foreground shrink-0" />
-          <input
-            ref={inputRef}
-            value={query}
-            onChange={e => handleChange(e.target.value)}
-            placeholder="Поиск мемов..."
-            className="flex-1 bg-transparent border-none outline-none text-[13px] font-medium placeholder:text-muted-foreground/60 min-w-0"
-          />
-          {query && (
-            <button onClick={() => handleChange("")} className="text-muted-foreground hover:text-foreground transition-colors">
-              <X size={12} />
-            </button>
-          )}
-        </div>
-        <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/50 px-1.5 py-0.5 bg-secondary/60 rounded-md shrink-0">GIF</span>
+        <span className="text-base shrink-0">😂</span>
+        <span className="text-[13px] font-black text-foreground flex-1">Мемы</span>
+        <button
+          onClick={() => setSeed(s => s + 1)}
+          disabled={loading}
+          className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors disabled:opacity-40"
+          title="Обновить"
+        >
+          <RefreshCw size={13} className={loading ? "animate-spin" : ""} />
+        </button>
         <button
           onClick={onClose}
-          className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors shrink-0"
+          className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
         >
           <X size={15} />
         </button>
       </div>
 
-      <div className="overflow-y-auto scrollbar-none" style={{ maxHeight: "260px" }}>
+      {/* Category tabs */}
+      <div className="flex gap-1.5 overflow-x-auto scrollbar-none px-3 py-2 bg-secondary/20 border-b border-border/50">
+        {CATEGORIES.map((c, i) => (
+          <button
+            key={c.sub}
+            onClick={() => setCategoryIdx(i)}
+            className={cn(
+              "flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold whitespace-nowrap shrink-0 transition-all",
+              i === categoryIdx
+                ? "bg-primary text-white shadow-[0_2px_8px_rgba(139,92,246,0.3)]"
+                : "bg-secondary text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <span>{c.emoji}</span>
+            <span>{c.label}</span>
+          </button>
+        ))}
+      </div>
+
+      {/* Grid */}
+      <div className="overflow-y-auto scrollbar-none" style={{ maxHeight: "280px" }}>
         {loading ? (
-          <div className="flex flex-col items-center justify-center h-28 gap-2">
+          <div className="flex flex-col items-center justify-center h-32 gap-2">
             <Loader2 size={22} className="animate-spin text-primary" />
             <span className="text-[12px] text-muted-foreground font-medium">Загружаем мемы...</span>
           </div>
         ) : error ? (
-          <div className="flex flex-col items-center justify-center h-28 gap-2.5">
-            <span className="text-2xl">😵</span>
+          <div className="flex flex-col items-center justify-center h-32 gap-2.5">
+            <AlertCircle size={24} className="text-rose-400" />
             <p className="text-[12px] text-muted-foreground font-medium">Не удалось загрузить</p>
             <button
-              onClick={() => load(query)}
+              onClick={() => setSeed(s => s + 1)}
               className="text-[11px] font-black text-primary hover:text-primary/80 transition-colors"
             >
-              Повторить
+              Попробовать снова
             </button>
           </div>
-        ) : gifs.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-28 gap-2">
-            <span className="text-2xl">🔍</span>
-            <p className="text-[12px] text-muted-foreground font-medium">Ничего не найдено</p>
+        ) : memes.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-32 gap-2">
+            <span className="text-2xl">🤷</span>
+            <p className="text-[12px] text-muted-foreground font-medium">Мемов не нашлось</p>
+            <button
+              onClick={() => setSeed(s => s + 1)}
+              className="text-[11px] font-black text-primary"
+            >
+              Обновить
+            </button>
           </div>
         ) : (
-          <div className="grid grid-cols-3 gap-1 p-2">
-            {gifs.map(gif => (
-              <button
-                key={gif.id}
-                onClick={() => { onSelect(gif.url); onClose(); }}
-                className="relative rounded-xl overflow-hidden hover:scale-[1.04] active:scale-[0.96] transition-transform bg-secondary border border-border/50 hover:border-primary/30"
-                style={{ aspectRatio: "16/9" }}
-              >
-                <img
-                  src={gif.preview || gif.url}
-                  alt={gif.title}
-                  className="w-full h-full object-cover"
-                  loading="lazy"
-                />
-              </button>
-            ))}
-          </div>
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={`${categoryIdx}-${seed}`}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.15 }}
+              className="grid grid-cols-2 gap-1.5 p-2.5"
+            >
+              {memes.map((meme, i) => (
+                <motion.button
+                  key={meme.postLink + i}
+                  initial={{ opacity: 0, scale: 0.92 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: i * 0.025, duration: 0.15 }}
+                  onClick={() => { onSelect(meme.url); onClose(); }}
+                  className="relative rounded-xl overflow-hidden bg-secondary border border-border/50 hover:border-primary/40 hover:scale-[1.03] active:scale-[0.97] transition-all group"
+                  style={{ aspectRatio: "4/3" }}
+                  title={meme.title}
+                >
+                  <img
+                    src={meme.preview?.[meme.preview.length - 1] || meme.url}
+                    alt={meme.title}
+                    className="w-full h-full object-cover"
+                    loading="lazy"
+                    onError={e => {
+                      (e.currentTarget as HTMLImageElement).src = meme.url;
+                    }}
+                  />
+                  {/* Hover overlay with title */}
+                  <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-1.5">
+                    <p className="text-white text-[9px] font-bold leading-tight line-clamp-2">
+                      {meme.title}
+                    </p>
+                  </div>
+                  {/* Upvotes badge */}
+                  {meme.ups > 0 && (
+                    <div className="absolute top-1 right-1 bg-black/50 text-white text-[8px] font-black px-1 py-0.5 rounded-md leading-none">
+                      ▲{meme.ups >= 1000 ? `${(meme.ups / 1000).toFixed(1)}k` : meme.ups}
+                    </div>
+                  )}
+                </motion.button>
+              ))}
+            </motion.div>
+          </AnimatePresence>
         )}
       </div>
 
       <div className="px-3 py-1.5 border-t border-border/50 bg-secondary/20">
-        <p className="text-[9px] text-muted-foreground/40 text-center font-medium tracking-wide">Powered by Tenor</p>
+        <p className="text-[9px] text-muted-foreground/40 text-center font-medium tracking-wide">
+          Reddit · r/{cat.sub}
+        </p>
       </div>
     </motion.div>
   );
