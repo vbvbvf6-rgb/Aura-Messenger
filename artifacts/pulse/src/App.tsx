@@ -15,6 +15,7 @@ import { useNotifications } from "@/hooks/useNotifications";
 import { PwaInstallPrompt } from "@/components/PwaInstallPrompt";
 import { useServiceWorkerUpdate } from "@/hooks/useServiceWorkerUpdate";
 import { useToast } from "@/hooks/use-toast";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 import Home from "@/pages/Home";
 import Calls from "@/pages/Calls";
@@ -412,23 +413,26 @@ function App() {
       width: `${(100 / (zoom / 100)).toFixed(4)}%`,
       overflow: "hidden",
     }}>
+    <ErrorBoundary>
     <LanguageProvider>
       <QueryClientProvider client={queryClient}>
         <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
           {userId ? (
-            <>
-              <MainApp
-                onLogout={handleLogout}
-                onSwitchAccount={handleSwitchAccount}
-                onRemoveAccount={handleRemoveAccount}
-                onOpenAddAccount={() => setAddingAccount(true)}
-              />
-              <AddAccountDialog
-                open={addingAccount}
-                onClose={() => setAddingAccount(false)}
-                onAccountAdded={handleAccountAdded}
-              />
-            </>
+            <ErrorBoundary>
+              <>
+                <MainApp
+                  onLogout={handleLogout}
+                  onSwitchAccount={handleSwitchAccount}
+                  onRemoveAccount={handleRemoveAccount}
+                  onOpenAddAccount={() => setAddingAccount(true)}
+                />
+                <AddAccountDialog
+                  open={addingAccount}
+                  onClose={() => setAddingAccount(false)}
+                  onAccountAdded={handleAccountAdded}
+                />
+              </>
+            </ErrorBoundary>
           ) : (
             <AuthPages onLogin={handleLogin} />
           )}
@@ -436,6 +440,7 @@ function App() {
         </WouterRouter>
       </QueryClientProvider>
     </LanguageProvider>
+    </ErrorBoundary>
     </div>
   );
 }

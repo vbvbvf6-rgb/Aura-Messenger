@@ -363,11 +363,25 @@ export function ChatWindow({ chatId }: ChatWindowProps) {
 
   useEffect(() => {
     if (!chatId) return;
-    const uid = sessionStorage.getItem("pulse-user-id") || "1";
-    const es = new EventSource(`/api/chats/${chatId}/events?_uid=${uid}`);
-    sseRef.current = es;
+    let es: EventSource | null = null;
+    let retryTimeout: ReturnType<typeof setTimeout> | null = null;
+    let dead = false;
+    let retryCount = 0;
+    const getBackoffMs = () => Math.min(1000 * Math.pow(2, retryCount), 30_000);
 
-    es.addEventListener("new-message", (e: MessageEvent) => {
+    const connect = () => {
+      if (dead) return;
+      const uid = sessionStorage.getItem("pulse-user-id") || "1";
+      const token = sessionStorage.getItem("pulse-token");
+      const sseUrl = token
+        ? `/api/chats/${chatId}/events?_token=${encodeURIComponent(token)}`
+        : `/api/chats/${chatId}/events?_uid=${uid}`;
+      es = new EventSource(sseUrl);
+      sseRef.current = es;
+
+      es.addEventListener("open", () => { retryCount = 0; });
+
+      es.addEventListener("new-message", (e: MessageEvent) => {
       queryClient.invalidateQueries({ queryKey: getGetMessagesQueryKey({ chatId }) }).then(() => {
         const msgs = queryClient.getQueryData<Message[]>(getGetMessagesQueryKey({ chatId }));
         const last = msgs?.[msgs.length - 1];
@@ -432,8 +446,23 @@ export function ChatWindow({ chatId }: ChatWindowProps) {
       } catch {}
     });
 
+      es.onerror = () => {
+        es?.close();
+        es = null;
+        sseRef.current = null;
+        if (!dead) {
+          const delay = getBackoffMs();
+          retryCount++;
+          retryTimeout = setTimeout(connect, delay);
+        }
+      };
+    };
+
+    connect();
     return () => {
-      es.close();
+      dead = true;
+      if (retryTimeout) clearTimeout(retryTimeout);
+      es?.close();
       sseRef.current = null;
     };
   }, [chatId]);

@@ -322,6 +322,15 @@ async function parseSuccessBody(
   }
 }
 
+function combineSignals(a: AbortSignal, b: AbortSignal): AbortSignal {
+  const ctrl = new AbortController();
+  const abort = () => ctrl.abort(a.aborted ? a.reason : b.reason);
+  if (a.aborted || b.aborted) { abort(); return ctrl.signal; }
+  a.addEventListener("abort", abort, { once: true });
+  b.addEventListener("abort", abort, { once: true });
+  return ctrl.signal;
+}
+
 export async function customFetch<T = unknown>(
   input: RequestInfo | URL,
   options: CustomFetchOptions = {},
@@ -369,7 +378,20 @@ export async function customFetch<T = unknown>(
 
   const requestInfo = { method, url: resolveUrl(input) };
 
-  const response = await fetch(input, { ...init, method, headers });
+  // 30-second timeout for all requests (except SSE / streaming, which have no body read)
+  const timeoutMs = 30_000;
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(new DOMException("Request timed out after 30s", "TimeoutError")), timeoutMs);
+  const mergedSignal = init.signal
+    ? combineSignals(init.signal as AbortSignal, controller.signal)
+    : controller.signal;
+
+  let response: Response;
+  try {
+    response = await fetch(input, { ...init, method, headers, signal: mergedSignal });
+  } finally {
+    clearTimeout(timeoutId);
+  }
 
   if (!response.ok) {
     // Dispatch a global event so the app can redirect to login on session expiry

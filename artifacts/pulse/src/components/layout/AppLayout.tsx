@@ -6,6 +6,7 @@ import { ActiveCall } from "@/components/calls/ActiveCall";
 import { IncomingCall } from "@/components/calls/IncomingCall";
 import { CommandPalette } from "@/components/CommandPalette";
 import { useToast } from "@/hooks/use-toast";
+import { NetworkStatus } from "@/components/NetworkStatus";
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const { activeCall } = useAppContext();
@@ -41,7 +42,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <div
-      className="flex h-[100dvh] w-full overflow-hidden bg-background text-foreground"
+      className="flex h-[100dvh] w-full overflow-hidden bg-background text-foreground relative"
       style={{
         paddingLeft: "env(safe-area-inset-left, 0px)",
         paddingRight: "env(safe-area-inset-right, 0px)",
@@ -63,6 +64,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         onOpenSidebar={() => setMobileSidebarOpen(true)}
       />
       <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
+      <NetworkStatus />
     </div>
   );
 }

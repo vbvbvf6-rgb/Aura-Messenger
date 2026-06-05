@@ -617,6 +617,9 @@ export function AppProvider({ children, onLogout, onSwitchAccount, onRemoveAccou
     let es: EventSource | null = null;
     let retryTimeout: ReturnType<typeof setTimeout> | null = null;
     let dead = false;
+    let retryCount = 0;
+
+    const getBackoffMs = () => Math.min(1000 * Math.pow(2, retryCount), 30000);
 
     const connect = () => {
       if (dead) return;
@@ -679,10 +682,16 @@ export function AppProvider({ children, onLogout, onSwitchAccount, onRemoveAccou
         } catch {}
       });
 
+      es.addEventListener("open", () => { retryCount = 0; });
+
       es.onerror = () => {
         es?.close();
         es = null;
-        if (!dead) retryTimeout = setTimeout(connect, 15000);
+        if (!dead) {
+          const delay = getBackoffMs();
+          retryCount++;
+          retryTimeout = setTimeout(connect, delay);
+        }
       };
     };
 

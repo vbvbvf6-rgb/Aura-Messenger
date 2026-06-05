@@ -6,6 +6,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Paperclip, Mic, SendHorizontal, X, Square, Trash2, Images, Reply, Pencil, Clock, BarChart2, Plus, Minus, Wand2, CalendarClock, Hourglass, Sticker } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { MemeGifPicker } from "./MemeGifPicker";
+import { useToast } from "@/hooks/use-toast";
 
 const STICKERS = [
   { id: "sticker-01", url: "/stickers/sticker-01.svg", label: "Счастье" },
@@ -125,6 +126,7 @@ export interface ChatInputProps {
 
 export function ChatInput({ chatId, onMessageSent, replyTo, editMessage, onCancelReply, onCancelEdit, isBot, p2p, isChannel, isChannelAdmin }: ChatInputProps) {
   const { data: me } = useGetMe();
+  const { toast } = useToast();
 
   const [text, setText] = useState("");
   const STICKERS_TAB = -1;
@@ -471,7 +473,15 @@ export function ChatInput({ chatId, onMessageSent, replyTo, editMessage, onCance
       queryClient.invalidateQueries({ queryKey: getGetChatsQueryKey() });
       onMessageSent?.();
       import("@/utils/questTracker").then(({ trackQuestAction }) => trackQuestAction("message_sent"));
-    } finally { setIsSending(false); }
+    } catch (sendErr) {
+      const isTimeout = (sendErr as Error)?.name === "TimeoutError";
+      const errMsg = isTimeout
+        ? "Превышено время ожидания сервера"
+        : "Проверьте соединение и попробуйте снова";
+      toast({ title: "Не удалось отправить сообщение", description: errMsg, variant: "destructive" });
+    } finally {
+      setIsSending(false);
+    }
   };
 
   const MAX_VOICE_SECONDS = isPrimePlus ? Infinity : isPrime ? 180 : 60;
