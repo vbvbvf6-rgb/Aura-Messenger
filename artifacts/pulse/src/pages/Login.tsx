@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Link } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
-import { Eye, EyeOff, ShieldCheck, QrCode, RefreshCw, CheckCircle2, Clock, Zap, Shield } from "lucide-react";
+import { Eye, EyeOff, ShieldCheck, QrCode, Clock, Zap } from "lucide-react";
+import PulseLogo from "@/components/PulseLogo";
+import { cn } from "@/lib/utils";
 
 interface LoginProps {
   onLogin: (userId: number) => void;
@@ -156,7 +158,7 @@ export default function Login({ onLogin }: LoginProps) {
 
   const qrUrl = qrTokenId ? `${window.location.origin}/qr/${qrTokenId}` : "";
   const qrImageUrl = qrUrl
-    ? `https://api.qrserver.com/v1/create-qr-code/?size=200x200&format=svg&color=FF7820&bgcolor=00000000&data=${encodeURIComponent(qrUrl)}`
+    ? `https://api.qrserver.com/v1/create-qr-code/?size=240x240&format=svg&color=FF6B00&bgcolor=00000000&data=${encodeURIComponent(qrUrl)}`
     : "";
 
   const formatTime = (s: number) => {
@@ -165,25 +167,16 @@ export default function Login({ onLogin }: LoginProps) {
     return `${m}:${sec.toString().padStart(2, "0")}`;
   };
 
-  const inputStyle = (name: string) => ({
-    width: "100%",
-    background: focusedInput === name ? "rgba(249,115,22,0.04)" : "#f8fafc",
-    border: `1px solid ${focusedInput === name ? "rgba(249,115,22,0.5)" : "rgba(0,0,0,0.08)"}`,
-    borderRadius: "14px",
-    transition: "all 0.2s",
-    boxShadow: focusedInput === name ? "0 0 0 3px rgba(249,115,22,0.1)" : "none",
-  } as React.CSSProperties);
-
   const getStepIcon = () => {
-    if (step === "2fa") return <ShieldCheck size={34} style={{ color: "#f97316" }} />;
-    if (step === "qr") return <QrCode size={34} style={{ color: "#f97316" }} />;
-    return <Zap size={36} style={{ color: "#f97316" }} />;
+    if (step === "2fa") return <ShieldCheck size={32} className="text-primary" />;
+    if (step === "qr") return <QrCode size={32} className="text-primary" />;
+    return <Zap size={32} className="text-primary" />;
   };
 
   const getStepTitle = () => {
     if (step === "2fa") return "Верификация";
     if (step === "qr") return "QR вход";
-    return "Nova";
+    return "Pulse";
   };
 
   const getStepSubtitle = () => {
@@ -193,135 +186,97 @@ export default function Login({ onLogin }: LoginProps) {
   };
 
   return (
-    <div style={{
-      minHeight: "100dvh",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      background: "#f5f7fa",
-      fontFamily: "'Inter', system-ui, sans-serif",
-      position: "relative",
-      overflow: "hidden",
-      padding: "16px",
-    }}>
-      {/* Subtle background pattern */}
-      <div style={{
-        position: "absolute", inset: 0, pointerEvents: "none",
-        backgroundImage: "radial-gradient(circle at 20% 20%, rgba(249,115,22,0.04) 0%, transparent 50%), radial-gradient(circle at 80% 80%, rgba(249,115,22,0.03) 0%, transparent 50%)",
-      }} />
+    <div className="min-h-[100dvh] w-full flex items-center justify-center bg-background relative overflow-hidden p-4 sm:p-8 login-landscape">
+      {/* Dynamic Background */}
+      <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
+        <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-primary/10 rounded-full blur-[120px] opacity-60 animate-[pulseGlow_8s_ease-in-out_infinite_alternate]" />
+        <div className="absolute bottom-[-20%] right-[-10%] w-[60%] h-[60%] bg-blue-500/5 rounded-full blur-[100px] opacity-50" />
+        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0IiBoZWlnaHQ9IjQiPjxyZWN0IHdpZHRoPSI0IiBoZWlnaHQ9IjQiIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wMSIvPjwvc3ZnPg==')] opacity-20" />
+      </div>
 
       <motion.div
-        initial={{ opacity: 0, y: 28, scale: 0.97 }}
+        initial={{ opacity: 0, y: 20, scale: 0.98 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
-        transition={{ duration: 0.85, ease: [0.16, 1, 0.3, 1] }}
-        style={{ width: "100%", maxWidth: "390px", position: "relative", zIndex: 10 }}
+        transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+        className="w-full max-w-[420px] relative z-10"
       >
-        {/* Logo + title */}
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginBottom: "36px" }}>
+        <div className="flex flex-col items-center mb-10">
           <motion.div
-            initial={{ scale: 0.5, opacity: 0 }}
+            initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            transition={{ type: "spring", stiffness: 160, damping: 18, delay: 0.1 }}
-            style={{
-              width: "72px", height: "72px", borderRadius: "20px",
-              background: "#fff",
-              border: "1px solid rgba(0,0,0,0.06)",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              marginBottom: "20px",
-              boxShadow: "0 4px 24px rgba(0,0,0,0.06), 0 0 0 1px rgba(0,0,0,0.02)",
-            }}
+            transition={{ type: "spring", stiffness: 200, damping: 20, delay: 0.1 }}
+            className="w-20 h-20 rounded-2xl bg-card border border-border flex items-center justify-center shadow-xl shadow-primary/10 mb-6 relative overflow-hidden"
           >
-            {getStepIcon()}
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-transparent pointer-events-none" />
+            <PulseLogo size={42} />
           </motion.div>
 
           <motion.div
-            initial={{ opacity: 0, y: 8 }}
+            initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            style={{ textAlign: "center" }}
+            className="text-center"
           >
-            <h1 style={{
-              fontSize: "36px", fontWeight: 900, letterSpacing: "-1.5px",
-              color: "#111827", marginBottom: "4px", lineHeight: 1,
-            }}>
+            <h1 className="text-4xl sm:text-5xl font-black tracking-tight text-foreground mb-2">
               {getStepTitle()}
             </h1>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}>
-              <div style={{ height: "1px", width: "24px", background: "rgba(0,0,0,0.1)" }} />
-              <p style={{ color: "rgba(0,0,0,0.4)", fontSize: "12px", fontWeight: 600, letterSpacing: "0.08em" }}>
-                {getStepSubtitle().toUpperCase()}
-              </p>
-              <div style={{ height: "1px", width: "24px", background: "rgba(0,0,0,0.1)" }} />
-            </div>
+            <p className="text-sm font-medium text-muted-foreground uppercase tracking-[0.15em]">
+              {getStepSubtitle()}
+            </p>
           </motion.div>
         </div>
 
-        {/* Card */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3, duration: 0.6 }}
-          style={{
-            background: "#ffffff",
-            border: "1px solid rgba(0,0,0,0.06)",
-            borderRadius: "24px",
-            padding: "28px 24px",
-            boxShadow: "0 1px 3px rgba(0,0,0,0.04), 0 8px 32px rgba(0,0,0,0.06)",
-          }}
+          transition={{ delay: 0.3, duration: 0.5 }}
+          className="bg-card/80 backdrop-blur-xl border border-white/10 dark:border-white/5 rounded-3xl p-6 sm:p-8 shadow-2xl shadow-black/5"
         >
           <AnimatePresence mode="wait">
             {step === "credentials" && (
               <motion.div
                 key="credentials"
-                initial={{ opacity: 0, x: -16 }}
+                initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 16 }}
-                transition={{ duration: 0.25 }}
+                exit={{ opacity: 0, x: 20 }}
+                transition={{ duration: 0.3 }}
               >
-                <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
-                  {/* Username */}
-                  <div>
-                    <label style={{
-                      display: "block", fontSize: "10px", fontWeight: 800,
-                      letterSpacing: "0.14em", textTransform: "uppercase",
-                      color: "rgba(0,0,0,0.4)", marginBottom: "9px", paddingLeft: "2px",
-                    }}>
+                <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground ml-1">
                       Имя или никнейм
                     </label>
-                    <div style={inputStyle("username")}>
+                    <div className={cn(
+                      "relative flex items-center bg-background/50 border rounded-2xl transition-all duration-300",
+                      focusedInput === "username" ? "border-primary ring-4 ring-primary/10 bg-background" : "border-border hover:border-border/80"
+                    )}>
                       <input
                         type="text"
                         value={username}
                         onChange={(e) => setUsername(e.target.value)}
-                        placeholder="@никнейм или имя"
+                        placeholder="@никнейм"
                         autoComplete="username"
                         autoFocus
                         onFocus={() => setFocusedInput("username")}
                         onBlur={() => setFocusedInput(null)}
-                        style={{
-                          width: "100%", background: "transparent", border: "none", outline: "none",
-                          padding: "14px 16px", color: "rgba(0,0,0,0.85)", fontSize: "15px",
-                          fontWeight: 500, boxSizing: "border-box",
-                        }}
+                        className="w-full bg-transparent border-none outline-none px-4 py-3.5 text-[15px] font-medium text-foreground placeholder:text-muted-foreground/50"
                       />
                     </div>
                   </div>
 
-                  {/* Password */}
-                  <div>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "9px", padding: "0 2px" }}>
-                      <label style={{
-                        fontSize: "10px", fontWeight: 800, letterSpacing: "0.14em",
-                        textTransform: "uppercase", color: "rgba(0,0,0,0.4)",
-                      }}>Пароль</label>
-                      <Link href="/forgot-password">
-                        <button type="button" style={{
-                          fontSize: "12px", color: "#ea580c", fontWeight: 700,
-                          background: "none", border: "none", cursor: "pointer",
-                        }}>Забыли?</button>
+                  <div className="space-y-1.5">
+                    <div className="flex justify-between items-center ml-1">
+                      <label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                        Пароль
+                      </label>
+                      <Link href="/forgot-password" className="text-[12px] font-bold text-primary hover:text-primary/80 transition-colors">
+                        Забыли?
                       </Link>
                     </div>
-                    <div style={{ position: "relative", ...inputStyle("password") }}>
+                    <div className={cn(
+                      "relative flex items-center bg-background/50 border rounded-2xl transition-all duration-300",
+                      focusedInput === "password" ? "border-primary ring-4 ring-primary/10 bg-background" : "border-border hover:border-border/80"
+                    )}>
                       <input
                         type={showPassword ? "text" : "password"}
                         value={password}
@@ -330,22 +285,14 @@ export default function Login({ onLogin }: LoginProps) {
                         autoComplete="current-password"
                         onFocus={() => setFocusedInput("password")}
                         onBlur={() => setFocusedInput(null)}
-                        style={{
-                          width: "100%", background: "transparent", border: "none", outline: "none",
-                          padding: "14px 48px 14px 16px", color: "rgba(0,0,0,0.85)",
-                          fontSize: "15px", fontWeight: 500, boxSizing: "border-box",
-                        }}
+                        className="w-full bg-transparent border-none outline-none pl-4 pr-12 py-3.5 text-[15px] font-medium text-foreground placeholder:text-muted-foreground/50"
                       />
                       <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
-                        style={{
-                          position: "absolute", right: "14px", top: "50%", transform: "translateY(-50%)",
-                          background: "none", border: "none", cursor: "pointer",
-                          color: "rgba(0,0,0,0.35)", display: "flex", alignItems: "center",
-                        }}
+                        className="absolute right-3 p-1.5 text-muted-foreground hover:text-foreground transition-colors rounded-lg"
                       >
-                        {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
+                        {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                       </button>
                     </div>
                   </div>
@@ -353,14 +300,10 @@ export default function Login({ onLogin }: LoginProps) {
                   <AnimatePresence>
                     {error && (
                       <motion.div
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: "auto" }}
-                        exit={{ opacity: 0, height: 0 }}
-                        style={{
-                          background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.25)",
-                          color: "#f87171", borderRadius: "12px", padding: "10px 14px",
-                          fontSize: "13px", fontWeight: 600,
-                        }}
+                        initial={{ opacity: 0, height: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, height: "auto", scale: 1 }}
+                        exit={{ opacity: 0, height: 0, scale: 0.95 }}
+                        className="bg-destructive/10 border border-destructive/20 text-destructive rounded-xl p-3 text-sm font-semibold text-center"
                       >
                         {error}
                       </motion.div>
@@ -370,34 +313,29 @@ export default function Login({ onLogin }: LoginProps) {
                   <motion.button
                     type="submit"
                     disabled={loading}
-                    whileHover={!loading ? { scale: 1.015, boxShadow: "0 14px 44px rgba(255,100,20,0.48)" } : {}}
-                    whileTap={!loading ? { scale: 0.975 } : {}}
-                    style={{
-                      width: "100%", padding: "15px", borderRadius: "14px", border: "none", cursor: loading ? "not-allowed" : "pointer",
-                      background: loading ? "rgba(234,88,12,0.5)" : "linear-gradient(135deg, #ea580c 0%, #c2410c 100%)",
-                      color: "white", fontSize: "15px", fontWeight: 800,
-                      boxShadow: loading ? "none" : "0 4px 16px rgba(234,88,12,0.3), inset 0 1px 0 rgba(255,255,255,0.2)",
-                      marginTop: "2px", opacity: loading ? 0.7 : 1, transition: "opacity 0.2s",
-                    }}
+                    whileHover={!loading ? { scale: 1.02 } : {}}
+                    whileTap={!loading ? { scale: 0.98 } : {}}
+                    className={cn(
+                      "w-full py-4 rounded-2xl font-bold text-[15px] shadow-lg transition-all relative overflow-hidden mt-2",
+                      loading 
+                        ? "bg-muted text-muted-foreground cursor-not-allowed shadow-none" 
+                        : "bg-primary text-primary-foreground shadow-primary/25 hover:shadow-primary/40 hover:shadow-xl"
+                    )}
                   >
-                    {loading ? "Входим..." : "Войти"}
+                    {!loading && <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent pointer-events-none" />}
+                    <span className="relative z-10">{loading ? "Входим..." : "Войти"}</span>
                   </motion.button>
                 </form>
 
-                <div style={{ marginTop: "18px", paddingTop: "18px", borderTop: "1px solid rgba(0,0,0,0.06)" }}>
+                <div className="mt-6 pt-6 border-t border-border/50">
                   <motion.button
                     type="button"
                     onClick={startQrLogin}
-                    whileHover={{ background: "rgba(0,0,0,0.04)" }}
-                    style={{
-                      width: "100%", padding: "13px", borderRadius: "14px",
-                      background: "rgba(0,0,0,0.02)", border: "1px solid rgba(0,0,0,0.06)",
-                      cursor: "pointer", color: "rgba(0,0,0,0.5)", fontSize: "13px", fontWeight: 600,
-                      display: "flex", alignItems: "center", justifyContent: "center", gap: "7px",
-                      transition: "background 0.15s",
-                    }}
+                    whileHover={{ scale: 1.01 }}
+                    whileTap={{ scale: 0.99 }}
+                    className="w-full py-3.5 rounded-2xl bg-secondary/50 hover:bg-secondary text-foreground font-semibold text-[14px] flex items-center justify-center gap-2.5 transition-colors border border-border/50"
                   >
-                    <QrCode size={15} style={{ color: "rgba(234,88,12,0.8)" }} />
+                    <QrCode size={18} className="text-primary" />
                     Войти по QR-коду
                   </motion.button>
                 </div>
@@ -407,18 +345,16 @@ export default function Login({ onLogin }: LoginProps) {
             {step === "2fa" && (
               <motion.div
                 key="2fa"
-                initial={{ opacity: 0, x: 16 }}
+                initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -16 }}
-                transition={{ duration: 0.25 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.3 }}
               >
-                <div style={{ textAlign: "center", marginBottom: "22px" }}>
-                  <p style={{ fontSize: "14px", fontWeight: 500, color: "rgba(0,0,0,0.45)", lineHeight: 1.6 }}>
-                    Откройте приложение аутентификации и введите 6-значный код.
-                  </p>
-                </div>
-                <form onSubmit={handleTwoFa} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-                  <div style={inputStyle("2fa")}>
+                <form onSubmit={handleTwoFa} className="flex flex-col gap-6">
+                  <div className={cn(
+                    "relative flex items-center bg-background/50 border rounded-2xl transition-all duration-300",
+                    focusedInput === "2fa" ? "border-primary ring-4 ring-primary/10 bg-background" : "border-border"
+                  )}>
                     <input
                       type="text"
                       inputMode="numeric"
@@ -430,12 +366,7 @@ export default function Login({ onLogin }: LoginProps) {
                       autoFocus
                       onFocus={() => setFocusedInput("2fa")}
                       onBlur={() => setFocusedInput(null)}
-                      style={{
-                        width: "100%", background: "transparent", border: "none", outline: "none",
-                        padding: "20px 16px", color: "rgba(0,0,0,0.85)",
-                        fontSize: "36px", fontFamily: "monospace", letterSpacing: "0.5em",
-                        fontWeight: 900, textAlign: "center", boxSizing: "border-box",
-                      }}
+                      className="w-full bg-transparent border-none outline-none py-6 text-4xl font-mono tracking-[0.5em] font-black text-center text-foreground placeholder:text-muted-foreground/30"
                     />
                   </div>
 
@@ -445,47 +376,37 @@ export default function Login({ onLogin }: LoginProps) {
                         initial={{ opacity: 0, height: 0 }}
                         animate={{ opacity: 1, height: "auto" }}
                         exit={{ opacity: 0, height: 0 }}
-                        style={{
-                          background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.25)",
-                          color: "#f87171", borderRadius: "12px", padding: "10px 14px",
-                          fontSize: "13px", fontWeight: 600, textAlign: "center",
-                        }}
+                        className="bg-destructive/10 border border-destructive/20 text-destructive rounded-xl p-3 text-sm font-semibold text-center"
                       >
                         {twoFaError}
                       </motion.div>
                     )}
                   </AnimatePresence>
 
-                  <motion.button
-                    type="submit"
-                    disabled={twoFaLoading || twoFaCode.length !== 6}
-                    whileHover={twoFaCode.length === 6 ? { scale: 1.015, boxShadow: "0 14px 44px rgba(255,100,20,0.48)" } : {}}
-                    whileTap={twoFaCode.length === 6 ? { scale: 0.975 } : {}}
-                    style={{
-                      width: "100%", padding: "15px", borderRadius: "14px", border: "none",
-                      cursor: twoFaLoading || twoFaCode.length !== 6 ? "not-allowed" : "pointer",
-                      background: "linear-gradient(135deg, #ea580c 0%, #c2410c 100%)",
-                      color: "white", fontSize: "15px", fontWeight: 800,
-                      boxShadow: "0 4px 16px rgba(234,88,12,0.3), inset 0 1px 0 rgba(255,255,255,0.2)",
-                      opacity: twoFaLoading || twoFaCode.length !== 6 ? 0.5 : 1, transition: "opacity 0.2s",
-                    }}
-                  >
-                    {twoFaLoading ? "Проверяем..." : "Подтвердить"}
-                  </motion.button>
+                  <div className="flex flex-col gap-3">
+                    <motion.button
+                      type="submit"
+                      disabled={twoFaLoading || twoFaCode.length !== 6}
+                      whileHover={twoFaCode.length === 6 ? { scale: 1.02 } : {}}
+                      whileTap={twoFaCode.length === 6 ? { scale: 0.98 } : {}}
+                      className={cn(
+                        "w-full py-4 rounded-2xl font-bold text-[15px] shadow-lg transition-all relative overflow-hidden",
+                        twoFaLoading || twoFaCode.length !== 6
+                          ? "bg-muted text-muted-foreground cursor-not-allowed shadow-none" 
+                          : "bg-primary text-primary-foreground shadow-primary/25"
+                      )}
+                    >
+                      {twoFaLoading ? "Проверка..." : "Подтвердить"}
+                    </motion.button>
 
-                  <button
-                    type="button"
-                    onClick={() => { setStep("credentials"); setTwoFaCode(""); setTwoFaError(""); }}
-                    style={{
-                      background: "none", border: "none", cursor: "pointer",
-                      color: "rgba(0,0,0,0.35)", fontSize: "13px", fontWeight: 700,
-                      padding: "8px", textAlign: "center", transition: "color 0.15s",
-                    }}
-                    onMouseEnter={e => (e.currentTarget.style.color = "rgba(0,0,0,0.7)")}
-                    onMouseLeave={e => (e.currentTarget.style.color = "rgba(0,0,0,0.35)")}
-                  >
-                    ← Назад
-                  </button>
+                    <button
+                      type="button"
+                      onClick={() => { setStep("credentials"); setTwoFaCode(""); setTwoFaError(""); }}
+                      className="py-3 text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      Вернуться назад
+                    </button>
+                  </div>
                 </form>
               </motion.div>
             )}
@@ -493,158 +414,67 @@ export default function Login({ onLogin }: LoginProps) {
             {step === "qr" && (
               <motion.div
                 key="qr"
-                initial={{ opacity: 0, x: 16 }}
+                initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -16 }}
-                transition={{ duration: 0.25 }}
-                style={{ display: "flex", flexDirection: "column", alignItems: "center" }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.3 }}
+                className="flex flex-col items-center"
               >
                 {qrStatus === "expired" ? (
-                  <div style={{ textAlign: "center", padding: "16px 0", display: "flex", flexDirection: "column", alignItems: "center", gap: "16px" }}>
-                    <div style={{
-                      width: "60px", height: "60px", borderRadius: "50%",
-                      background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.22)",
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                    }}>
-                      <Clock size={26} style={{ color: "#f87171" }} />
+                  <div className="text-center py-6 flex flex-col items-center gap-4">
+                    <div className="w-16 h-16 rounded-full bg-destructive/10 border border-destructive/20 flex items-center justify-center">
+                      <Clock size={28} className="text-destructive" />
                     </div>
-                    <p style={{ fontSize: "13px", color: "rgba(0,0,0,0.4)", fontWeight: 500 }}>QR-код истёк</p>
+                    <p className="text-[15px] text-muted-foreground font-medium">QR-код истёк</p>
                     <motion.button
                       onClick={startQrLogin}
                       whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.97 }}
-                      style={{
-                        display: "flex", alignItems: "center", gap: "8px",
-                        padding: "10px 20px", borderRadius: "14px",
-                        background: "rgba(249,115,22,0.08)", border: "1px solid rgba(249,115,22,0.3)",
-                        color: "#ea580c", fontSize: "13px", fontWeight: 700, cursor: "pointer",
-                      }}
+                      whileTap={{ scale: 0.98 }}
+                      className="px-6 py-3 rounded-xl bg-primary/10 text-primary font-bold hover:bg-primary/15 transition-colors border border-primary/20"
                     >
-                      <RefreshCw size={14} /> Обновить QR
+                      Обновить QR-код
                     </motion.button>
                   </div>
                 ) : qrStatus === "confirmed" ? (
-                  <div style={{ textAlign: "center", padding: "16px 0", display: "flex", flexDirection: "column", alignItems: "center", gap: "12px" }}>
-                    <motion.div
-                      initial={{ scale: 0.5, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                      transition={{ type: "spring", stiffness: 200, damping: 15 }}
-                      style={{
-                        width: "60px", height: "60px", borderRadius: "50%",
-                        background: "rgba(34,197,94,0.1)", border: "1px solid rgba(34,197,94,0.22)",
-                        display: "flex", alignItems: "center", justifyContent: "center",
-                      }}
+                  <div className="text-center py-6 flex flex-col items-center gap-4">
+                    <motion.div 
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      transition={{ type: "spring", stiffness: 200, damping: 20 }}
+                      className="w-16 h-16 rounded-full bg-green-500/10 border border-green-500/20 flex items-center justify-center"
                     >
-                      <CheckCircle2 size={28} style={{ color: "#22c55e" }} />
+                      <ShieldCheck size={32} className="text-green-500" />
                     </motion.div>
-                    <p style={{ fontSize: "14px", fontWeight: 700, color: "rgba(0,0,0,0.85)" }}>Вход подтверждён!</p>
-                    <p style={{ fontSize: "12px", color: "rgba(0,0,0,0.35)" }}>Выполняем вход...</p>
+                    <p className="text-[15px] font-bold text-foreground">Успешный вход!</p>
                   </div>
                 ) : (
-                  <>
-                    <p style={{
-                      fontSize: "13px", color: "rgba(0,0,0,0.4)", fontWeight: 500,
-                      textAlign: "center", marginBottom: "18px", lineHeight: 1.6,
-                    }}>
-                      Откройте Pulse на другом устройстве и отсканируйте код
-                    </p>
-
-                    <div style={{
-                      padding: "12px", borderRadius: "20px", marginBottom: "12px", position: "relative",
-                      background: "#f8fafc", border: "1px solid rgba(0,0,0,0.08)",
-                    }}>
+                  <div className="flex flex-col items-center w-full">
+                    <div className="bg-white p-4 rounded-3xl shadow-sm border border-black/5 mb-6 relative group">
+                      <div className="absolute inset-0 bg-primary/5 rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
                       {qrImageUrl ? (
-                        <img
-                          src={qrImageUrl}
-                          alt="QR Code"
-                          width={168}
-                          height={168}
-                          style={{ borderRadius: "12px", imageRendering: "pixelated", display: "block" }}
-                        />
+                        <img src={qrImageUrl} alt="QR Code" className="w-[200px] h-[200px]" />
                       ) : (
-                        <div style={{ width: "168px", height: "168px", borderRadius: "12px", background: "rgba(0,0,0,0.04)" }} />
+                        <div className="w-[200px] h-[200px] bg-secondary/50 rounded-2xl animate-pulse" />
                       )}
-                      <motion.div
-                        style={{
-                          position: "absolute", inset: "12px", borderRadius: "12px",
-                          border: "2px solid rgba(249,115,22,0.35)", pointerEvents: "none",
-                        }}
-                        animate={{ opacity: [0.3, 0.8, 0.3] }}
-                        transition={{ duration: 2, repeat: Infinity }}
-                      />
+                    </div>
+                    
+                    <div className="flex items-center gap-2 px-4 py-2 bg-secondary rounded-full mb-8 border border-border/50">
+                      <Clock size={14} className="text-primary" />
+                      <span className="text-sm font-bold font-mono text-foreground">{formatTime(qrTimeLeft)}</span>
                     </div>
 
-                    <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "12px", color: "rgba(0,0,0,0.35)", fontWeight: 500, marginBottom: "18px" }}>
-                      <Clock size={11} style={{ color: "rgba(249,115,22,0.7)" }} />
-                      <span>Код действителен {formatTime(qrTimeLeft)}</span>
-                    </div>
-
-                    <div style={{ display: "flex", alignItems: "center", gap: "7px", fontSize: "12px", color: "rgba(0,0,0,0.3)" }}>
-                      <motion.div
-                        style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#22c55e" }}
-                        animate={{ opacity: [1, 0.3, 1] }}
-                        transition={{ duration: 1.5, repeat: Infinity }}
-                      />
-                      <span>Ожидаем сканирование...</span>
-                    </div>
-                  </>
+                    <button
+                      type="button"
+                      onClick={() => setStep("credentials")}
+                      className="w-full py-3.5 rounded-2xl bg-secondary hover:bg-secondary/80 text-foreground font-semibold text-[14px] transition-colors border border-border"
+                    >
+                      Войти по паролю
+                    </button>
+                  </div>
                 )}
-
-                <button
-                  type="button"
-                  onClick={() => { clearQrIntervals(); setStep("credentials"); setQrStatus("idle"); }}
-                  style={{
-                    background: "none", border: "none", cursor: "pointer",
-                    color: "rgba(255,255,255,0.3)", fontSize: "13px", fontWeight: 700,
-                    padding: "12px", marginTop: "10px", textAlign: "center", transition: "color 0.15s",
-                    width: "100%",
-                  }}
-                  onMouseEnter={e => (e.currentTarget.style.color = "rgba(255,255,255,0.65)")}
-                  onMouseLeave={e => (e.currentTarget.style.color = "rgba(255,255,255,0.3)")}
-                >
-                  ← Назад
-                </button>
               </motion.div>
             )}
           </AnimatePresence>
-        </motion.div>
-
-        {step === "credentials" && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.45 }}
-            style={{ marginTop: "12px" }}
-          >
-            <Link href="/register">
-              <motion.button
-                whileHover={{ background: "rgba(0,0,0,0.04)" }}
-                style={{
-                  width: "100%", padding: "15px", borderRadius: "20px",
-                  background: "transparent", border: "1px solid rgba(0,0,0,0.12)",
-                  cursor: "pointer", color: "rgba(0,0,0,0.65)", fontSize: "15px", fontWeight: 700,
-                  transition: "background 0.15s",
-                }}
-              >
-                Зарегистрироваться
-              </motion.button>
-            </Link>
-          </motion.div>
-        )}
-
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.6 }}
-          style={{
-            display: "flex", alignItems: "center", justifyContent: "center", gap: "5px",
-            marginTop: "22px", paddingBottom: "8px",
-          }}
-        >
-          <Shield size={10} style={{ color: "rgba(0,0,0,0.2)" }} />
-          <p style={{ fontSize: "11px", color: "rgba(0,0,0,0.2)", fontWeight: 500 }}>
-            Nova Messenger · Ваши данные надёжно защищены
-          </p>
         </motion.div>
       </motion.div>
     </div>

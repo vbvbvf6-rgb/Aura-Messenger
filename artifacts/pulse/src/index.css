@@ -47,70 +47,71 @@
 }
 
 :root {
-  /* Pulse Clean — airy, light, uncluttered like VK Messenger */
-  --background: 0 0% 100%;
-  --foreground: 220 14% 18%;
+  /* Brushed Aluminium Light Mode */
+  --background: 210 10% 98%;
+  --foreground: 220 15% 15%;
 
   --card: 0 0% 100%;
-  --card-foreground: 220 14% 18%;
-  --card-border: 220 12% 92%;
+  --card-foreground: 220 15% 15%;
+  --card-border: 210 12% 90%;
 
   --popover: 0 0% 100%;
-  --popover-foreground: 220 14% 18%;
-  --popover-border: 220 12% 92%;
+  --popover-foreground: 220 15% 15%;
+  --popover-border: 210 12% 90%;
 
-  --primary: 22 85% 52%;
+  --primary: 24 95% 55%;
   --primary-foreground: 0 0% 100%;
 
-  --secondary: 220 12% 96%;
-  --secondary-foreground: 220 14% 25%;
+  --secondary: 210 12% 93%;
+  --secondary-foreground: 220 15% 25%;
 
-  --muted: 220 12% 96%;
-  --muted-foreground: 220 8% 50%;
+  --muted: 210 10% 92%;
+  --muted-foreground: 210 10% 45%;
 
-  --accent: 22 85% 52%;
+  --accent: 24 95% 55%;
   --accent-foreground: 0 0% 100%;
 
-  --destructive: 0 72% 55%;
+  --destructive: 0 84% 60%;
   --destructive-foreground: 0 0% 100%;
 
-  --border: 220 12% 92%;
-  --input: 220 12% 92%;
-  --ring: 22 85% 52%;
+  --border: 210 12% 90%;
+  --input: 210 12% 90%;
+  --ring: 24 95% 55%;
 
-  --radius: 0.875rem;
+  --radius: 1rem;
 }
 
 .dark {
-  --background: 220 16% 8%;
-  --foreground: 220 10% 92%;
+  /* Architectural Dark Mode — deep cool blue-black */
+  --background: 222 25% 6%;
+  --foreground: 210 20% 96%;
 
-  --card: 220 14% 11%;
-  --card-foreground: 220 10% 92%;
-  --card-border: 220 12% 18%;
+  --card: 222 25% 9%;
+  --card-foreground: 210 20% 96%;
+  --card-border: 222 25% 14%;
 
-  --popover: 220 14% 11%;
-  --popover-foreground: 220 10% 92%;
-  --popover-border: 220 12% 18%;
+  --popover: 222 25% 9%;
+  --popover-foreground: 210 20% 96%;
+  --popover-border: 222 25% 14%;
 
-  --primary: 22 85% 52%;
+  --primary: 24 95% 55%;
   --primary-foreground: 0 0% 100%;
 
-  --secondary: 220 10% 16%;
-  --secondary-foreground: 220 10% 85%;
+  --secondary: 222 25% 14%;
+  --secondary-foreground: 210 20% 90%;
 
-  --muted: 220 10% 16%;
-  --muted-foreground: 220 8% 55%;
+  --muted: 222 25% 12%;
+  --muted-foreground: 210 15% 55%;
 
-  --accent: 22 85% 52%;
+  --accent: 24 95% 55%;
   --accent-foreground: 0 0% 100%;
 
-  --destructive: 0 72% 55%;
+  --destructive: 0 84% 60%;
   --destructive-foreground: 0 0% 100%;
 
-  --border: 220 12% 18%;
-  --input: 220 12% 18%;
-  --ring: 22 85% 52%;
+  --border: 222 25% 14%;
+  --input: 222 25% 14%;
+  --ring: 24 95% 55%;
 }
 
 @layer base {
@@ -250,38 +251,54 @@
 .chat-bg {
   background-color: hsl(var(--background));
   background-image:
-    radial-gradient(circle at 20% 80%, hsl(22 85% 52% / 0.04) 0%, transparent 50%),
-    radial-gradient(circle at 80% 20%, hsl(220 12% 80% / 0.04) 0%, transparent 50%);
+    radial-gradient(circle at 15% 85%, hsl(var(--primary) / 0.03) 0%, transparent 40%),
+    radial-gradient(circle at 85% 15%, hsl(var(--primary) / 0.02) 0%, transparent 40%),
+    linear-gradient(180deg, hsl(var(--background)) 0%, hsl(var(--background) / 0.95) 100%);
+}
+
+.dark .chat-bg {
+  background-image:
+    radial-gradient(circle at 15% 85%, hsl(var(--primary) / 0.04) 0%, transparent 45%),
+    radial-gradient(circle at 85% 15%, hsl(var(--primary) / 0.03) 0%, transparent 45%),
+    linear-gradient(180deg, hsl(var(--background)) 0%, hsl(222 25% 5%) 100%);
 }
 
 /* Message bubble — outgoing */
 .bubble-mine {
-  background: linear-gradient(135deg, hsl(22 85% 52%) 0%, hsl(20 90% 48%) 100%);
-  box-shadow: 0 2px 12px hsl(22 85% 52% / 0.2);
-  border: 1px solid hsl(22 85% 60% / 0.2);
+  background: linear-gradient(145deg, hsl(var(--primary)), hsl(20 95% 45%));
+  box-shadow: 0 4px 20px -2px hsl(var(--primary) / 0.3), inset 0 1px 1px rgba(255, 255, 255, 0.2);
+  border: 1px solid hsl(var(--primary) / 0.8);
+  color: hsl(var(--primary-foreground));
 }
 
-/* Glass morphism card — lighter on weak devices */
+/* Glass morphism card */
 .glass-card {
-  background: rgba(255, 255, 255, 0.7);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(0, 0, 0, 0.06);
+  background: rgba(255, 255, 255, 0.5);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.02);
+}
+
+.dark .glass-card {
+  background: rgba(18, 22, 33, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
 }
 
 /* Sidebar glow for active item */
 .nav-active-glow {
-  box-shadow: 0 0 20px hsl(var(--primary) / 0.15);
+  box-shadow: 0 0 24px hsl(var(--primary) / 0.25);
 }
 
-/* Wallet hero card — orange accent in light mode */
+/* Wallet hero card */
 .wallet-hero {
   background: linear-gradient(135deg, #fef3c7 0%, #fff7ed 50%, #fef3c7 100%);
   border: 1px solid hsl(var(--border));
   box-shadow: 0 2px 12px rgba(0,0,0,0.06);
 }
 .dark .wallet-hero {
-  background: linear-gradient(135deg, #1a1a3e 0%, #0d2545 50%, #1a1a3e 100%);
+  background: linear-gradient(135deg, #161b26 0%, #1e293b 50%, #161b26 100%);
 }
 
 /* ─── Landscape phone layout optimizations ──────────────────────────────── */

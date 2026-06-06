@@ -85,6 +85,18 @@ const authLimiter = rateLimit({
 app.use("/api/auth/login", authLimiter);
 app.use("/api/auth/register", authLimiter);
 
+// ── Message send rate limit — 60 messages per minute per user ────────────
+const messageLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 60,
+  message: { error: "Слишком много сообщений. Подождите немного." },
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => req.currentUserId ? `user:${req.currentUserId}` : "anonymous",
+  skip: (req) => !req.currentUserId,
+});
+app.use("/api/messages", messageLimiter);
+
 // Routes that do NOT require a valid session
 const PUBLIC_API_PATHS = [
   "/auth/login",

@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, timestamp, boolean, jsonb, unique } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, timestamp, boolean, jsonb, unique, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { chatsTable } from "./chats";
@@ -19,7 +19,11 @@ export const messagesTable = pgTable("messages", {
   effect: text("effect"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
-});
+}, (t) => [
+  index("idx_messages_chat_id").on(t.chatId),
+  index("idx_messages_chat_id_created_at").on(t.chatId, t.createdAt),
+  index("idx_messages_sender_id").on(t.senderId),
+]);
 
 export const reactionsTable = pgTable("reactions", {
   id: serial("id").primaryKey(),
@@ -27,7 +31,9 @@ export const reactionsTable = pgTable("reactions", {
   userId: integer("user_id").notNull().references(() => usersTable.id),
   emoji: text("emoji").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-});
+}, (t) => [
+  index("idx_reactions_message_id").on(t.messageId),
+]);
 
 export const scheduledMessagesTable = pgTable("scheduled_messages", {
   id: serial("id").primaryKey(),

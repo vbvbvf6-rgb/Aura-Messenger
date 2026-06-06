@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db, messagesTable, reactionsTable, usersTable, chatMembersTable, chatsTable } from "@workspace/db";
-import { eq, and, lt, desc, sql, lte, gt, ne } from "drizzle-orm";
+import { eq, and, lt, desc, sql, lte, gt, ne, inArray } from "drizzle-orm";
 import { getBanwords, findBanword } from "../lib/banwords";
 import { localModerationCheck, moderateContent } from "../lib/moderation";
 import { spawn } from "node:child_process";
@@ -108,6 +108,119 @@ async function buildMessage(msg: typeof messagesTable.$inferSelect, viewerIsPrim
     giftData: null,
     pollData,
   };
+}
+
+// ── Batch builder — replaces N+1 with 5 fixed queries for any message list ──
+async function buildMessagesBatch(msgs: (typeof messagesTable.$inferSelect)[], viewerIsPrimePlus = false) {
+  if (msgs.length === 0) return [];
+
+  const msgIds = msgs.map(m => m.id);
+  const senderIds = [...new Set(msgs.map(m => m.senderId))];
+  const replyToIds = [...new Set(msgs.map(m => m.replyToId).filter(Boolean) as number[])];
+
+  // 1. Fetch all unique senders in one query
+  const senders = senderIds.length
+    ? await db.select().from(usersTable).where(inArray(usersTable.id, senderIds))
+    : [];
+  const senderMap = new Map(senders.map(u => [u.id, u]));
+
+  // 2. Fetch all reactions for all messages in one query
+  const allReactions = msgIds.length
+    ? await db.select({ reaction: reactionsTable, user: usersTable })
+        .from(reactionsTable)
+        .leftJoin(usersTable, eq(reactionsTable.userId, usersTable.id))
+        .where(inArray(reactionsTable.messageId, msgIds))
+    : [];
+  const reactionsMap = new Map<number, typeof allReactions>();
+  for (const r of allReactions) {
+    const mid = r.reaction.messageId;
+    if (!reactionsMap.has(mid)) reactionsMap.set(mid, []);
+    reactionsMap.get(mid)!.push(r);
+  }
+
+  // 3. Fetch all replyTo messages in one query
+  const replyMessages = replyToIds.length
+    ? await db.select().from(messagesTable).where(inArray(messagesTable.id, replyToIds))
+    : [];
+  const replySenderIds = [...new Set(replyMessages.map(r => r.senderId))];
+  const replyUsers = replySenderIds.length
+    ? await db.select().from(usersTable).where(inArray(usersTable.id, replySenderIds))
+    : [];
+  const replyUserMap = new Map(replyUsers.map(u => [u.id, u]));
+  const replyMsgMap = new Map(replyMessages.map(r => [r.id, r]));
+
+  // 4. Fetch poll data for poll messages in one query
+  const pollMsgIds = msgs.filter(m => m.type === "poll").map(m => m.id);
+  const allPolls = pollMsgIds.length
+    ? await db.execute(sql`SELECT * FROM polls WHERE message_id = ANY(ARRAY[${sql.join(pollMsgIds.map(id => sql`${id}`), sql`, `)}]::int[])`)
+    : { rows: [] };
+  const pollMap = new Map<number, any>();
+  for (const poll of allPolls.rows as any[]) {
+    pollMap.set(poll.message_id, poll);
+  }
+  const pollIds = (allPolls.rows as any[]).map(p => p.id);
+  const allVotes = pollIds.length
+    ? await db.execute(sql`SELECT pv.*, u.display_name, u.avatar_color FROM poll_votes pv JOIN users u ON u.id = pv.user_id WHERE pv.poll_id = ANY(ARRAY[${sql.join(pollIds.map(id => sql`${id}`), sql`, `)}]::int[])`)
+    : { rows: [] };
+  const votesMap = new Map<number, any[]>();
+  for (const v of allVotes.rows as any[]) {
+    if (!votesMap.has(v.poll_id)) votesMap.set(v.poll_id, []);
+    votesMap.get(v.poll_id)!.push(v);
+  }
+
+  return msgs.map(msg => {
+    const sender = senderMap.get(msg.senderId);
+    // Prime info was already fetched in the sender row; attach it
+    const senderWithPrime = sender
+      ? { ...sender, hasPrime: !!(sender as any).hasPrime, primeTier: (sender as any).primeTier ?? null }
+      : null;
+
+    // Deleted message masking
+    let maskedText = msg.text;
+    let maskedMediaUrl = msg.mediaUrl;
+    let deletedContentVisible = false;
+    if (msg.isDeleted) {
+      const deletedAt = msg.deletedAt ? new Date(msg.deletedAt) : null;
+      const withinWindow = deletedAt && (Date.now() - deletedAt.getTime()) < 48 * 60 * 60 * 1000;
+      if (viewerIsPrimePlus && withinWindow) {
+        deletedContentVisible = true;
+      } else {
+        maskedText = null;
+        maskedMediaUrl = null;
+      }
+    }
+
+    // replyTo
+    let replyTo = null;
+    if (msg.replyToId) {
+      const reply = replyMsgMap.get(msg.replyToId);
+      if (reply) {
+        replyTo = { ...reply, sender: replyUserMap.get(reply.senderId) ?? null, reactions: [], replyTo: null, giftData: null };
+      }
+    }
+
+    // Poll data
+    let pollData: any = null;
+    if (msg.type === "poll") {
+      const poll = pollMap.get(msg.id);
+      if (poll) {
+        const opts: string[] = typeof poll.options === "string" ? JSON.parse(poll.options) : (poll.options || []);
+        pollData = { ...poll, options: opts, votes: votesMap.get(poll.id) ?? [] };
+      }
+    }
+
+    return {
+      ...msg,
+      text: maskedText,
+      mediaUrl: maskedMediaUrl,
+      deletedContentVisible,
+      sender: senderWithPrime,
+      reactions: (reactionsMap.get(msg.id) ?? []).map(r => ({ ...r.reaction, user: r.user })),
+      replyTo,
+      giftData: null,
+      pollData,
+    };
+  });
 }
 
 router.get("/messages/search", async (req, res) => {
@@ -218,18 +331,18 @@ router.get("/messages", async (req, res) => {
       return t > max ? t : max;
     }, 0);
 
-    const built = await Promise.all(msgs.reverse().map(async m => {
-      const msg = await buildMessage(m, isPrimePlus);
+    const reversed = msgs.reverse();
+    const built = await buildMessagesBatch(reversed, isPrimePlus);
+    for (let i = 0; i < reversed.length; i++) {
+      const m = reversed[i];
       if (m.senderId === uid) {
-        msg.isRead = maxOtherLastRead >= new Date(m.createdAt).getTime();
-        (msg as any).isDelivered = maxOtherLastDelivered >= new Date(m.createdAt).getTime();
+        built[i].isRead = maxOtherLastRead >= new Date(m.createdAt).getTime();
+        (built[i] as any).isDelivered = maxOtherLastDelivered >= new Date(m.createdAt).getTime();
       } else {
-        // Messages from others are always "seen" by the viewer
-        msg.isRead = true;
-        (msg as any).isDelivered = true;
+        built[i].isRead = true;
+        (built[i] as any).isDelivered = true;
       }
-      return msg;
-    }));
+    }
     res.json(built);
   } catch (err) {
     req.log.error(err);
@@ -262,6 +375,11 @@ router.post("/messages", async (req, res) => {
 
     if (body.text && body.text.length > 4000) {
       return res.status(400).json({ error: "Сообщение слишком длинное (максимум 4000 символов)" });
+    }
+
+    // Reject oversized media (base64 > 8MB string ≈ 6MB actual file)
+    if (body.mediaUrl && body.mediaUrl.length > 8 * 1024 * 1024) {
+      return res.status(413).json({ error: "Медиафайл слишком большой. Максимальный размер — 6 МБ." });
     }
 
     // Banword check

@@ -26,16 +26,6 @@ import {
   Search,
   CalendarDays,
 } from "lucide-react";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
 import { useAppContext } from "@/contexts/AppContext";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -49,15 +39,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { SavedAccount } from "@/lib/accounts";
 import PulseLogo from "@/components/PulseLogo";
-
-function VerifiedBadge() {
-  return (
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" className="shrink-0">
-      <circle cx="12" cy="12" r="12" fill="currentColor" className="text-primary"/>
-      <path d="M7 12l3.5 3.5L17 8" stroke="currentColor" className="text-primary-foreground" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
-    </svg>
-  );
-}
 
 function AccountRow({
   account,
@@ -74,8 +55,8 @@ function AccountRow({
   return (
     <div
       className={cn(
-        "flex items-center gap-2.5 px-3 py-2 rounded-xl transition-all group",
-        isActive ? "bg-primary/10 border border-primary/20" : "hover:bg-secondary cursor-pointer border border-transparent"
+        "flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all group",
+        isActive ? "bg-primary/10 border border-primary/20 shadow-sm" : "hover:bg-secondary cursor-pointer border border-transparent"
       )}
       onClick={!isActive ? onSwitch : undefined}
     >
@@ -88,18 +69,18 @@ function AccountRow({
         ) : initial}
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-semibold text-foreground truncate leading-tight">{account.displayName}</p>
-        <p className="text-xs text-muted-foreground truncate opacity-80">@{account.username}</p>
+        <p className="text-[13px] font-bold text-foreground truncate leading-tight">{account.displayName}</p>
+        <p className="text-[11px] text-muted-foreground truncate font-medium">@{account.username}</p>
       </div>
       <div className="flex items-center gap-1 shrink-0">
-        {isActive && <Check size={14} className="text-primary" />}
+        {isActive && <Check size={16} className="text-primary" />}
         {!isActive && (
           <button
             onClick={(e) => { e.stopPropagation(); onRemove(); }}
             className="p-1.5 rounded-lg opacity-0 group-hover:opacity-100 text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all"
             title="Удалить аккаунт"
           >
-            <Trash2 size={13} />
+            <Trash2 size={14} />
           </button>
         )}
       </div>
@@ -118,29 +99,29 @@ function MobileAccountFooter({
 }) {
   const [expanded, setExpanded] = useState(false);
   return (
-    <div className="w-full px-3 pt-3 mt-auto border-t border-border">
+    <div className="w-full px-4 pb-6 pt-4 mt-auto border-t border-border/50 bg-background/50 backdrop-blur-sm">
       <button
         onClick={() => setExpanded(v => !v)}
-        className="w-full flex items-center gap-3 p-2.5 rounded-xl bg-secondary/50 hover:bg-secondary border border-border/50 hover:border-border transition-all focus:outline-none"
+        className="w-full flex items-center gap-3 p-3 rounded-2xl bg-card border border-border/50 hover:border-border shadow-sm transition-all focus:outline-none"
       >
         <div className="relative shrink-0">
           <div
-            className={cn("w-9 h-9 rounded-full flex items-center justify-center text-white font-bold text-sm overflow-hidden", isPremium && "ring-2 ring-violet-500 ring-offset-2 ring-offset-card")}
+            className={cn("w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm overflow-hidden", isPremium && "ring-2 ring-violet-500 ring-offset-2 ring-offset-card")}
             style={{ backgroundColor: me?.avatarColor || "#3B82F6" }}
           >
             {me?.avatarUrl ? <img src={me.avatarUrl} alt="" className="w-full h-full object-cover" /> : initial}
           </div>
           {savedAccounts.length > 1 && (
-            <div className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-primary text-white text-[9px] font-bold flex items-center justify-center shadow-sm border-2 border-card">
+            <div className="absolute -top-1 -right-1 w-[18px] h-[18px] rounded-full bg-primary text-white text-[10px] font-bold flex items-center justify-center shadow-sm border-2 border-card">
               {savedAccounts.length}
             </div>
           )}
         </div>
         <div className="flex-1 min-w-0 text-left">
-          <p className="text-sm font-bold truncate text-foreground leading-tight">{me?.displayName || "..."}</p>
-          <p className="text-xs text-muted-foreground truncate">@{me?.username || "..."}</p>
+          <p className="text-[14px] font-bold truncate text-foreground leading-tight">{me?.displayName || "..."}</p>
+          <p className="text-[12px] text-muted-foreground truncate font-medium">@{me?.username || "..."}</p>
         </div>
-        <MoreHorizontal size={16} className={cn("text-muted-foreground shrink-0 transition-transform", expanded && "rotate-90")} />
+        <MoreHorizontal size={18} className={cn("text-muted-foreground shrink-0 transition-transform", expanded && "rotate-90")} />
       </button>
 
       <AnimatePresence>
@@ -152,33 +133,34 @@ function MobileAccountFooter({
             transition={{ duration: 0.2 }}
             className="overflow-hidden"
           >
-            <div className="pt-2 space-y-1">
+            <div className="pt-3 space-y-1.5">
               {savedAccounts.map(acc => (
-                <AccountRow
-                  key={acc.userId}
+               <div key={acc.userId} className="bg-card rounded-xl border border-border/50 p-1">
+                 <AccountRow
                   account={acc}
                   isActive={acc.userId === currentUserId}
                   onSwitch={() => { setExpanded(false); switchAccount(acc.userId); }}
                   onRemove={() => removeAccount(acc.userId)}
-                />
+                 />
+               </div>
               ))}
               {canAddAccount && (
                 <button
                   onClick={() => { setExpanded(false); openAddAccount(); }}
-                  className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-primary hover:bg-primary/10 transition-colors text-sm font-semibold"
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-primary bg-primary/5 hover:bg-primary/10 border border-primary/10 transition-colors text-[13px] font-bold"
                 >
-                  <UserPlus size={15} />
+                  <UserPlus size={16} />
                   Добавить аккаунт
                   {savedAccounts.length > 0 && (
-                    <span className="ml-auto text-[10px] font-bold uppercase tracking-wider text-primary/70 bg-primary/10 px-1.5 py-0.5 rounded">{savedAccounts.length}/3</span>
+                    <span className="ml-auto text-[10px] font-black uppercase tracking-wider text-primary/80 bg-primary/10 px-2 py-0.5 rounded-full">{savedAccounts.length}/3</span>
                   )}
                 </button>
               )}
               <button
                 onClick={logout}
-                className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-destructive hover:bg-destructive/10 transition-colors text-sm font-semibold"
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-destructive hover:bg-destructive/10 transition-colors text-[13px] font-bold mt-2"
               >
-                <LogOut size={15} />
+                <LogOut size={16} />
                 Выйти
               </button>
             </div>
@@ -235,7 +217,7 @@ export function Sidebar({ mobileSidebarOpen, onMobileClose, onMobileOpen, onOpen
   const AccountsSection = (
     <>
       {savedAccounts.length > 0 && (
-        <div className="px-1 pb-1 space-y-1">
+        <div className="p-1.5 space-y-1">
           {savedAccounts.map(acc => (
             <AccountRow
               key={acc.userId}
@@ -248,45 +230,50 @@ export function Sidebar({ mobileSidebarOpen, onMobileClose, onMobileOpen, onOpen
         </div>
       )}
       {canAddAccount && (
-        <DropdownMenuItem
-          onClick={openAddAccount}
-          className="flex items-center gap-2 text-primary data-[highlighted]:bg-primary data-[highlighted]:text-white cursor-pointer mt-1 rounded-xl"
-        >
-          <UserPlus size={15} />
-          Добавить аккаунт
-          {savedAccounts.length > 0 && (
-            <span className="ml-auto text-[10px] font-bold uppercase tracking-wider text-primary/70 bg-primary/10 px-1.5 py-0.5 rounded">{savedAccounts.length}/3</span>
-          )}
-        </DropdownMenuItem>
+        <div className="px-1.5 pb-1">
+          <button
+            onClick={openAddAccount}
+            className="w-full flex items-center gap-2 px-3 py-2 text-primary hover:bg-primary/10 cursor-pointer rounded-xl text-[13px] font-bold transition-colors"
+          >
+            <UserPlus size={16} />
+            Добавить аккаунт
+            {savedAccounts.length > 0 && (
+              <span className="ml-auto text-[10px] font-black uppercase tracking-wider text-primary/80 bg-primary/10 px-1.5 py-0.5 rounded-full">{savedAccounts.length}/3</span>
+            )}
+          </button>
+        </div>
       )}
-      <DropdownMenuSeparator />
+      <DropdownMenuSeparator className="bg-border/50" />
     </>
   );
 
   const DesktopSidebar = (
-    <div className="hidden md:flex flex-col h-[100dvh] w-[240px] bg-card border-r border-border py-4 shrink-0 shadow-[4px_0_24px_rgba(0,0,0,0.02)]">
-      <div className="flex items-center gap-2 px-4 mb-5">
-        <div className="w-9 h-9 rounded-[12px] flex items-center justify-center shrink-0 drop-shadow-[0_0_10px_rgba(139,92,246,0.5)]">
-          <PulseLogo size={36} />
+    <div className="hidden md:flex flex-col h-[100dvh] w-[260px] bg-card border-r border-border/50 shrink-0 relative z-20">
+      <div className="flex items-center gap-3 px-5 pt-6 pb-4">
+        <div className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 bg-primary/10 border border-primary/20 text-primary relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-transparent" />
+          <PulseLogo size={22} />
         </div>
-        <span className="font-black text-xl tracking-tight bg-clip-text text-transparent bg-gradient-to-br from-foreground to-muted-foreground flex-1">Nova</span>
-        <button
-          onClick={onOpenPalette}
-          title="Поиск (Ctrl+K)"
-          className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary transition-all"
-        >
-          <Search size={15} />
-        </button>
-        <button
-          onClick={toggleTheme}
-          title={isDark ? "Светлая тема" : "Тёмная тема"}
-          className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary transition-all"
-        >
-          {isDark ? <Sun size={15} /> : <Moon size={15} />}
-        </button>
+        <span className="font-black text-2xl tracking-tight text-foreground flex-1">Nova</span>
+        <div className="flex gap-1">
+          <button
+            onClick={onOpenPalette}
+            title="Поиск (Ctrl+K)"
+            className="w-8 h-8 rounded-xl flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary transition-all"
+          >
+            <Search size={16} strokeWidth={2.5} />
+          </button>
+          <button
+            onClick={toggleTheme}
+            title={isDark ? "Светлая тема" : "Тёмная тема"}
+            className="w-8 h-8 rounded-xl flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary transition-all"
+          >
+            {isDark ? <Sun size={16} strokeWidth={2.5} /> : <Moon size={16} strokeWidth={2.5} />}
+          </button>
+        </div>
       </div>
 
-      <nav className="flex-1 flex flex-col gap-1 w-full px-3 overflow-y-auto scrollbar-none">
+      <nav className="flex-1 flex flex-col gap-1 w-full px-4 overflow-y-auto scrollbar-none py-2">
         {NAV_ITEMS.map((item) => {
           const isActive = location === item.href || (item.href !== "/" && location.startsWith(item.href));
           const showBadge = item.href === "/" && totalUnread > 0;
@@ -295,75 +282,90 @@ export function Sidebar({ mobileSidebarOpen, onMobileClose, onMobileOpen, onOpen
               key={item.href}
               href={item.href}
               className={cn(
-                "flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group relative",
+                "flex items-center gap-3.5 px-3.5 py-3 rounded-[16px] transition-all duration-200 group relative",
                 isActive
-                  ? "bg-primary text-primary-foreground shadow-[0_4px_14px_rgba(234,88,12,0.3)]"
-                  : "text-muted-foreground hover:bg-secondary/80 hover:text-foreground"
+                  ? "bg-primary text-primary-foreground shadow-md shadow-primary/20"
+                  : "text-muted-foreground hover:bg-secondary hover:text-foreground"
               )}
             >
               <div className="relative shrink-0">
                 <item.icon
-                  size={18}
+                  size={20}
+                  strokeWidth={isActive ? 2.5 : 2}
                   className={cn(
-                    "transition-transform duration-300 group-hover:scale-110",
-                    isActive && "text-white"
+                    "transition-transform duration-300",
+                    isActive ? "scale-100 text-white" : "group-hover:scale-110"
                   )}
                 />
                 {showBadge && (
                   <div className={cn(
-                    "absolute -top-2 -right-2 text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center shadow-sm",
-                    isActive ? "bg-white text-primary" : "bg-primary text-white"
+                    "absolute -top-2 -right-2 text-[10px] font-black px-1.5 py-0.5 rounded-full min-w-[20px] text-center shadow-sm border-2",
+                    isActive ? "bg-white text-primary border-primary" : "bg-primary text-white border-card"
                   )}>
                     {totalUnread > 99 ? "99+" : totalUnread}
                   </div>
                 )}
               </div>
-              <span className="font-semibold text-sm truncate flex-1">{item.label}</span>
+              <span className={cn("text-[14px] truncate flex-1", isActive ? "font-bold" : "font-semibold")}>
+                {item.label}
+              </span>
               {item.soon && (
-                <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/25 shrink-0">Soon</span>
+                <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-500 shrink-0">Soon</span>
               )}
             </Link>
           );
         })}
 
-        <Link
-          href="/prime"
-          className={cn(
-            "flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group border mt-2",
-            location.startsWith("/prime")
-              ? "bg-gradient-to-r from-orange-500 to-red-500 text-white border-transparent shadow-[0_4px_14px_rgba(234,88,12,0.4)]"
-              : "border-violet-500/20 text-violet-400 hover:bg-violet-500/10 hover:border-violet-500/30"
-          )}
-        >
-          <Crown size={18} className="transition-transform duration-300 group-hover:scale-110 shrink-0" />
-          <span className="font-semibold text-sm truncate">{t("nav.prime")}</span>
-        </Link>
-
-        {isAdmin && (
+        <div className="mt-4 pt-4 border-t border-border/50 flex flex-col gap-1">
           <Link
-            href="/admin"
+            href="/prime"
             className={cn(
-              "flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group border mt-2",
-              location.startsWith("/admin")
-                ? "bg-gradient-to-r from-indigo-500 to-purple-600 text-white border-transparent shadow-[0_4px_14px_rgba(99,102,241,0.4)]"
-                : "border-indigo-500/20 text-indigo-400 hover:bg-indigo-500/10 hover:border-indigo-500/30"
+              "flex items-center gap-3.5 px-3.5 py-3 rounded-[16px] transition-all duration-200 group relative overflow-hidden",
+              location.startsWith("/prime")
+                ? "text-white shadow-md"
+                : "bg-secondary text-foreground hover:bg-secondary/80"
             )}
           >
-            <Shield size={18} className="transition-transform duration-300 group-hover:scale-110 shrink-0" />
-            <span className="font-semibold text-sm truncate">{t("nav.admin")}</span>
+            {location.startsWith("/prime") && (
+              <div className="absolute inset-0 bg-gradient-to-r from-orange-500 to-red-500" />
+            )}
+            <Crown size={20} strokeWidth={2.5} className={cn("shrink-0 relative z-10", location.startsWith("/prime") ? "text-white" : "text-orange-500")} />
+            <span className={cn("text-[14px] truncate relative z-10", location.startsWith("/prime") ? "font-bold" : "font-semibold")}>
+              {t("nav.prime")}
+            </span>
           </Link>
-        )}
+
+          {isAdmin && (
+            <Link
+              href="/admin"
+              className={cn(
+                "flex items-center gap-3.5 px-3.5 py-3 rounded-[16px] transition-all duration-200 group relative mt-1 overflow-hidden",
+                location.startsWith("/admin")
+                  ? "text-white shadow-md"
+                  : "bg-secondary/50 text-foreground hover:bg-secondary"
+              )}
+            >
+              {location.startsWith("/admin") && (
+                <div className="absolute inset-0 bg-gradient-to-r from-indigo-500 to-purple-600" />
+              )}
+              <Shield size={20} strokeWidth={2.5} className={cn("shrink-0 relative z-10", location.startsWith("/admin") ? "text-white" : "text-indigo-500")} />
+              <span className={cn("text-[14px] truncate relative z-10", location.startsWith("/admin") ? "font-bold" : "font-semibold")}>
+                {t("nav.admin")}
+              </span>
+            </Link>
+          )}
+        </div>
       </nav>
 
-      <div className="w-full px-3 pt-3 mt-auto">
+      <div className="w-full px-4 pb-5 pt-3">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button className="w-full flex items-center gap-3 p-2.5 rounded-xl bg-secondary/50 hover:bg-secondary border border-border/50 hover:border-border transition-all focus:outline-none">
+            <button className="w-full flex items-center gap-3 p-3 rounded-2xl bg-secondary/30 hover:bg-secondary border border-border/30 hover:border-border shadow-sm transition-all focus:outline-none">
               <div className="relative shrink-0">
                 <div
                   className={cn(
-                    "w-9 h-9 rounded-full flex items-center justify-center text-white font-bold text-sm overflow-hidden",
-                    isPremium && "ring-2 ring-violet-500 ring-offset-2 ring-offset-card"
+                    "w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm overflow-hidden",
+                    isPremium && "ring-2 ring-orange-500 ring-offset-2 ring-offset-card"
                   )}
                   style={{ backgroundColor: me?.avatarColor || "#3B82F6" }}
                 >
@@ -372,53 +374,55 @@ export function Sidebar({ mobileSidebarOpen, onMobileClose, onMobileOpen, onOpen
                     : initial}
                 </div>
                 {isPremium && (
-                  <div className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-violet-500 flex items-center justify-center shadow-sm border-2 border-card">
-                    <Sparkles size={8} className="text-white" />
+                  <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-orange-500 flex items-center justify-center shadow-sm border-2 border-card">
+                    <Sparkles size={10} className="text-white" />
                   </div>
                 )}
                 {savedAccounts.length > 1 && (
-                  <div className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-primary text-white text-[9px] font-bold flex items-center justify-center shadow-sm border-2 border-card">
+                  <div className="absolute -top-1 -right-1 w-[18px] h-[18px] rounded-full bg-primary text-white text-[10px] font-bold flex items-center justify-center shadow-sm border-2 border-card">
                     {savedAccounts.length}
                   </div>
                 )}
               </div>
               <div className="flex-1 min-w-0 text-left">
-                <p className="text-sm font-bold truncate text-foreground leading-tight">{me?.displayName || "..."}</p>
-                <p className="text-xs text-muted-foreground truncate font-medium">@{me?.username || "..."}</p>
+                <p className="text-[14px] font-bold truncate text-foreground leading-tight">{me?.displayName || "..."}</p>
+                <p className="text-[12px] text-muted-foreground truncate font-medium">@{me?.username || "..."}</p>
               </div>
-              <MoreHorizontal size={16} className="text-muted-foreground shrink-0" />
+              <MoreHorizontal size={18} className="text-muted-foreground shrink-0" />
             </button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent side="right" align="end" className="w-64 rounded-2xl p-2 border-border shadow-2xl">
+          <DropdownMenuContent side="right" align="end" className="w-[260px] rounded-2xl p-1.5 border-border shadow-2xl mb-2 ml-2">
             {AccountsSection}
-            <DropdownMenuItem asChild className="rounded-xl cursor-pointer">
-              <Link href="/profile" className="flex items-center w-full">
-                <UserCircle size={16} className="mr-2.5 text-primary" />
-                <span className="font-semibold">{t("menu.myProfile")}</span>
-              </Link>
-            </DropdownMenuItem>
-            <DropdownMenuItem asChild className="rounded-xl cursor-pointer">
-              <Link href="/settings" className="flex items-center w-full">
-                <Settings size={16} className="mr-2.5 text-muted-foreground" />
-                <span className="font-semibold">{t("menu.settings")}</span>
-              </Link>
-            </DropdownMenuItem>
-            {isAdmin && (
-              <>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem asChild className="rounded-xl cursor-pointer data-[highlighted]:bg-indigo-500 data-[highlighted]:text-white">
-                  <Link href="/admin" className="flex items-center w-full text-indigo-400">
-                    <Shield size={16} className="mr-2.5" />
-                    <span className="font-semibold">{t("menu.administrator")}</span>
-                  </Link>
-                </DropdownMenuItem>
-              </>
-            )}
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={logout} className="rounded-xl text-destructive data-[highlighted]:bg-destructive data-[highlighted]:text-white cursor-pointer">
-              <LogOut size={16} className="mr-2.5" />
-              <span className="font-semibold">{t("menu.logout")}</span>
-            </DropdownMenuItem>
+            <div className="p-1 space-y-1">
+              <DropdownMenuItem asChild className="rounded-xl cursor-pointer py-2.5 px-3">
+                <Link href="/profile" className="flex items-center w-full">
+                  <UserCircle size={18} className="mr-3 text-primary" />
+                  <span className="font-bold text-[13px]">{t("menu.myProfile")}</span>
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild className="rounded-xl cursor-pointer py-2.5 px-3">
+                <Link href="/settings" className="flex items-center w-full">
+                  <Settings size={18} className="mr-3 text-muted-foreground" />
+                  <span className="font-bold text-[13px]">{t("menu.settings")}</span>
+                </Link>
+              </DropdownMenuItem>
+              {isAdmin && (
+                <>
+                  <div className="my-1 border-t border-border/50" />
+                  <DropdownMenuItem asChild className="rounded-xl cursor-pointer py-2.5 px-3 data-[highlighted]:bg-indigo-500/10">
+                    <Link href="/admin" className="flex items-center w-full text-indigo-500">
+                      <Shield size={18} className="mr-3" />
+                      <span className="font-bold text-[13px]">{t("menu.administrator")}</span>
+                    </Link>
+                  </DropdownMenuItem>
+                </>
+              )}
+              <div className="my-1 border-t border-border/50" />
+              <DropdownMenuItem onClick={logout} className="rounded-xl text-destructive data-[highlighted]:bg-destructive/10 data-[highlighted]:text-destructive cursor-pointer py-2.5 px-3">
+                <LogOut size={18} className="mr-3" />
+                <span className="font-bold text-[13px]">{t("menu.logout")}</span>
+              </DropdownMenuItem>
+            </div>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
@@ -428,24 +432,25 @@ export function Sidebar({ mobileSidebarOpen, onMobileClose, onMobileOpen, onOpen
   const MobileSidebar = (
     <>
       <div
-        className={`fixed inset-0 z-[90] md:hidden bg-black/50 backdrop-blur-sm transition-opacity duration-300 ${mobileSidebarOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}`}
+        className={`fixed inset-0 z-[90] md:hidden bg-background/80 backdrop-blur-sm transition-opacity duration-300 ${mobileSidebarOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}`}
         onClick={onMobileClose}
       />
       <div
-        className={`fixed left-0 top-0 bottom-0 z-[91] md:hidden w-[280px] bg-card border-r border-border flex flex-col py-4 shadow-2xl transition-transform duration-300 overflow-y-auto`}
+        className={`fixed left-0 top-0 bottom-0 z-[91] md:hidden w-[280px] bg-card border-r border-border/50 flex flex-col pt-6 shadow-2xl transition-transform duration-300 overflow-y-auto`}
         style={{ transform: mobileSidebarOpen ? "translateX(0)" : "translateX(-100%)" }}
       >
-        <div className="flex items-center gap-2 px-4 mb-5">
-          <div className="w-9 h-9 rounded-[12px] flex items-center justify-center shrink-0 drop-shadow-[0_0_10px_rgba(139,92,246,0.5)]">
-            <PulseLogo size={36} />
+        <div className="flex items-center gap-3 px-5 mb-6">
+          <div className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 bg-primary/10 border border-primary/20 text-primary relative overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-transparent" />
+            <PulseLogo size={22} />
           </div>
-          <span className="font-black text-xl tracking-tight bg-clip-text text-transparent bg-gradient-to-br from-foreground to-muted-foreground flex-1">Nova</span>
-          <button onClick={onMobileClose} className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-all">
-            <X size={18} />
+          <span className="font-black text-2xl tracking-tight text-foreground flex-1">Nova</span>
+          <button onClick={onMobileClose} className="p-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-secondary bg-secondary/50 transition-all">
+            <X size={18} strokeWidth={2.5} />
           </button>
         </div>
 
-        <nav className="flex-1 flex flex-col gap-1 px-3 overflow-y-auto scrollbar-none">
+        <nav className="flex-1 flex flex-col gap-1 px-4 overflow-y-auto scrollbar-none pb-4">
           {NAV_ITEMS.map((item) => {
             const isActive = location === item.href || (item.href !== "/" && location.startsWith(item.href));
             const showBadge = item.href === "/" && totalUnread > 0;
@@ -455,54 +460,66 @@ export function Sidebar({ mobileSidebarOpen, onMobileClose, onMobileOpen, onOpen
                 href={item.href}
                 onClick={onMobileClose}
                 className={cn(
-                  "flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group relative",
+                  "flex items-center gap-3.5 px-3.5 py-3 rounded-[16px] transition-all duration-200 group relative",
                   isActive
-                    ? "bg-primary text-primary-foreground shadow-[0_4px_14px_rgba(234,88,12,0.3)]"
-                    : "text-muted-foreground hover:bg-secondary/80 hover:text-foreground"
+                    ? "bg-primary text-primary-foreground shadow-md shadow-primary/20"
+                    : "text-muted-foreground hover:bg-secondary hover:text-foreground"
                 )}
               >
                 <div className="relative shrink-0">
-                  <item.icon size={18} className={cn("transition-transform duration-300 group-hover:scale-110", isActive && "text-white")} />
+                  <item.icon size={20} strokeWidth={isActive ? 2.5 : 2} className={cn("transition-transform duration-300", isActive ? "scale-100 text-white" : "group-hover:scale-110")} />
                   {showBadge && (
-                    <div className={cn("absolute -top-2 -right-2 text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center shadow-sm", isActive ? "bg-white text-primary" : "bg-primary text-white")}>
+                    <div className={cn("absolute -top-2 -right-2 text-[10px] font-black px-1.5 py-0.5 rounded-full min-w-[20px] text-center shadow-sm border-2", isActive ? "bg-white text-primary border-primary" : "bg-primary text-white border-card")}>
                       {totalUnread > 99 ? "99+" : totalUnread}
                     </div>
                   )}
                 </div>
-                <span className="font-semibold text-sm truncate flex-1">{item.label}</span>
+                <span className={cn("text-[14px] truncate flex-1", isActive ? "font-bold" : "font-semibold")}>{item.label}</span>
               </Link>
             );
           })}
 
-          <Link
-            href="/prime"
-            onClick={onMobileClose}
-            className={cn(
-              "flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group border mt-2",
-              location.startsWith("/prime")
-                ? "bg-gradient-to-r from-orange-500 to-red-500 text-white border-transparent shadow-[0_4px_14px_rgba(234,88,12,0.4)]"
-                : "border-violet-500/20 text-violet-400 hover:bg-violet-500/10 hover:border-violet-500/30"
-            )}
-          >
-            <Crown size={18} className="transition-transform duration-300 group-hover:scale-110 shrink-0" />
-            <span className="font-semibold text-sm truncate">{t("nav.prime")}</span>
-          </Link>
-
-          {isAdmin && (
+          <div className="mt-4 pt-4 border-t border-border/50 flex flex-col gap-1">
             <Link
-              href="/admin"
+              href="/prime"
               onClick={onMobileClose}
               className={cn(
-                "flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group border mt-2",
-                location.startsWith("/admin")
-                  ? "bg-gradient-to-r from-indigo-500 to-purple-600 text-white border-transparent shadow-[0_4px_14px_rgba(99,102,241,0.4)]"
-                  : "border-indigo-500/20 text-indigo-400 hover:bg-indigo-500/10 hover:border-indigo-500/30"
+                "flex items-center gap-3.5 px-3.5 py-3 rounded-[16px] transition-all duration-200 group relative overflow-hidden",
+                location.startsWith("/prime")
+                  ? "text-white shadow-md"
+                  : "bg-secondary text-foreground hover:bg-secondary/80"
               )}
             >
-              <Shield size={18} className="transition-transform duration-300 group-hover:scale-110 shrink-0" />
-              <span className="font-semibold text-sm truncate">{t("nav.admin")}</span>
+              {location.startsWith("/prime") && (
+                <div className="absolute inset-0 bg-gradient-to-r from-orange-500 to-red-500" />
+              )}
+              <Crown size={20} strokeWidth={2.5} className={cn("shrink-0 relative z-10", location.startsWith("/prime") ? "text-white" : "text-orange-500")} />
+              <span className={cn("text-[14px] truncate relative z-10", location.startsWith("/prime") ? "font-bold" : "font-semibold")}>
+                {t("nav.prime")}
+              </span>
             </Link>
-          )}
+
+            {isAdmin && (
+              <Link
+                href="/admin"
+                onClick={onMobileClose}
+                className={cn(
+                  "flex items-center gap-3.5 px-3.5 py-3 rounded-[16px] transition-all duration-200 group relative mt-1 overflow-hidden",
+                  location.startsWith("/admin")
+                    ? "text-white shadow-md"
+                    : "bg-secondary/50 text-foreground hover:bg-secondary"
+                )}
+              >
+                {location.startsWith("/admin") && (
+                  <div className="absolute inset-0 bg-gradient-to-r from-indigo-500 to-purple-600" />
+                )}
+                <Shield size={20} strokeWidth={2.5} className={cn("shrink-0 relative z-10", location.startsWith("/admin") ? "text-white" : "text-indigo-500")} />
+                <span className={cn("text-[14px] truncate relative z-10", location.startsWith("/admin") ? "font-bold" : "font-semibold")}>
+                  {t("nav.admin")}
+                </span>
+              </Link>
+            )}
+          </div>
         </nav>
 
         <MobileAccountFooter

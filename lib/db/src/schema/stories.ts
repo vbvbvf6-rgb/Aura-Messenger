@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, timestamp, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { usersTable } from "./users";
@@ -13,7 +13,10 @@ export const storiesTable = pgTable("stories", {
   expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
   viewCount: integer("view_count").notNull().default(0),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-});
+}, (t) => [
+  index("idx_stories_expires_at").on(t.expiresAt),
+  index("idx_stories_user_id").on(t.userId),
+]);
 
 export const storyViewsTable = pgTable("story_views", {
   id: serial("id").primaryKey(),

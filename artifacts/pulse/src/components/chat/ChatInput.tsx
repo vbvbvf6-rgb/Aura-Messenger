@@ -321,6 +321,13 @@ export function ChatInput({ chatId, onMessageSent, replyTo, editMessage, onCance
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (!files.length) return;
+    const MAX_FILE_MB = 30;
+    const oversized = files.filter(f => f.size > MAX_FILE_MB * 1024 * 1024);
+    if (oversized.length > 0) {
+      toast({ title: "Файл слишком большой", description: `Максимальный размер — ${MAX_FILE_MB} МБ`, variant: "destructive" });
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
+    }
     const results = await Promise.all(files.map(f => compressImage(f)));
     setImagePreviews(prev => [...prev, ...results]);
     if (fileInputRef.current) fileInputRef.current.value = "";
