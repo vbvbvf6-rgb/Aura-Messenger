@@ -804,10 +804,34 @@ export function ChatWindow({ chatId }: ChatWindowProps) {
   }, [messages, _isChannel, adminUserIds]);
 
   if (isChatLoading) {
-    return <div className="flex-1 flex flex-col items-center justify-center bg-card"><Skeleton className="w-24 h-24 rounded-full mb-6" /><Skeleton className="h-8 w-48 rounded-xl" /></div>;
+    return (
+      <div className="flex-1 h-full flex flex-col items-center justify-center bg-background gap-4">
+        <Skeleton className="w-16 h-16 rounded-2xl" />
+        <Skeleton className="h-5 w-40 rounded-xl" />
+        <Skeleton className="h-3 w-24 rounded-lg" />
+      </div>
+    );
   }
 
-  if (!chat) return <div className="flex-1 flex items-center justify-center bg-card">Чат не найден</div>;
+  if (!chat) {
+    return (
+      <div className="flex-1 h-full flex flex-col items-center justify-center bg-background gap-4 p-8">
+        <div className="w-16 h-16 rounded-2xl bg-secondary flex items-center justify-center text-muted-foreground">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        </div>
+        <div className="text-center">
+          <p className="font-bold text-foreground">Чат не найден</p>
+          <p className="text-sm text-muted-foreground mt-1">Не удалось загрузить чат</p>
+        </div>
+        <button
+          onClick={() => setSelectedChatId(null)}
+          className="px-4 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-semibold"
+        >
+          Назад
+        </button>
+      </div>
+    );
+  }
 
   const displayName = chat.type === "direct" ? (chat.otherUser?.displayName || chat.name || "Chat") : (chat.name || "Group");
   const avatarColor = chat.type === "direct" ? (chat.otherUser?.avatarColor || chat.avatarColor || "#333") : (chat.avatarColor || "#333");
