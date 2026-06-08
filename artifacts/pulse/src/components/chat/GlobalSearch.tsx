@@ -164,7 +164,8 @@ export function GlobalSearch({ onClose, initialQuery = "" }: GlobalSearchProps) 
   }, [query, runSearch]);
 
   const handleJoin = async (chat: PublicChat) => {
-    if (chat.is_member) {
+    const isMember = chat.is_member === true || (chat.is_member as any) === "true" || (chat.is_member as any) === 1;
+    if (isMember) {
       setSelectedChatId(chat.id);
       onClose();
       return;
@@ -450,8 +451,12 @@ function GlobalChatRow({
   onJoin: (chat: PublicChat) => void;
 }) {
   const isJoining = joiningId === chat.id;
+  const isMember = chat.is_member === true || (chat.is_member as any) === "true" || (chat.is_member as any) === 1;
   return (
-    <div className="flex items-center gap-3 px-4 py-3 hover:bg-secondary/60 transition-colors">
+    <div
+      className="flex items-center gap-3 px-4 py-3 hover:bg-secondary/60 transition-colors cursor-pointer"
+      onClick={() => onJoin(chat)}
+    >
       <div
         className="w-12 h-12 rounded-[16px] flex items-center justify-center shrink-0 overflow-hidden"
         style={{ backgroundColor: chat.avatar_color || "#3B82F6" }}
@@ -465,10 +470,7 @@ function GlobalChatRow({
         )}
       </div>
 
-      <button
-        className="flex-1 min-w-0 text-left"
-        onClick={() => { if (chat.is_member) onJoin(chat); }}
-      >
+      <div className="flex-1 min-w-0 text-left">
         <div className="flex items-center gap-1.5 mb-0.5">
           <span className="font-semibold text-sm text-foreground truncate">
             {highlight(chat.name, query)}
@@ -487,20 +489,20 @@ function GlobalChatRow({
         <p className="text-[11px] text-muted-foreground/60 mt-0.5">
           <MemberCount count={chat.member_count} />
         </p>
-      </button>
+      </div>
 
       <button
-        onClick={() => onJoin(chat)}
+        onClick={e => { e.stopPropagation(); onJoin(chat); }}
         disabled={isJoining}
         className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-          chat.is_member
+          isMember
             ? "bg-secondary text-foreground hover:bg-secondary/80"
             : "bg-primary text-primary-foreground hover:bg-primary/90"
         }`}
       >
         {isJoining ? (
           <Loader2 size={13} className="animate-spin" />
-        ) : chat.is_member ? (
+        ) : isMember ? (
           <><Check size={12} /> Открыть</>
         ) : (
           <><UserPlus size={12} /> Вступить</>
