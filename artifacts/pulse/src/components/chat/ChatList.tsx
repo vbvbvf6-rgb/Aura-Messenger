@@ -455,7 +455,7 @@ export function ChatList() {
           </button>
         </div>
 
-        <div className="flex gap-2 mt-3 overflow-x-auto scrollbar-none pb-1">
+        <div className="flex gap-2 mt-3 overflow-x-auto scrollbar-none pb-1 -mx-4 px-4" style={{ scrollPaddingInline: "16px" }}>
           {SYSTEM_FOLDERS.map(f => {
             const isActive = folder === f.key;
             const count = f.key === "unread" && chats ? chats.filter((c: Chat) => (c.unreadCount ?? 0) > 0).length : 0;

@@ -178,7 +178,8 @@ export function ChatInput({ chatId, onMessageSent, replyTo, editMessage, onCance
       setTimeout(() => {
         if (textareaRef.current) {
           textareaRef.current.style.height = "44px";
-          textareaRef.current.style.height = Math.min(textareaRef.current.scrollHeight, 140) + "px";
+          const maxH = Math.min(140, Math.floor(window.innerHeight / 4));
+          textareaRef.current.style.height = Math.min(textareaRef.current.scrollHeight, maxH) + "px";
           textareaRef.current.focus();
         }
       }, 50);
@@ -573,7 +574,8 @@ export function ChatInput({ chatId, onMessageSent, replyTo, editMessage, onCance
     const val = e.target.value;
     setText(val);
     e.target.style.height = "44px";
-    e.target.style.height = Math.min(e.target.scrollHeight, 140) + "px";
+    const maxH = Math.min(140, Math.floor(window.innerHeight / 4));
+    e.target.style.height = Math.min(e.target.scrollHeight, maxH) + "px";
     if (val.trim()) sendTypingEvent("text");
     if (!editMessage) localStorage.setItem(draftKey, val);
     if (val === "/memer" || val === "/gif") {

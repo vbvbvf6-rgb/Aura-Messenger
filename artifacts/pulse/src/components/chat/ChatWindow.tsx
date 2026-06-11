@@ -899,8 +899,8 @@ export function ChatWindow({ chatId }: ChatWindowProps) {
             onClick={chat.type === "direct" ? openProfile : () => setShowInfoPanel(v => !v)}
             className={`text-left min-w-0 cursor-pointer group`}
           >
-            <div className="flex items-center gap-1.5">
-              <h2 className="font-bold text-base leading-tight truncate group-hover:text-primary transition-colors">{displayName}</h2>
+            <div className="flex items-center gap-1.5 min-w-0 overflow-hidden">
+              <h2 className="font-bold text-base leading-tight truncate group-hover:text-primary transition-colors min-w-0">{displayName}</h2>
               {otherUserHasPrime && (
                 <span className={`text-[10px] font-black px-1.5 py-0.5 rounded-full shrink-0 ${
                   otherUserIsPlus

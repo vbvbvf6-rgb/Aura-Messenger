@@ -534,9 +534,13 @@ export function MessageBubble({ message, onReply, onEdit, ownBubbleStyle, onPin,
   useEffect(() => {
     if (!showMenu) return;
     const close = () => closeMenu();
+    const onKeydown = (e: KeyboardEvent) => { if (e.key === "Escape") close(); };
     document.addEventListener("mousedown", close);
-    document.addEventListener("keydown", (e) => { if (e.key === "Escape") close(); });
-    return () => { document.removeEventListener("mousedown", close); };
+    document.addEventListener("keydown", onKeydown);
+    return () => {
+      document.removeEventListener("mousedown", close);
+      document.removeEventListener("keydown", onKeydown);
+    };
   }, [showMenu]);
 
   useEffect(() => {

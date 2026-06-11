@@ -261,7 +261,9 @@ function CommentThread({ post, onCountChange }: { post: any; onCountChange: (n: 
   const { data: comments = [], refetch: refetchComments, isLoading } = useGetPostComments(post.id, {} as any);
 
   useEffect(() => {
-    inputRef.current?.focus();
+    if (window.matchMedia("(hover: hover)").matches) {
+      inputRef.current?.focus();
+    }
   }, []);
 
   const handleComment = (e: React.FormEvent) => {
@@ -1040,19 +1042,23 @@ export default function Feed() {
   const currentUserId = getCurrentUserId();
   const { toast } = useToast();
 
+  const imageLoadIdRef = useRef(0);
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setImageLoading(true);
+    const myId = ++imageLoadIdRef.current;
 
     const reader = new FileReader();
     reader.onload = (ev) => {
+      if (imageLoadIdRef.current !== myId) return;
       if (fileInputRef.current) fileInputRef.current.value = "";
       const dataUrl = ev.target?.result as string;
       if (!dataUrl) { setImageLoading(false); return; }
 
       const img = new window.Image();
       img.onload = () => {
+        if (imageLoadIdRef.current !== myId) return;
         try {
           const MAX = 1200;
           const w = img.naturalWidth || img.width;
@@ -1072,7 +1078,7 @@ export default function Feed() {
           setImageLoading(false);
         }
       };
-      img.onerror = () => { setNewPostImage(dataUrl); setImageLoading(false); };
+      img.onerror = () => { if (imageLoadIdRef.current === myId) { setNewPostImage(dataUrl); setImageLoading(false); } };
       img.src = dataUrl;
     };
     reader.onerror = () => { if (fileInputRef.current) fileInputRef.current.value = ""; setImageLoading(false); };

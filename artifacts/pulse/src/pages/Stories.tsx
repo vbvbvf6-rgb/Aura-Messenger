@@ -410,8 +410,12 @@ export default function Stories() {
 
                   <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-black/40 pointer-events-none" />
 
-                  <div className="absolute top-0 left-0 right-0 flex gap-1 px-3 pt-3 z-10"
-                    style={{ paddingTop: "max(12px, env(safe-area-inset-top, 12px))" }}
+                  <div className="absolute top-0 left-0 right-0 flex gap-1 z-10"
+                    style={{
+                      paddingTop: "max(12px, env(safe-area-inset-top, 12px))",
+                      paddingLeft: "max(12px, env(safe-area-inset-left, 12px))",
+                      paddingRight: "max(12px, env(safe-area-inset-right, 12px))",
+                    }}
                   >
                     {viewingGroup.stories.map((_: any, i: number) => (
                       <div key={i} className="h-[3px] flex-1 bg-white/30 rounded-full overflow-hidden">
@@ -432,8 +436,12 @@ export default function Stories() {
                     ))}
                   </div>
 
-                  <div className="absolute left-4 right-16 flex items-center gap-3 z-10"
-                    style={{ top: "max(52px, calc(env(safe-area-inset-top, 0px) + 40px))" }}
+                  <div className="absolute flex items-center gap-3 z-10"
+                    style={{
+                      top: "max(52px, calc(env(safe-area-inset-top, 0px) + 40px))",
+                      left: "max(16px, env(safe-area-inset-left, 16px))",
+                      right: "calc(max(16px, env(safe-area-inset-right, 16px)) + 48px)",
+                    }}
                   >
                     <div
                       className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm overflow-hidden border-2 border-white shrink-0"

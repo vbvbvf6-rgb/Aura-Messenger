@@ -1191,7 +1191,7 @@ export default function Settings() {
   const [primeTheme, setPrimeTheme] = useState(() => localStorage.getItem("pulse-prime-theme") || "cyan");
   useEffect(() => {
     if ((user as any)?.hasPrime) applyPrimeTheme(primeTheme);
-  }, [(user as any)?.hasPrime]);
+  }, [(user as any)?.hasPrime, primeTheme]);
 
   // Avatar file upload
   const avatarFileRef = useRef<HTMLInputElement>(null);
@@ -1228,7 +1228,8 @@ export default function Settings() {
       const canvas = document.createElement("canvas");
       canvas.width = Math.round(img.width * scale);
       canvas.height = Math.round(img.height * scale);
-      const ctx = canvas.getContext("2d")!;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
       ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
       saveAvatarUrl(canvas.toDataURL("image/jpeg", 0.75));
     };
@@ -1251,7 +1252,8 @@ export default function Settings() {
       const scale = Math.min(1, MAX / Math.max(video.videoWidth, video.videoHeight));
       canvas.width = Math.round(video.videoWidth * scale);
       canvas.height = Math.round(video.videoHeight * scale);
-      const ctx = canvas.getContext("2d")!;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
       saveAvatarUrl(canvas.toDataURL("image/jpeg", 0.85));
     };
@@ -1268,7 +1270,8 @@ export default function Settings() {
       const hue = (name.charCodeAt(0) * 137 + (name.charCodeAt(1) || 0) * 53) % 360;
       const canvas = document.createElement("canvas");
       canvas.width = 400; canvas.height = 400;
-      const ctx = canvas.getContext("2d")!;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) { setAiAvatarGenerating(false); return; }
       const grad = ctx.createRadialGradient(160, 140, 0, 200, 200, 280);
       grad.addColorStop(0, `hsl(${hue}, 80%, 65%)`);
       grad.addColorStop(0.5, `hsl(${(hue + 40) % 360}, 75%, 45%)`);

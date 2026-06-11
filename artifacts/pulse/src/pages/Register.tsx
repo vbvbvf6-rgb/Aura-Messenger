@@ -14,7 +14,8 @@ async function compressAvatar(file: File): Promise<string> {
         const size = 256;
         canvas.width = size;
         canvas.height = size;
-        const ctx = canvas.getContext("2d")!;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) { reject(new Error("canvas not supported")); return; }
         const ratio = Math.min(img.width, img.height);
         const sx = (img.width - ratio) / 2;
         const sy = (img.height - ratio) / 2;

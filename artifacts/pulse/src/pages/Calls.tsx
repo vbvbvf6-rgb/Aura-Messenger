@@ -80,7 +80,7 @@ export default function Calls() {
       </div>
 
       {/* List */}
-      <div className="flex-1 overflow-y-auto scrollbar-none pb-24 md:pb-0">
+      <div className="flex-1 overflow-y-auto scrollbar-none pb-[calc(6rem+env(safe-area-inset-bottom,0px))] md:pb-0">
         {isLoading ? (
           <div className="p-4 space-y-3">
             {[1, 2, 3, 4].map((i) => (
@@ -180,7 +180,7 @@ export default function Calls() {
                           toast({ title: "Не удалось начать звонок", variant: "destructive" });
                         }
                       }}
-                      className="w-10 h-10 rounded-full flex items-center justify-center text-primary hover:bg-primary/15 transition-colors opacity-0 group-hover:opacity-100 shrink-0"
+                      className="w-10 h-10 rounded-full flex items-center justify-center text-primary hover:bg-primary/15 transition-colors opacity-100 md:opacity-0 md:group-hover:opacity-100 shrink-0"
                       title="Перезвонить"
                     >
                       {isVideo ? <Video size={18} /> : <Phone size={18} />}
@@ -208,7 +208,7 @@ export default function Calls() {
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[90%] max-w-md bg-card border border-border rounded-3xl shadow-2xl z-50 overflow-hidden"
+              className="fixed left-1/2 bottom-0 sm:top-1/2 sm:bottom-auto -translate-x-1/2 sm:-translate-y-1/2 w-full sm:w-[90%] max-w-md bg-card border border-border rounded-t-3xl sm:rounded-3xl shadow-2xl z-50 overflow-hidden"
             >
               <div className="p-5 border-b border-border flex items-center justify-between">
                 <h3 className="font-bold text-lg">Новый звонок</h3>

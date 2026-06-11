@@ -544,7 +544,7 @@ export default function Wallet() {
             className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
             onClick={() => setShowSendModal(false)}>
             <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
-              onClick={(e) => e.stopPropagation()} className="bg-card border border-border rounded-3xl p-6 w-full max-w-sm shadow-2xl">
+              onClick={(e) => e.stopPropagation()} className="bg-card border border-border rounded-3xl p-6 w-full max-w-sm shadow-2xl max-h-[90dvh] overflow-y-auto">
               <div className="flex items-center justify-between mb-5">
                 <h3 className="text-lg font-bold text-foreground">Отправить Монета</h3>
                 <button onClick={() => setShowSendModal(false)} className="text-muted-foreground hover:text-foreground transition-colors"><X size={20} /></button>
@@ -557,7 +557,7 @@ export default function Wallet() {
                 </div>
                 <div>
                   <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1.5 block">Сумма ⚡</label>
-                  <input type="number" value={sendAmount} onChange={e => setSendAmount(e.target.value)} placeholder="100" min={1} max={balance}
+                  <input type="number" value={sendAmount} onChange={e => setSendAmount(e.target.value)} onKeyDown={e => { if (["e", "E", "+", "-"].includes(e.key)) e.preventDefault(); }} placeholder="100" min={1} max={balance}
                     className="w-full bg-background border border-border rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-primary transition-colors" />
                   <p className="text-xs text-muted-foreground mt-1">Доступно: {balance.toLocaleString()} ⚡</p>
                 </div>
@@ -579,7 +579,7 @@ export default function Wallet() {
             className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm p-4"
             onClick={() => setShowBuyModal(false)}>
             <motion.div initial={{ scale: 0.95, opacity: 0, y: 40 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 40 }}
-              onClick={(e) => e.stopPropagation()} className="bg-card border border-border rounded-3xl p-5 w-full max-w-sm shadow-2xl">
+              onClick={(e) => e.stopPropagation()} className="bg-card border border-border rounded-3xl p-5 w-full max-w-sm shadow-2xl max-h-[90dvh] overflow-y-auto">
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <h3 className="text-lg font-bold text-foreground">Купить Монета ⚡</h3>
