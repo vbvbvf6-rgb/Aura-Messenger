@@ -299,3 +299,9 @@ id = "6oa7aQbxJiOR2wVKaxNfY"
 uri = "file://artifacts/pulse/public/gifts/diamond-heart.png"
 type = "image"
 title = "Алмазное сердце"
+
+[[outputs]]
+id = "_2O4bTcKwx-V0ZLIv7rov"
+uri = "file://DEPLOY.md"
+type = "text"
+title = "Гайд: деплой Nova на Render + Supabase (без карты)"

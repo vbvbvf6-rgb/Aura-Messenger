@@ -3,41 +3,43 @@ import { io, Socket } from "socket.io-client";
 import { Call } from "@workspace/api-client-react";
 import { getSavedAccounts, SavedAccount, MAX_ACCOUNTS } from "@/lib/accounts";
 
-// STUN servers for NAT traversal (multiple providers for reliability).
-// TURN relay servers are used when direct/STUN connections are blocked (symmetric NAT, corporate firewalls).
+// ---------------------------------------------------------------------------
+// ICE server configuration
+// Priority: env-var custom TURN > OpenRelay public TURN > STUN-only fallback
+//
+// For reliable calls behind symmetric NAT set these env vars (free tier):
+//   VITE_TURN_URL     e.g. turn:relay.metered.ca:80
+//   VITE_TURN_USER    (username from metered.ca dashboard)
+//   VITE_TURN_CRED    (credential from metered.ca dashboard)
+// ---------------------------------------------------------------------------
+const CUSTOM_TURN = import.meta.env.VITE_TURN_URL;
+const CUSTOM_TURN_USER = import.meta.env.VITE_TURN_USER;
+const CUSTOM_TURN_CRED = import.meta.env.VITE_TURN_CRED;
+
 const ICE_SERVERS: RTCIceServer[] = [
-  // Google STUN — globally distributed, most reliable
+  // ── STUN (NAT discovery) ─────────────────────────────────────────────────
   { urls: "stun:stun.l.google.com:19302" },
   { urls: "stun:stun1.l.google.com:19302" },
   { urls: "stun:stun2.l.google.com:19302" },
   { urls: "stun:stun3.l.google.com:19302" },
   { urls: "stun:stun4.l.google.com:19302" },
-  // Cloudflare STUN
   { urls: "stun:stun.cloudflare.com:3478" },
-  // Twilio STUN
   { urls: "stun:global.stun.twilio.com:3478" },
-  // Open Relay TURN (free) — UDP + TCP + TLS for maximum firewall traversal
   { urls: "stun:openrelay.metered.ca:80" },
-  {
-    urls: "turn:openrelay.metered.ca:80",
-    username: "openrelayproject",
-    credential: "openrelayproject",
-  },
-  {
-    urls: "turn:openrelay.metered.ca:443",
-    username: "openrelayproject",
-    credential: "openrelayproject",
-  },
-  {
-    urls: "turn:openrelay.metered.ca:443?transport=tcp",
-    username: "openrelayproject",
-    credential: "openrelayproject",
-  },
-  {
-    urls: "turns:openrelay.metered.ca:443?transport=tcp",
-    username: "openrelayproject",
-    credential: "openrelayproject",
-  },
+
+  // ── Custom TURN (highest priority when configured) ───────────────────────
+  ...(CUSTOM_TURN && CUSTOM_TURN_USER && CUSTOM_TURN_CRED
+    ? [
+        { urls: CUSTOM_TURN, username: CUSTOM_TURN_USER, credential: CUSTOM_TURN_CRED },
+        { urls: CUSTOM_TURN.replace(/^turn:/, "turns:") + "?transport=tcp", username: CUSTOM_TURN_USER, credential: CUSTOM_TURN_CRED },
+      ]
+    : []),
+
+  // ── OpenRelay public TURN (shared, may be throttled) ────────────────────
+  { urls: "turn:openrelay.metered.ca:80",      username: "openrelayproject", credential: "openrelayproject" },
+  { urls: "turn:openrelay.metered.ca:443",     username: "openrelayproject", credential: "openrelayproject" },
+  { urls: "turn:openrelay.metered.ca:443?transport=tcp", username: "openrelayproject", credential: "openrelayproject" },
+  { urls: "turns:openrelay.metered.ca:443?transport=tcp", username: "openrelayproject", credential: "openrelayproject" },
 ];
 
 function createSilentStream(): MediaStream {
@@ -229,11 +231,31 @@ export function AppProvider({ children, onLogout, onSwitchAccount, onRemoveAccou
       }
     };
 
+    // ICE restart on disconnection — try to recover before giving up
+    let iceRestartTimer: ReturnType<typeof setTimeout> | null = null;
+    pc.oniceconnectionstatechange = () => {
+      const ice = pc.iceConnectionState;
+      if (ice === "failed") {
+        // Attempt ICE restart immediately on hard failure
+        try { pc.restartIce(); } catch (_) {}
+      } else if (ice === "disconnected") {
+        // "disconnected" can be transient — give it 4 s before restarting
+        iceRestartTimer = setTimeout(() => {
+          if (pc.iceConnectionState === "disconnected" || pc.iceConnectionState === "failed") {
+            try { pc.restartIce(); } catch (_) {}
+          }
+        }, 4000);
+      } else if (ice === "connected" || ice === "completed") {
+        if (iceRestartTimer) { clearTimeout(iceRestartTimer); iceRestartTimer = null; }
+      }
+    };
+
     pc.onconnectionstatechange = () => {
       const state = pc.connectionState;
       // "disconnected" is a transient state — ICE may recover on its own.
       // Only tear down on permanently terminal states.
       if (state === "failed" || state === "closed") {
+        if (iceRestartTimer) { clearTimeout(iceRestartTimer); iceRestartTimer = null; }
         peersRef.current.delete(targetUserId);
         setRemoteStreams((prev) => {
           const next = new Map(prev);
@@ -243,10 +265,9 @@ export function AppProvider({ children, onLogout, onSwitchAccount, onRemoveAccou
         if (state === "failed") {
           // WebRTC failed — notify UI but keep call alive so user can still hang up manually
           window.dispatchEvent(new CustomEvent("pulse:call-error", {
-            detail: { message: "Прямое соединение недоступно. Аудио/видео могут не работать." },
+            detail: { message: "Соединение прервано. Проверьте интернет или настройте TURN-сервер." },
           }));
         } else if (state === "closed" && peersRef.current.size === 0) {
-          // Connection explicitly closed — clean up
           cleanupCall();
         }
       }

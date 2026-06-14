@@ -260,16 +260,13 @@ export function ActiveCall() {
     if (!audio) return;
     if (remoteStream) {
       audio.srcObject = remoteStream;
-      const playPromise = audio.play();
-      if (playPromise !== undefined) {
-        playPromise.catch(() => {
-          // Autoplay blocked — show unlock button
-          setAudioUnlocked(false);
-        });
-      }
-      setAudioUnlocked(true);
+      audio.volume = 1;
+      audio.play()
+        .then(() => setAudioUnlocked(true))
+        .catch(() => setAudioUnlocked(false));
     } else {
       audio.srcObject = null;
+      setAudioUnlocked(false);
     }
   }, [remoteStream]);
 
