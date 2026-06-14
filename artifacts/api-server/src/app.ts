@@ -4,7 +4,7 @@ import helmet from "helmet";
 import { pinoHttp } from "pino-http";
 import http from "node:http";
 import path from "node:path";
-import { rateLimit } from "express-rate-limit";
+import { rateLimit, ipKeyGenerator } from "express-rate-limit";
 import jwt from "jsonwebtoken";
 import router from "./routes";
 import botApiRouter from "./routes/botapi";
@@ -57,7 +57,6 @@ app.use(
     xXssProtection: true,
     dnsPrefetchControl: { allow: false },
     ieNoOpen: true,
-    noSniff: true,
     permittedCrossDomainPolicies: { permittedPolicies: "none" },
   })
 );
@@ -125,7 +124,7 @@ const messageLimiter = rateLimit({
   message: { error: "Слишком много сообщений. Подождите немного." },
   standardHeaders: true,
   legacyHeaders: false,
-  keyGenerator: (req) => req.currentUserId ? `user:${req.currentUserId}` : (req.ip ?? "unknown"),
+  keyGenerator: (req) => req.currentUserId ? `user:${req.currentUserId}` : ipKeyGenerator(req),
   skip: (req) => !req.currentUserId,
 });
 app.use("/api/messages", messageLimiter);
@@ -137,7 +136,7 @@ const uploadLimiter = rateLimit({
   message: { error: "Слишком много загрузок. Подождите немного." },
   standardHeaders: true,
   legacyHeaders: false,
-  keyGenerator: (req) => req.currentUserId ? `upload:${req.currentUserId}` : (req.ip ?? "unknown"),
+  keyGenerator: (req) => req.currentUserId ? `upload:${req.currentUserId}` : ipKeyGenerator(req),
 });
 app.use("/api/upload", uploadLimiter);
 app.use("/api/stories", uploadLimiter);
@@ -149,7 +148,7 @@ const adminLimiter = rateLimit({
   message: { error: "Слишком много запросов к панели администратора." },
   standardHeaders: true,
   legacyHeaders: false,
-  keyGenerator: (req) => req.currentUserId ? `admin:${req.currentUserId}` : (req.ip ?? "unknown"),
+  keyGenerator: (req) => req.currentUserId ? `admin:${req.currentUserId}` : ipKeyGenerator(req),
 });
 app.use("/api/admin", adminLimiter);
 

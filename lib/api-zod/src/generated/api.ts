@@ -620,9 +620,6 @@ export const UpdateChatBody = zod.object({
   description: zod.string().optional(),
   avatarUrl: zod.string().optional(),
   isMuted: zod.boolean().optional(),
-  slowMode: zod.number().optional(),
-  whoCanSend: zod.enum(["all", "admins"]).optional(),
-  isPublic: zod.boolean().optional(),
 });
 
 export const UpdateChatResponse = zod.object({
