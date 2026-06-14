@@ -1,124 +1,110 @@
 # Деплой Nova на Render + Supabase (бесплатно, без карты)
 
-## Что получится
+## Итог: что нужно
 
-| Сервис | Роль | Карта? | Ограничение |
-|--------|------|--------|-------------|
-| **Supabase** | PostgreSQL | ❌ Нет | 500 MB, 2 проекта |
-| **Render** | Node.js сервер | ❌ Нет | Засыпает после 15 мин |
-| **cron-job.org** | Пинг каждые 14 мин | ❌ Нет | Предотвращает сон |
-| **metered.ca** | TURN-сервер для звонков | ❌ Нет | 50 GB/мес |
+| Сервис | Роль | Карта? |
+|--------|------|--------|
+| **Supabase** | PostgreSQL база данных | ❌ Нет |
+| **Render** | Хостинг Node.js сервера | ❌ Нет |
+| **cron-job.org** | Пинг чтобы Render не засыпал | ❌ Нет |
+
+> TURN-сервер для звонков встроен (openrelay) и работает **без регистрации**.
+> Для более надёжной связи можно позже добавить TURN_URL/TURN_USER/TURN_CRED.
 
 ---
 
 ## Шаг 1. База данных — Supabase
 
-1. Зарегистрируйся на [supabase.com](https://supabase.com) → GitHub или email, **без карты**
-2. **New project** → придумай название, пароль для БД, регион **Frankfurt** (EU, ближе к СНГ)
-3. Дождись запуска (~2 минуты)
-4. Слева → **Settings → Database → Connection string → URI (Transaction mode)**
-5. Скопируй строку:
+1. Зайди на [supabase.com](https://supabase.com) → **Start your project** (GitHub / email, без карты)
+2. **New project** → задай имя, придумай пароль, выбери регион **Frankfurt**
+3. Подожди ~2 минуты пока проект запустится
+4. Слева → **Settings → Database → Connection string**
+5. Переключись на вкладку **Transaction** (важно!) → скопируй строку вида:
    ```
-   postgresql://postgres.xxxx:[YOUR-PASSWORD]@aws-0-eu-central-1.pooler.supabase.com:6543/postgres
+   postgresql://postgres.xxxx:ВАШ_ПАРОЛЬ@aws-0-eu-central-1.pooler.supabase.com:6543/postgres
    ```
-   Замени `[YOUR-PASSWORD]` на свой пароль — это и есть `DATABASE_URL`.
-
-> **Важно**: используй **Transaction mode** (порт 6543), а не прямое соединение.
-> Render — serverless-окружение, connection pooler работает надёжнее.
+   Это и есть `DATABASE_URL`.
 
 ---
 
-## Шаг 2. TURN-сервер для звонков — metered.ca
-
-> Без TURN звонки работают только в одной сети. С TURN — везде.
-
-1. Зарегистрируйся на [metered.ca](https://metered.ca) → **Sign Up** (email, без карты)
-2. **Dashboard → TURN** → запиши:
-   - **Host** → `turn:relay.metered.ca:80`
-   - **Username** и **Credential** из таблицы
-
----
-
-## Шаг 3. Деплой на Render
-
-### Вариант А — через render.yaml (рекомендуется)
-
-В проекте уже есть файл `render.yaml`. Render подхватит его автоматически.
+## Шаг 2. Деплой на Render
 
 1. Загрузи проект на GitHub (если ещё нет)
-2. Зарегистрируйся на [render.com](https://render.com) → **New → Blueprint**
-3. Подключи репозиторий → Render сам найдёт `render.yaml` и создаст сервис
+2. Зайди на [render.com](https://render.com) → **Sign Up** (GitHub, без карты)
 
-### Вариант Б — вручную (New → Web Service)
+### Создать сервис
+
+**New → Blueprint** (Render автоматически найдёт `render.yaml` в репозитории):
+- Подключи GitHub репозиторий
+- Render создаст сервис `nova-messenger` сам
+
+**Или вручную — New → Web Service:**
 
 | Поле | Значение |
 |------|----------|
-| **Runtime** | `Docker` |
-| **Dockerfile Path** | `./Dockerfile` |
-| **Instance Type** | `Free` |
+| Repository | Твой GitHub репо |
+| Runtime | **Node** |
+| Build Command | `npm install -g pnpm@10 && pnpm install --frozen-lockfile && pnpm --filter @workspace/api-server run build && BASE_PATH=/ pnpm --filter @workspace/pulse run build` |
+| Start Command | `node --enable-source-maps ./artifacts/api-server/dist/index.mjs` |
+| Instance Type | **Free** |
 
 ---
 
-## Шаг 4. Переменные окружения в Render
+## Шаг 3. Переменные окружения
 
 В Render → твой сервис → **Environment** → добавь:
 
 | Ключ | Значение |
 |------|----------|
 | `DATABASE_URL` | Строка из Supabase (шаг 1) |
-| `JWT_SECRET` | Любая случайная строка ≥64 символа |
 | `NODE_ENV` | `production` |
-| `TURN_URL` | `turn:relay.metered.ca:80` |
-| `TURN_USER` | Username из metered.ca |
-| `TURN_CRED` | Credential из metered.ca |
+| `JWT_SECRET` | Нажми «Generate» или вставь случайную строку (если Render не сгенерировал сам) |
 
-> Переменные `TURN_*` подставляются на сервере и **никогда не попадают в JS-бандл**.
-> `JWT_SECRET` можно сгенерировать командой: `openssl rand -hex 64`
+Остальные переменные (`VAPID_*`, `TURN_*`) — опциональны, добавляй позже.
 
-После сохранения → **Manual Deploy → Deploy latest commit**
+После сохранения нажми **Manual Deploy → Deploy latest commit**.
 
 ---
 
-## Шаг 5. Не давать Render засыпать — cron-job.org
+## Шаг 4. Не давать Render засыпать — cron-job.org
 
-1. [cron-job.org](https://cron-job.org) → **Sign up** → **Create cronjob**
-2. **URL**: `https://nova-messenger.onrender.com/api/healthz`
-   (замени `nova-messenger` на своё имя сервиса)
-3. **Schedule**: `Every 14 minutes`
+Бесплатный Render засыпает через 15 минут без запросов.
+
+1. [cron-job.org](https://cron-job.org) → **Sign Up** → **Create cronjob**
+2. URL: `https://nova-messenger.onrender.com/api/healthz`  
+   *(замени `nova-messenger` на имя своего сервиса)*
+3. Schedule: **Every 14 minutes** → Сохранить
 
 ---
 
 ## Частые ошибки
 
 ### `DATABASE_URL must be set`
+Не добавлена переменная в Render → **Environment**.
+Добавь `DATABASE_URL` со строкой из Supabase → Save Changes → Manual Deploy.
 
-Причина: не добавлена переменная в Render → **Environment**.
-Решение: добавь `DATABASE_URL` со строкой из Supabase и нажми **Save Changes** → **Manual Deploy**.
+### `SSL connection required`
+Supabase требует SSL. Это уже настроено в коде для production.
+Если всё равно ошибка — добавь `?sslmode=require` в конец DATABASE_URL.
 
-### `SSL connection required` / `SSL off`
+### `Cannot find module` или ошибки сборки
+Сборка большого монорепо занимает 5–8 минут. Render Free может прервать по таймауту.
+Решение: подожди, нажми **Retry** или используй вместо этого Docker (Blueprint).
 
-Причина: Supabase требует SSL. В коде уже настроен `ssl: { rejectUnauthorized: false }` для production.
-Если ошибка всё равно есть — добавь `?sslmode=require` в конец `DATABASE_URL`:
-```
-postgresql://postgres.xxxx:password@host:6543/postgres?sslmode=require
-```
-
-### Звонки соединяются но нет звука
-
-1. Проверь переменные `TURN_URL`, `TURN_USER`, `TURN_CRED` — они должны быть заданы
-2. Убедись что логин/пароль взяты из metered.ca Dashboard → TURN (не STUN)
-3. Открой DevTools → Console во время звонка — ищи `iceConnectionState`
-
-### Приложение не открывается (холодный старт)
-
-Render Free засыпает. Первый запрос после сна занимает 20-30 секунд.
-Настрой cron-job.org (шаг 5) чтобы этого не происходило.
+### Звонки не работают
+TURN-сервер встроен (openrelay, без регистрации). Если звук есть но плохое качество:
+- Зарегистрируйся на [expressturn.com](https://expressturn.com) (бесплатно, только email) и добавь:
+  - `TURN_URL` = `turn:relay.expressturn.com:3480`
+  - `TURN_USER` = *(из дашборда)*
+  - `TURN_CRED` = *(из дашборда)*
 
 ---
 
 ## Итог
 
-После всех шагов Nova будет на:
+После деплоя Nova будет доступна по адресу:
 ```
 https://nova-messenger.onrender.com
 ```
+
+Первый запуск после сна занимает ~20–30 секунд (cron-job.org предотвращает это).
