@@ -137,7 +137,7 @@ function VoicePlayer({ src, durationSec, isMine, messageId, viewerIsPrimePlus }:
   });
 
   return (
-    <div className="flex items-center gap-3 min-w-[220px]">
+    <div className="flex items-center gap-2 md:gap-3 min-w-[170px] md:min-w-[220px]">
       <audio ref={audioRef} src={src} preload="metadata" />
 
       {/* Play / Pause button */}
@@ -155,26 +155,26 @@ function VoicePlayer({ src, durationSec, isMine, messageId, viewerIsPrimePlus }:
         <button
           onClick={toggle}
           className={cn(
-            "relative w-11 h-11 rounded-full flex items-center justify-center transition-all active:scale-90",
+            "relative w-9 h-9 md:w-11 md:h-11 rounded-full flex items-center justify-center transition-all active:scale-90",
             isMine
               ? "bg-white/95 text-primary shadow-sm hover:bg-white"
               : "bg-primary text-white shadow-[0_4px_16px_rgba(234,88,12,0.40)] hover:brightness-110"
           )}
         >
           {playing
-            ? <Pause size={16} fill="currentColor" />
-            : <Play size={16} fill="currentColor" className="ml-0.5" />}
+            ? <Pause size={14} fill="currentColor" className="md:w-4 md:h-4" />
+            : <Play size={14} fill="currentColor" className="ml-0.5 md:w-4 md:h-4" />}
         </button>
       </div>
 
       {/* Waveform + controls */}
-      <div className="flex-1 flex flex-col gap-2 min-w-0">
+      <div className="flex-1 flex flex-col gap-1.5 md:gap-2 min-w-0">
         {/* Waveform bars */}
-        <div className="flex items-center gap-[2.5px] h-9">
+        <div className="flex items-center gap-[2px] md:gap-[2.5px] h-7 md:h-9 overflow-hidden">
           {bars.map((bar, i) => (
             <motion.div
               key={i}
-              style={{ height: bar.h }}
+              style={{ height: Math.min(bar.h, 26) }}
               animate={playing && !bar.filled
                 ? { scaleY: [1, 1.6, 0.7, 1.3, 1] }
                 : { scaleY: 1 }}
@@ -182,7 +182,7 @@ function VoicePlayer({ src, durationSec, isMine, messageId, viewerIsPrimePlus }:
                 ? { duration: 0.55, repeat: Infinity, delay: i * 0.018, ease: "easeInOut" }
                 : { duration: 0.15 }}
               className={cn(
-                "w-[2.5px] rounded-full origin-center transition-colors",
+                "w-[2px] md:w-[2.5px] rounded-full origin-center transition-colors shrink-0",
                 bar.filled
                   ? isMine ? "bg-white" : "bg-primary"
                   : isMine ? "bg-white/35" : "bg-foreground/20"
@@ -918,7 +918,8 @@ export function MessageBubble({ message, onReply, onEdit, ownBubbleStyle, onPin,
           )}
         >
         <div className={cn(
-          "flex max-w-[85%] md:max-w-[70%]",
+          "flex",
+          message.type === "audio" ? "max-w-[75%] md:max-w-[65%]" : "max-w-[85%] md:max-w-[70%]",
           isMine ? "flex-row-reverse" : "flex-row",
           "items-end gap-2.5"
         )}>
@@ -950,7 +951,7 @@ export function MessageBubble({ message, onReply, onEdit, ownBubbleStyle, onPin,
                 message.type === "sticker"
                   ? "px-1 py-1 bg-transparent border-none shadow-none"
                   : cn(
-                    "px-5 py-3.5 rounded-[24px]",
+                    message.type === "audio" ? "px-3 py-2.5 md:px-5 md:py-3.5 rounded-[20px] md:rounded-[24px]" : "px-5 py-3.5 rounded-[24px]",
                     isMine
                       ? (ownBubbleStyle ? "text-white rounded-br-sm border border-white/15 shadow-[0_4px_16px_rgba(0,0,0,0.25)]" : "bubble-mine text-primary-foreground rounded-br-sm")
                       : "bg-secondary text-foreground rounded-bl-sm border border-border shadow-[0_2px_10px_rgba(0,0,0,0.18)]"
