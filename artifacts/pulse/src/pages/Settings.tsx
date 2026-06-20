@@ -13,7 +13,7 @@ import {
   Gift, PhoneCall, Monitor, Zap, AlertTriangle, X, Flame, Upload, Camera, Crown,
   ShieldCheck, QrCode, Fingerprint, LogIn, HelpCircle,
   Battery, FolderOpen, ArrowLeft, Mic, Headphones, Bot,
-  SlidersHorizontal, Layers, Calendar, Wand2, Play
+  SlidersHorizontal, Layers, Calendar, Wand2, Play, FileText, MapPin
 } from "lucide-react";
 import { useGetMe, useUpdateMe } from "@workspace/api-client-react";
 import { useAppContext } from "@/contexts/AppContext";
@@ -1050,7 +1050,7 @@ function SupportSection({ lang, user, t, currentStatusOpt, onNavigate }: { lang:
         {[
           { icon: <MessageSquare size={14} className="text-primary"/>, bg: "bg-primary/15", title: lang === "ru" ? "Служба поддержки" : "Support Team", desc: lang === "ru" ? "Задать вопрос или сообщить о проблеме" : "Ask a question or report an issue", href: "/support" },
           { icon: <AlertTriangle size={14} className="text-red-400"/>, bg: "bg-red-500/15", title: lang === "ru" ? "Сообщить об ошибке" : "Report a Bug", desc: lang === "ru" ? "Помогите нам улучшить Nova" : "Help us improve Nova", href: "/support" },
-          { icon: <Shield size={14} className="text-green-400"/>, bg: "bg-green-500/15", title: lang === "ru" ? "Конфиденциальность" : "Privacy Policy", desc: lang === "ru" ? "Политика конфиденциальности и GDPR" : "Privacy policy and data handling", href: "/support" },
+          { icon: <Shield size={14} className="text-green-400"/>, bg: "bg-green-500/15", title: lang === "ru" ? "Конфиденциальность" : "Privacy Policy", desc: lang === "ru" ? "Политика конфиденциальности (152-ФЗ)" : "Privacy policy and data handling", href: "/privacy" },
           { icon: <HelpCircle size={14} className="text-blue-400"/>, bg: "bg-blue-500/15", title: lang === "ru" ? "Часто задаваемые вопросы" : "FAQ", desc: lang === "ru" ? "Ответы на популярные вопросы" : "Answers to common questions", onClick: "faq" },
         ].map((item, i) => (
           item.onClick ? (
@@ -1329,6 +1329,75 @@ export default function Settings() {
   const [showNewPw, setShowNewPw] = useState(false);
   const [pwLoading, setPwLoading] = useState(false);
 
+  // Sessions management
+  const [sessions, setSessions] = useState<Array<{id:string;device:string;ip:string;createdAt:string;lastActiveAt:string;isCurrent:boolean}>>([]);
+  const [sessionsLoading, setSessionsLoading] = useState(false);
+  const [showSessions, setShowSessions] = useState(false);
+
+  const loadSessions = async () => {
+    setSessionsLoading(true);
+    try {
+      const token = sessionStorage.getItem("pulse-token");
+      const res = await fetch("/api/auth/sessions", { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+      if (res.ok) { const d = await res.json(); setSessions(d.sessions || []); }
+    } catch {}
+    setSessionsLoading(false);
+  };
+  const revokeSession = async (id: string) => {
+    const token = sessionStorage.getItem("pulse-token");
+    await fetch(`/api/auth/sessions/${id}`, { method: "DELETE", headers: token ? { Authorization: `Bearer ${token}` } : {} });
+    setSessions(prev => prev.filter(s => s.id !== id));
+    toast({ title: lang === "ru" ? "Сессия завершена" : "Session terminated" });
+  };
+  const revokeAllOther = async () => {
+    const token = sessionStorage.getItem("pulse-token");
+    await fetch("/api/auth/sessions", { method: "DELETE", headers: token ? { Authorization: `Bearer ${token}` } : {} });
+    await loadSessions();
+    toast({ title: lang === "ru" ? "Все другие сессии завершены" : "All other sessions terminated" });
+  };
+
+  // Account deletion
+  const [showDeleteAccount, setShowDeleteAccount] = useState(false);
+  const [deletePassword, setDeletePassword] = useState("");
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [deleteLoading, setDeleteLoading] = useState(false);
+
+  const handleDeleteAccount = async () => {
+    if (deleteConfirmText !== "удалить") { toast({ title: lang === "ru" ? "Введите слово «удалить» для подтверждения" : "Type «удалить» to confirm", variant: "destructive" }); return; }
+    setDeleteLoading(true);
+    try {
+      const token = sessionStorage.getItem("pulse-token");
+      const res = await fetch("/api/users/me", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        body: JSON.stringify({ password: deletePassword }),
+      });
+      const d = await res.json();
+      if (res.ok) {
+        toast({ title: lang === "ru" ? "Аккаунт удалён" : "Account deleted" });
+        sessionStorage.clear();
+        localStorage.removeItem("pulse-accounts");
+        window.location.href = "/";
+      } else {
+        toast({ title: d.error || (lang === "ru" ? "Ошибка удаления" : "Deletion failed"), variant: "destructive" });
+      }
+    } catch {
+      toast({ title: lang === "ru" ? "Ошибка сети" : "Network error", variant: "destructive" });
+    }
+    setDeleteLoading(false);
+  };
+
+  const handleExportData = async () => {
+    const token = sessionStorage.getItem("pulse-token");
+    const res = await fetch("/api/users/me/export", { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+    if (!res.ok) { toast({ title: lang === "ru" ? "Ошибка экспорта" : "Export failed", variant: "destructive" }); return; }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a"); a.href = url; a.download = `nova-export-${Date.now()}.json`; a.click();
+    URL.revokeObjectURL(url);
+    toast({ title: lang === "ru" ? "Данные скачаны" : "Data downloaded" });
+  };
+
   // Storage
   const [storageSize, setStorageSize] = useState("0");
   const [cacheCleared, setCacheCleared] = useState(false);
@@ -1476,32 +1545,6 @@ export default function Settings() {
     }
     setCacheCleared(c => !c);
     toast({ title: t("settings.cacheCleared"), description: t("settings.cacheClearedDesc") });
-  };
-
-  const handleExportData = async () => {
-    try {
-      const token = sessionStorage.getItem("pulse-token");
-      const headers: Record<string, string> = token ? { "Authorization": `Bearer ${token}` } : {};
-      const [profileRes, statsRes] = await Promise.all([
-        fetch("/api/users/me", { headers }),
-        fetch("/api/stats/me", { headers }),
-      ]);
-      const profile = await profileRes.json();
-      const stats = await statsRes.json();
-      const data = {
-        exportDate: new Date().toISOString(),
-        profile: { ...profile, passwordHash: undefined },
-        stats,
-      };
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url; a.download = `pulse-data-${Date.now()}.json`; a.click();
-      URL.revokeObjectURL(url);
-      toast({ title: t("settings.exportReady"), description: t("settings.exportReadyDesc") });
-    } catch {
-      toast({ title: t("common.error"), description: lang === "ru" ? "Не удалось экспортировать данные." : "Could not export data.", variant: "destructive" });
-    }
   };
 
   const handleCopyProfileLink = () => {
@@ -2200,13 +2243,132 @@ export default function Settings() {
                     </button>
                   </div>
                 )}
-                <Row icon={<Monitor size={18}/>} color="bg-primary/10 text-primary"
-                  label={t("settings.activeSessions")}
-                  desc={`${lang==="ru"?"Браузер":"Browser"}: ${navigator.userAgent.includes("Chrome")?"Chrome":navigator.userAgent.includes("Firefox")?"Firefox":(lang==="ru"?"Другой":"Other")}`}
-                  onClick={handleEndSessions} right={<span className="text-xs text-muted-foreground">{t("settings.endSessions")}</span>}/>
+                {/* Active Sessions Manager */}
+                <div className="border-t border-border/50">
+                  <div className="p-4 flex items-center justify-between cursor-pointer hover:bg-secondary transition-colors"
+                    onClick={() => { setShowSessions(v => !v); if (!showSessions) loadSessions(); }}>
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-primary/10 text-primary rounded-xl"><Monitor size={18}/></div>
+                      <div>
+                        <p className="text-sm font-medium">{lang==="ru"?"Активные сессии":"Active Sessions"}</p>
+                        <p className="text-xs text-muted-foreground">{lang==="ru"?"Управление устройствами, где выполнен вход":"Manage logged-in devices"}</p>
+                      </div>
+                    </div>
+                    {showSessions ? <ChevronDown size={18} className="text-muted-foreground"/> : <ChevronRight size={18} className="text-muted-foreground"/>}
+                  </div>
+                  {showSessions && (
+                    <div className="px-4 pb-4 space-y-2 bg-background/50">
+                      {sessionsLoading ? (
+                        <p className="text-xs text-muted-foreground text-center py-3">{lang==="ru"?"Загрузка...":"Loading..."}</p>
+                      ) : sessions.length === 0 ? (
+                        <p className="text-xs text-muted-foreground text-center py-3">{lang==="ru"?"Нет активных сессий":"No active sessions"}</p>
+                      ) : (
+                        <>
+                          {sessions.map(s => (
+                            <div key={s.id} className={`flex items-start justify-between p-3 rounded-xl border ${s.isCurrent ? "border-primary/30 bg-primary/5" : "border-border/50 bg-card"}`}>
+                              <div className="flex items-start gap-2.5 flex-1 min-w-0">
+                                <Smartphone size={16} className={s.isCurrent ? "text-primary mt-0.5 shrink-0" : "text-muted-foreground mt-0.5 shrink-0"}/>
+                                <div className="min-w-0">
+                                  <p className="text-xs font-medium truncate">{s.device.length > 60 ? s.device.slice(0,60)+"…" : s.device}</p>
+                                  <p className="text-[10px] text-muted-foreground flex items-center gap-1"><MapPin size={9}/>{s.ip}</p>
+                                  <p className="text-[10px] text-muted-foreground">{lang==="ru"?"Последняя активность:":"Last active:"} {new Date(s.lastActiveAt).toLocaleString(lang==="ru"?"ru-RU":"en-US",{dateStyle:"short",timeStyle:"short"})}</p>
+                                  {s.isCurrent && <span className="text-[10px] text-primary font-semibold">{lang==="ru"?"Это устройство":"This device"}</span>}
+                                </div>
+                              </div>
+                              {!s.isCurrent && (
+                                <button onClick={() => revokeSession(s.id)} className="ml-2 p-1.5 text-destructive hover:bg-destructive/10 rounded-lg transition-colors shrink-0">
+                                  <X size={14}/>
+                                </button>
+                              )}
+                            </div>
+                          ))}
+                          {sessions.filter(s => !s.isCurrent).length > 0 && (
+                            <button onClick={revokeAllOther} className="w-full py-2 text-xs font-medium text-destructive hover:bg-destructive/8 rounded-xl border border-destructive/20 transition-colors">
+                              {lang==="ru"?"Завершить все другие сессии":"Terminate all other sessions"}
+                            </button>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  )}
+                </div>
+
                 <TwoFaSection user={user} toast={toast} lang={lang}/>
                 <ScreenLockSection lang={lang} toast={toast}/>
                 <SecurityQuestionSection lang={lang} toast={toast}/>
+              </Section>
+
+              {/* Data & Privacy section */}
+              <Section title={lang==="ru"?"Данные и конфиденциальность":"Data & Privacy"} icon={<Database size={13}/>}>
+                <div className="p-4 flex items-center justify-between cursor-pointer hover:bg-secondary transition-colors" onClick={handleExportData}>
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-blue-500/10 text-blue-500 rounded-xl"><Download size={18}/></div>
+                    <div>
+                      <p className="text-sm font-medium">{lang==="ru"?"Скачать мои данные":"Download My Data"}</p>
+                      <p className="text-xs text-muted-foreground">{lang==="ru"?"Экспорт данных (152-ФЗ)":"Export your data (GDPR)"}</p>
+                    </div>
+                  </div>
+                  <ChevronRight size={18} className="text-muted-foreground"/>
+                </div>
+
+                <a href="/privacy" className="p-4 flex items-center justify-between hover:bg-secondary transition-colors border-t border-border/50">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-green-500/10 text-green-500 rounded-xl"><Shield size={18}/></div>
+                    <div>
+                      <p className="text-sm font-medium">{lang==="ru"?"Политика конфиденциальности":"Privacy Policy"}</p>
+                      <p className="text-xs text-muted-foreground">{lang==="ru"?"Как мы обрабатываем ваши данные (152-ФЗ)":"How we handle your data"}</p>
+                    </div>
+                  </div>
+                  <ChevronRight size={18} className="text-muted-foreground"/>
+                </a>
+
+                <a href="/terms" className="p-4 flex items-center justify-between hover:bg-secondary transition-colors border-t border-border/50">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-orange-500/10 text-orange-500 rounded-xl"><FileText size={18}/></div>
+                    <div>
+                      <p className="text-sm font-medium">{lang==="ru"?"Пользовательское соглашение":"Terms of Service"}</p>
+                      <p className="text-xs text-muted-foreground">{lang==="ru"?"Правила использования Сервиса":"Rules of using the Service"}</p>
+                    </div>
+                  </div>
+                  <ChevronRight size={18} className="text-muted-foreground"/>
+                </a>
+
+                {/* Delete Account */}
+                <div className="border-t border-border/50">
+                  <div className="p-4 flex items-center justify-between cursor-pointer hover:bg-secondary transition-colors"
+                    onClick={() => setShowDeleteAccount(v => !v)}>
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-destructive/10 text-destructive rounded-xl"><Trash2 size={18}/></div>
+                      <div>
+                        <p className="text-sm font-medium text-destructive">{lang==="ru"?"Удалить аккаунт":"Delete Account"}</p>
+                        <p className="text-xs text-muted-foreground">{lang==="ru"?"Безвозвратное удаление всех данных":"Permanently delete all your data"}</p>
+                      </div>
+                    </div>
+                    {showDeleteAccount ? <ChevronDown size={18} className="text-muted-foreground"/> : <ChevronRight size={18} className="text-muted-foreground"/>}
+                  </div>
+                  {showDeleteAccount && (
+                    <div className="px-4 pb-4 space-y-3 bg-destructive/3">
+                      <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-xl">
+                        <p className="text-xs text-destructive font-medium flex items-center gap-1.5"><AlertTriangle size={12}/> {lang==="ru"?"Внимание! Это действие необратимо":"Warning! This action is irreversible"}</p>
+                        <p className="text-xs text-muted-foreground mt-1">{lang==="ru"?"Все ваши сообщения, чаты, история звонков и другие данные будут удалены навсегда.":"All your messages, chats, call history and other data will be permanently deleted."}</p>
+                      </div>
+                      <div>
+                        <Label className="text-xs mb-1 block">{lang==="ru"?"Введите пароль":"Enter your password"}</Label>
+                        <Input type="password" value={deletePassword} onChange={e => setDeletePassword(e.target.value)} placeholder={lang==="ru"?"Ваш пароль":"Your password"} className="bg-background"/>
+                      </div>
+                      <div>
+                        <Label className="text-xs mb-1 block">{lang==="ru"?'Введите слово "удалить" для подтверждения':'Type "удалить" to confirm'}</Label>
+                        <Input value={deleteConfirmText} onChange={e => setDeleteConfirmText(e.target.value)} placeholder="удалить" className="bg-background font-mono"/>
+                      </div>
+                      <button
+                        onClick={handleDeleteAccount}
+                        disabled={deleteLoading || !deletePassword || deleteConfirmText !== "удалить"}
+                        className="w-full py-2.5 bg-destructive text-destructive-foreground rounded-xl font-medium text-sm hover:bg-destructive/90 transition-colors disabled:opacity-40">
+                        {deleteLoading ? (lang==="ru"?"Удаление...":"Deleting...") : (lang==="ru"?"Удалить мой аккаунт навсегда":"Permanently Delete My Account")}
+                      </button>
+                    </div>
+                  )}
+                </div>
               </Section>
             </div>
           )}

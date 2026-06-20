@@ -276,4 +276,73 @@ router.get("/leaderboard", async (req, res) => {
   }
 });
 
+// ── Account deletion — purge all user data ─────────────────────────────────
+router.delete("/users/me", async (req, res) => {
+  try {
+    const uid = req.currentUserId;
+    const { password } = req.body;
+    if (!password) return res.status(400).json({ error: "Введите пароль для подтверждения удаления" });
+
+    const rows = await db.execute(sql`SELECT password_hash FROM users WHERE id = ${uid}`);
+    const user = rows.rows[0] as any;
+    if (!user) return res.status(404).json({ error: "Пользователь не найден" });
+
+    const valid = await import("bcryptjs").then(b => b.default.compare(String(password), user.password_hash || ""));
+    if (!valid) return res.status(403).json({ error: "Неверный пароль" });
+
+    // Delete all user data in order (respect FK constraints)
+    await db.execute(sql`DELETE FROM user_sessions WHERE user_id = ${uid}`);
+    await db.execute(sql`DELETE FROM message_reactions WHERE user_id = ${uid}`);
+    await db.execute(sql`DELETE FROM story_views WHERE viewer_id = ${uid}`);
+    await db.execute(sql`DELETE FROM stories WHERE user_id = ${uid}`);
+    await db.execute(sql`DELETE FROM gifts WHERE sender_id = ${uid} OR receiver_id = ${uid}`);
+    await db.execute(sql`DELETE FROM calls WHERE caller_id = ${uid} OR callee_id = ${uid}`);
+    await db.execute(sql`DELETE FROM contacts WHERE user_id = ${uid} OR contact_id = ${uid}`);
+    await db.execute(sql`DELETE FROM messages WHERE sender_id = ${uid}`);
+    await db.execute(sql`DELETE FROM chat_members WHERE user_id = ${uid}`);
+    await db.execute(sql`DELETE FROM referral_uses WHERE referrer_id = ${uid} OR referred_id = ${uid}`);
+    // Soft-delete the user account (anonymize data)
+    await db.execute(sql`
+      UPDATE users SET
+        username = ${'deleted_' + uid},
+        display_name = 'Deleted Account',
+        bio = NULL,
+        avatar_url = NULL,
+        password_hash = '',
+        is_banned = true,
+        status = 'offline'
+      WHERE id = ${uid}
+    `);
+
+    res.json({ success: true });
+  } catch (err) {
+    req.log.error(err);
+    res.status(500).json({ error: "Ошибка при удалении аккаунта" });
+  }
+});
+
+// ── Data export (GDPR/152-ФЗ right to access) ─────────────────────────────
+router.get("/users/me/export", async (req, res) => {
+  try {
+    const uid = req.currentUserId;
+    const [userRows, msgRows, chatRows] = await Promise.all([
+      db.execute(sql`SELECT id, username, display_name, bio, status, status_text, created_at FROM users WHERE id = ${uid}`),
+      db.execute(sql`SELECT id, chat_id, text, type, created_at FROM messages WHERE sender_id = ${uid} ORDER BY created_at DESC LIMIT 1000`),
+      db.execute(sql`SELECT c.id, c.name, c.type, cm.joined_at FROM chats c JOIN chat_members cm ON cm.chat_id = c.id WHERE cm.user_id = ${uid} ORDER BY cm.joined_at DESC LIMIT 200`),
+    ]);
+    const exportData = {
+      exportedAt: new Date().toISOString(),
+      user: userRows.rows[0] || null,
+      messages: msgRows.rows,
+      chats: chatRows.rows,
+    };
+    res.setHeader("Content-Type", "application/json");
+    res.setHeader("Content-Disposition", `attachment; filename="nova-export-${uid}-${Date.now()}.json"`);
+    res.json(exportData);
+  } catch (err) {
+    req.log.error(err);
+    res.status(500).json({ error: "Ошибка экспорта данных" });
+  }
+});
+
 export default router;

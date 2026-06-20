@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
 import { sql } from "drizzle-orm";
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { JWT_SECRET } from "../app";
@@ -42,8 +42,8 @@ const PENDING_2FA_TTL = "5m";
 
 const sha256 = (pass: string) => createHash("sha256").update(pass).digest("hex");
 
-function signToken(userId: number): string {
-  return jwt.sign({ userId }, JWT_SECRET, { expiresIn: TOKEN_TTL });
+function signToken(userId: number, sessionId?: string): string {
+  return jwt.sign({ userId, ...(sessionId ? { sid: sessionId } : {}) }, JWT_SECRET, { expiresIn: TOKEN_TTL });
 }
 
 function signPending2faToken(userId: number): string {
@@ -111,6 +111,18 @@ router.post("/auth/login", async (req, res) => {
     // ── Successful login — clear failure counter ───────────────────────────
     clearFailures(ukey);
 
+    // ── Create session record ──────────────────────────────────────────────
+    const sessionId = randomUUID();
+    const ua = req.headers["user-agent"] || "Unknown";
+    const ip = (req.headers["x-forwarded-for"] as string)?.split(",")[0]?.trim() || req.ip || "unknown";
+    const deviceName = ua.length > 200 ? ua.slice(0, 200) : ua;
+    try {
+      await db.execute(sql`
+        INSERT INTO user_sessions (id, user_id, device, ip_address, created_at, last_active_at)
+        VALUES (${sessionId}, ${user.id}, ${deviceName}, ${ip}, NOW(), NOW())
+      `);
+    } catch { /* table may not exist yet, non-fatal */ }
+
     if (user.totp_enabled) {
       const pendingToken = signPending2faToken(user.id);
       return res.json({
@@ -125,7 +137,7 @@ router.post("/auth/login", async (req, res) => {
       });
     }
 
-    const token = signToken(user.id);
+    const token = signToken(user.id, sessionId);
     const ageVerified = user.age_verified === true || user.age_verified === "t" || user.age_verified === 1;
 
     res.json({
@@ -604,6 +616,101 @@ router.get("/users/me/security-question/check", async (req, res) => {
     const user = rows.rows[0] as any;
     if (!user) return res.status(404).json({ error: "Пользователь не найден" });
     res.json({ hasQuestion: !!user.security_question, question: user.security_question || null });
+  } catch (err) {
+    req.log.error(err);
+    res.status(500).json({ error: "Ошибка сервера" });
+  }
+});
+
+// ── Sessions management ────────────────────────────────────────────────────
+
+router.get("/auth/sessions", async (req, res) => {
+  try {
+    const uid = req.currentUserId;
+    const rows = await db.execute(sql`
+      SELECT id, device, ip_address, created_at, last_active_at
+      FROM user_sessions
+      WHERE user_id = ${uid}
+      ORDER BY last_active_at DESC
+      LIMIT 20
+    `);
+    // Figure out which session is current (by sid in JWT)
+    const authHeader = req.headers["authorization"];
+    let currentSid: string | null = null;
+    if (authHeader?.startsWith("Bearer ")) {
+      try {
+        const payload = jwt.verify(authHeader.slice(7), JWT_SECRET) as any;
+        currentSid = payload.sid || null;
+      } catch {}
+    }
+    const sessions = (rows.rows as any[]).map(s => ({
+      id: s.id,
+      device: s.device,
+      ip: s.ip_address,
+      createdAt: s.created_at,
+      lastActiveAt: s.last_active_at,
+      isCurrent: s.id === currentSid,
+    }));
+    res.json({ sessions });
+  } catch (err) {
+    req.log.error(err);
+    res.status(500).json({ error: "Ошибка сервера" });
+  }
+});
+
+router.delete("/auth/sessions/:id", async (req, res) => {
+  try {
+    const uid = req.currentUserId;
+    const { id } = req.params;
+    await db.execute(sql`
+      DELETE FROM user_sessions WHERE id = ${id} AND user_id = ${uid}
+    `);
+    res.json({ success: true });
+  } catch (err) {
+    req.log.error(err);
+    res.status(500).json({ error: "Ошибка сервера" });
+  }
+});
+
+router.delete("/auth/sessions", async (req, res) => {
+  try {
+    const uid = req.currentUserId;
+    // Delete all sessions except current
+    const authHeader = req.headers["authorization"];
+    let currentSid: string | null = null;
+    if (authHeader?.startsWith("Bearer ")) {
+      try {
+        const payload = jwt.verify(authHeader.slice(7), JWT_SECRET) as any;
+        currentSid = payload.sid || null;
+      } catch {}
+    }
+    if (currentSid) {
+      await db.execute(sql`
+        DELETE FROM user_sessions WHERE user_id = ${uid} AND id != ${currentSid}
+      `);
+    } else {
+      await db.execute(sql`DELETE FROM user_sessions WHERE user_id = ${uid}`);
+    }
+    res.json({ success: true });
+  } catch (err) {
+    req.log.error(err);
+    res.status(500).json({ error: "Ошибка сервера" });
+  }
+});
+
+router.post("/auth/logout", async (req, res) => {
+  try {
+    const uid = req.currentUserId;
+    const authHeader = req.headers["authorization"];
+    if (authHeader?.startsWith("Bearer ")) {
+      try {
+        const payload = jwt.verify(authHeader.slice(7), JWT_SECRET) as any;
+        if (payload.sid) {
+          await db.execute(sql`DELETE FROM user_sessions WHERE id = ${payload.sid} AND user_id = ${uid}`);
+        }
+      } catch {}
+    }
+    res.json({ success: true });
   } catch (err) {
     req.log.error(err);
     res.status(500).json({ error: "Ошибка сервера" });

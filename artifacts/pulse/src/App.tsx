@@ -37,6 +37,8 @@ import Register from "@/pages/Register";
 import ForgotPassword from "@/pages/ForgotPassword";
 import QrConfirm from "@/pages/QrConfirm";
 import NotFound from "@/pages/not-found";
+import Privacy from "@/pages/Privacy";
+import Terms from "@/pages/Terms";
 
 let queryClient = new QueryClient();
 
@@ -267,6 +269,8 @@ function MainAppInner({ onLogout, onSwitchAccount, onRemoveAccount, onOpenAddAcc
               <Route path="/settings" component={Settings} />
               <Route path="/user/:userId" component={UserProfile} />
               <Route path="/qr/:tokenId" component={QrConfirm} />
+              <Route path="/privacy" component={Privacy} />
+              <Route path="/terms" component={Terms} />
               <Route component={NotFound} />
             </Switch>
           </AppLayout>
@@ -497,25 +501,31 @@ function App() {
     <LanguageProvider>
       <QueryClientProvider client={queryClient}>
         <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-          {userId ? (
-            <ErrorBoundary>
-              <>
-                <MainApp
-                  onLogout={handleLogout}
-                  onSwitchAccount={handleSwitchAccount}
-                  onRemoveAccount={handleRemoveAccount}
-                  onOpenAddAccount={() => setAddingAccount(true)}
-                />
-                <AddAccountDialog
-                  open={addingAccount}
-                  onClose={() => setAddingAccount(false)}
-                  onAccountAdded={handleAccountAdded}
-                />
-              </>
-            </ErrorBoundary>
-          ) : (
-            <AuthPages onLogin={handleLogin} />
-          )}
+          <Switch>
+            <Route path="/privacy" component={Privacy} />
+            <Route path="/terms" component={Terms} />
+            <Route>
+              {userId ? (
+                <ErrorBoundary>
+                  <>
+                    <MainApp
+                      onLogout={handleLogout}
+                      onSwitchAccount={handleSwitchAccount}
+                      onRemoveAccount={handleRemoveAccount}
+                      onOpenAddAccount={() => setAddingAccount(true)}
+                    />
+                    <AddAccountDialog
+                      open={addingAccount}
+                      onClose={() => setAddingAccount(false)}
+                      onAccountAdded={handleAccountAdded}
+                    />
+                  </>
+                </ErrorBoundary>
+              ) : (
+                <AuthPages onLogin={handleLogin} />
+              )}
+            </Route>
+          </Switch>
           <PwaInstallPrompt />
         </WouterRouter>
       </QueryClientProvider>

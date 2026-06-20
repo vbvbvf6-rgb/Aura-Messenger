@@ -487,7 +487,7 @@ export default function Register({ onLogin }: RegisterProps) {
                     className="mt-1 w-5 h-5 rounded accent-green-500 cursor-pointer shrink-0"
                   />
                   <span className="text-sm font-medium text-muted-foreground group-hover:text-foreground transition-colors leading-relaxed">
-                    Я принимаю условия использования.
+                    Я принимаю <a href="/terms" className="text-green-500 underline underline-offset-2 hover:text-green-400 transition-colors" onClick={e => e.stopPropagation()}>Пользовательское соглашение</a> и <a href="/privacy" className="text-green-500 underline underline-offset-2 hover:text-green-400 transition-colors" onClick={e => e.stopPropagation()}>Политику конфиденциальности</a> Nova.
                   </span>
                 </label>
               </div>

@@ -51,6 +51,20 @@ process.on("SIGINT", () => shutdown("SIGINT"));
 
 runSeed().catch((err) => logger.error({ err }, "Seed failed"));
 
+// ── Create user_sessions table if it doesn't exist ────────────────────────
+db.execute(sql`
+  CREATE TABLE IF NOT EXISTS user_sessions (
+    id TEXT PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    device TEXT NOT NULL DEFAULT 'Unknown',
+    ip_address TEXT NOT NULL DEFAULT 'unknown',
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    last_active_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+  )
+`).then(() =>
+  db.execute(sql`CREATE INDEX IF NOT EXISTS idx_user_sessions_user_id ON user_sessions(user_id)`)
+).catch((err) => logger.warn({ err }, "user_sessions table setup warning"));
+
 httpServer.listen(port, () => {
   logger.info({ port }, "Server listening");
 });
