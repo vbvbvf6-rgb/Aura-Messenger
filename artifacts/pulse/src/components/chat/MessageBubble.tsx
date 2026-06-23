@@ -674,11 +674,14 @@ export function MessageBubble({ message, onReply, onEdit, ownBubbleStyle, onPin,
       case "poll":
         return <PollDisplay pollData={pollData} messageId={message.id} chatId={message.chatId} currentUserId={currentUserId} isMine={isMine} />;
       case "text": {
-        const words = message.text?.split(" ") ?? [];
+        const FORWARD_PREFIX = "⤵️ ";
+        const isForwardedMsg = (message.text ?? "").startsWith(FORWARD_PREFIX);
+        const rawText = isForwardedMsg ? (message.text ?? "").slice(FORWARD_PREFIX.length) : (message.text ?? "");
+        const words = rawText.split(" ");
         const isAnimating = typingOut && displayedWords < words.length;
         const visibleText = typingOut && displayedWords !== Infinity
           ? words.slice(0, displayedWords).join(" ")
-          : (message.text ?? "");
+          : rawText;
 
         function renderMarkdown(text: string): React.ReactNode[] {
           const segments: { text: string; bold?: boolean; italic?: boolean; code?: boolean; strike?: boolean; url?: string }[] = [];
@@ -711,6 +714,11 @@ export function MessageBubble({ message, onReply, onEdit, ownBubbleStyle, onPin,
 
         return (
           <div>
+            {isForwardedMsg && (
+              <p className={cn("text-[11px] italic font-medium mb-1 opacity-70", isMine ? "text-white/80" : "text-muted-foreground")}>
+                Переслано
+              </p>
+            )}
             <p className="text-[15px] whitespace-pre-wrap break-words [overflow-wrap:anywhere] leading-snug font-medium">
               {searchHighlight
                 ? <HighlightText text={visibleText} query={searchHighlight} isMine={isMine} />
@@ -912,10 +920,12 @@ export function MessageBubble({ message, onReply, onEdit, ownBubbleStyle, onPin,
                 message.type === "sticker"
                   ? "px-1 py-1 bg-transparent border-none shadow-none"
                   : cn(
-                    message.type === "audio" ? "px-3 py-2.5 md:px-5 md:py-3.5 rounded-[20px] md:rounded-[24px]" : "px-5 py-3.5 rounded-[24px]",
-                    isMine
-                      ? (ownBubbleStyle ? "text-white rounded-br-sm border border-white/15 shadow-[0_4px_16px_rgba(0,0,0,0.25)]" : "bubble-mine text-primary-foreground rounded-br-sm")
-                      : "bg-secondary text-foreground rounded-bl-sm border border-border shadow-[0_2px_10px_rgba(0,0,0,0.18)]"
+                    message.type === "audio" ? "px-3 py-2.5 md:px-5 md:py-3.5 rounded-[20px] md:rounded-[24px]" : "px-3.5 py-2.5 sm:px-5 sm:py-3.5 rounded-[20px] sm:rounded-[24px]",
+                    isDeleted
+                      ? "bg-secondary/50 text-muted-foreground rounded-bl-sm border border-border"
+                      : isMine
+                        ? (ownBubbleStyle ? "text-white rounded-br-sm border border-white/15 shadow-[0_4px_16px_rgba(0,0,0,0.25)]" : "bubble-mine text-primary-foreground rounded-br-sm")
+                        : "bg-secondary text-foreground rounded-bl-sm border border-border shadow-[0_2px_10px_rgba(0,0,0,0.18)]"
                   )
               )}
               style={isMine && ownBubbleStyle && message.type !== "sticker" ? ownBubbleStyle : undefined}

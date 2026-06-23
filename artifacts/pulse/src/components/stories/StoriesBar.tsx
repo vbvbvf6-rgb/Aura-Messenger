@@ -33,7 +33,7 @@ export function StoriesBar() {
         <div className="w-14 h-14 rounded-full bg-secondary flex items-center justify-center border-2 border-dashed border-muted-foreground group-hover:border-primary transition-colors text-muted-foreground group-hover:text-primary">
           <span className="text-2xl mb-1">+</span>
         </div>
-        <span className="text-xs text-muted-foreground font-medium">История</span>
+        <span className="text-xs text-muted-foreground font-medium">Мой статус</span>
       </div>
 
       {stories?.map((storyGroup: StoryGroup) => {
@@ -42,7 +42,7 @@ export function StoriesBar() {
           <div
             key={storyGroup.user.id}
             className="flex flex-col items-center gap-1 shrink-0 cursor-pointer group relative"
-            onClick={() => isMe ? setLocation("/profile") : setLocation("/stories")}
+            onClick={() => isMe ? setLocation("/profile") : setLocation(`/stories?userId=${storyGroup.user.id}`)}
             title={isMe ? "Мой профиль и статус" : storyGroup.user.displayName}
           >
             <div className={`w-14 h-14 rounded-full p-[2px] ${storyGroup.hasUnviewed ? "bg-gradient-to-tr from-primary to-accent animate-pulse" : "bg-border"}`}>

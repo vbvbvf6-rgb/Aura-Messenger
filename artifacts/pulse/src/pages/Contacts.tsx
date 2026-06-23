@@ -13,7 +13,7 @@ export default function Contacts() {
   const { data: contacts, isLoading: contactsLoading } = useGetContacts();
   const { data: searchResults, isLoading: searchLoading } = useSearchUsers(
     { q: searchQuery },
-    { query: { enabled: searchQuery.length > 2 } as any }
+    { query: { enabled: searchQuery.length > 0 } as any }
   );
 
   const addContact = useAddContact();
@@ -72,8 +72,8 @@ export default function Contacts() {
     }
   };
 
-  const displayUsers = searchQuery.length > 2 ? searchResults : contacts;
-  const isLoading = searchQuery.length > 2 ? searchLoading : contactsLoading;
+  const displayUsers = searchQuery.length > 0 ? searchResults : contacts;
+  const isLoading = searchQuery.length > 0 ? searchLoading : contactsLoading;
 
   return (
     <div className="flex-1 flex flex-col h-full bg-background overflow-hidden relative">

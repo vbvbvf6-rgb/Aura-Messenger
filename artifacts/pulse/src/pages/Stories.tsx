@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAppContext } from "@/contexts/AppContext";
+import { useLocation } from "wouter";
 
 const STORY_DURATION = 5000;
 
@@ -70,6 +71,7 @@ export default function Stories() {
   const { data: stories, isLoading } = useGetStories();
   const createStoryMutation = useCreateStory();
   const queryClient = useQueryClient();
+  const [location] = useLocation();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showCreate, setShowCreate] = useState(false);
@@ -84,6 +86,19 @@ export default function Stories() {
   const [viewingIndex, setViewingIndex] = useState(0);
   const [viewCount, setViewCount] = useState<number | null>(null);
   const { currentUserId } = useAppContext();
+
+  // Auto-open a specific user's story when navigated with ?userId=X
+  useEffect(() => {
+    if (!stories || isLoading) return;
+    const params = new URLSearchParams(window.location.search);
+    const targetUserId = params.get("userId");
+    if (!targetUserId) return;
+    const group = (stories as any[]).find((g: any) => String(g.user?.id) === targetUserId);
+    if (group && group.stories?.length > 0) {
+      setViewingGroup(group);
+      setViewingIndex(0);
+    }
+  }, [stories, isLoading]);
 
   useEffect(() => {
     if (!viewingGroup) return;
@@ -157,7 +172,7 @@ export default function Stories() {
     <div className="flex-1 flex flex-col h-full bg-background overflow-hidden relative">
       <header className="border-b border-border flex items-center px-6 justify-between bg-card/80 backdrop-blur-md z-10 shrink-0" style={{ minHeight: "calc(4rem + env(safe-area-inset-top, 0px))", paddingTop: "env(safe-area-inset-top, 0px)" }}>
         <h1 className="text-xl font-bold flex items-center gap-2">
-          <Play className="text-primary" size={20} /> Истории
+          <Play className="text-primary" size={20} /> Статус
         </h1>
         <button
           onClick={() => setShowCreate(true)}

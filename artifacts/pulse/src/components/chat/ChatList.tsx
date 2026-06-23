@@ -551,7 +551,6 @@ export function ChatList() {
               <div className="flex-1 min-w-0">
                 <div className="flex justify-between items-baseline mb-0.5">
                   <h3 className="font-bold text-[15px] text-foreground">Поддержка</h3>
-                  <span className="text-[11px] font-bold text-primary/70 uppercase tracking-wider bg-primary/10 px-1.5 py-0.5 rounded shrink-0">24/7</span>
                 </div>
                 <p className="text-[13px] text-muted-foreground truncate font-medium">Связаться с командой</p>
               </div>

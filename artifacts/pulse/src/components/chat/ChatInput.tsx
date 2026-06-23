@@ -420,11 +420,12 @@ export function ChatInput({ chatId, onMessageSent, replyTo, editMessage, onCance
       queryClient.invalidateQueries({ queryKey: getGetChatsQueryKey() });
       onMessageSent?.();
       import("@/utils/questTracker").then(({ trackQuestAction }) => trackQuestAction("message_sent"));
-    } catch (sendErr) {
+    } catch (sendErr: any) {
       const isTimeout = (sendErr as Error)?.name === "TimeoutError";
+      const apiMsg = sendErr?.response?.data?.error || sendErr?.data?.error || sendErr?.message || "";
       const errMsg = isTimeout
         ? "Превышено время ожидания сервера"
-        : "Проверьте соединение и попробуйте снова";
+        : apiMsg || "Проверьте соединение и попробуйте снова";
       toast({ title: "Не удалось отправить сообщение", description: errMsg, variant: "destructive" });
     } finally {
       setIsSending(false);

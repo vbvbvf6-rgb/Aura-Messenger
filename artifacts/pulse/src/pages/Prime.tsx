@@ -40,7 +40,7 @@ const PRIME_FEATURES = [
   { icon: InfinityIcon, text: "Хранение истории сообщений навсегда",              color: "text-green-400",  bg: "bg-green-500/10"  },
   { icon: Lock,         text: "Скрытый онлайн-статус",                            color: "text-green-400",  bg: "bg-green-500/10"  },
   { icon: Clock,        text: "Отложенная отправка сообщений по расписанию",      color: "text-green-400",  bg: "bg-green-500/10"  },
-  { icon: Bell,         text: "Приоритетные уведомления и поддержка 24/7",        color: "text-green-400",  bg: "bg-green-500/10"  },
+  { icon: Bell,         text: "Приоритетные уведомления",        color: "text-green-400",  bg: "bg-green-500/10"  },
   { icon: Shield,       text: "VIP-метка в группах и каналах",                   color: "text-yellow-400", bg: "bg-yellow-500/10" },
   { icon: Zap,          text: "50 ⚡ Spark бонус при оформлении",                 color: "text-green-400",  bg: "bg-green-500/10"  },
 ];

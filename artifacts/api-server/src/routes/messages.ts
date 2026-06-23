@@ -380,6 +380,29 @@ router.post("/messages", async (req, res) => {
       }
     }
 
+    // Slow mode enforcement (use raw SQL since slow_mode may not be in Drizzle schema)
+    const slowModeRow = await db.execute(sql`SELECT slow_mode FROM chats WHERE id = ${body.chatId}`);
+    const slowModeSec: number = (slowModeRow.rows[0] as any)?.slow_mode ?? 0;
+    if (slowModeSec > 0) {
+      const memberInfo2 = await db.query.chatMembersTable.findFirst({
+        where: and(eq(chatMembersTable.chatId, body.chatId), eq(chatMembersTable.userId, uid)),
+      });
+      const isOwnerOrAdmin = memberInfo2?.role === "owner" || memberInfo2?.role === "admin";
+      if (!isOwnerOrAdmin) {
+        const lastMsgRow = await db.execute(
+          sql`SELECT created_at FROM messages WHERE chat_id = ${body.chatId} AND sender_id = ${uid} ORDER BY created_at DESC LIMIT 1`
+        );
+        const lastMsgAt = (lastMsgRow.rows[0] as any)?.created_at;
+        if (lastMsgAt) {
+          const secSince = (Date.now() - new Date(lastMsgAt).getTime()) / 1000;
+          if (secSince < slowModeSec) {
+            const wait = Math.ceil(slowModeSec - secSince);
+            return res.status(429).json({ error: `Медленный режим: подождите ещё ${wait} сек.` });
+          }
+        }
+      }
+    }
+
     if (body.text && body.text.length > 4000) {
       return res.status(400).json({ error: "Сообщение слишком длинное (максимум 4000 символов)" });
     }
