@@ -9,8 +9,8 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { AddAccountDialog } from "@/components/layout/AddAccountDialog";
 import { getSavedAccounts, saveAccount, removeAccount, SavedAccount } from "@/lib/accounts";
 import { ScreenLock } from "@/components/ScreenLock";
-import { motion } from "framer-motion";
-import { Clock, LogOut, ShieldCheck, Megaphone, X } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Clock, LogOut, ShieldCheck, Megaphone, X, Download, RefreshCw } from "lucide-react";
 import { useNotifications } from "@/hooks/useNotifications";
 import { PwaInstallPrompt } from "@/components/PwaInstallPrompt";
 import { useServiceWorkerUpdate } from "@/hooks/useServiceWorkerUpdate";
@@ -179,27 +179,98 @@ function AnnouncementBanner() {
 
 function PwaUpdateBanner() {
   const { updateAvailable, applyUpdate } = useServiceWorkerUpdate();
-  const { toast } = useToast();
-  const shown = useRef(false);
-  useEffect(() => {
-    if (updateAvailable && !shown.current) {
-      shown.current = true;
-      toast({
-        title: "Доступно обновление Aura",
-        description: "Новая версия готова к установке.",
-        duration: 0,
-        action: (
-          <button
-            onClick={applyUpdate}
-            className="shrink-0 rounded-xl bg-primary text-white text-xs font-semibold px-3 py-1.5 hover:bg-primary/90 transition-colors"
+  const [dismissed, setDismissed] = useState(false);
+  const [updating, setUpdating] = useState(false);
+
+  const handleUpdate = () => {
+    setUpdating(true);
+    setTimeout(() => applyUpdate(), 400);
+  };
+
+  const show = updateAvailable && !dismissed;
+
+  return (
+    <AnimatePresence>
+      {show && (
+        <>
+          <motion.div
+            key="pwa-backdrop"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[500] bg-black/60 backdrop-blur-sm"
+            onClick={() => setDismissed(true)}
+          />
+          <motion.div
+            key="pwa-modal"
+            initial={{ opacity: 0, scale: 0.92, y: 32 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.92, y: 32 }}
+            transition={{ type: "spring", damping: 26, stiffness: 340 }}
+            className="fixed inset-0 z-[501] flex items-center justify-center p-5 pointer-events-none"
           >
-            Обновить
-          </button>
-        ) as any,
-      });
-    }
-  }, [updateAvailable]);
-  return null;
+            <div className="pointer-events-auto w-full max-w-sm bg-card border border-border rounded-3xl shadow-2xl overflow-hidden">
+              {/* Animated top stripe */}
+              <div className="h-1 bg-gradient-to-r from-primary via-orange-400 to-amber-500 animate-pulse" />
+
+              <div className="px-6 pt-6 pb-5">
+                {/* Icon */}
+                <div className="flex items-center gap-4 mb-5">
+                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-orange-500 flex items-center justify-center shadow-lg shadow-primary/30 shrink-0">
+                    <svg width="32" height="32" viewBox="0 0 100 100" fill="none">
+                      <path d="M50 13 C50 13 54.5 41 87 50 C54.5 59 50 87 50 87 C50 87 45.5 59 13 50 C45.5 41 50 13 50 13Z" fill="white" />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="text-[11px] font-black uppercase tracking-widest text-primary mb-0.5">Новая версия</p>
+                    <h2 className="text-[20px] font-black text-foreground leading-tight">Обновление Aura</h2>
+                    <p className="text-[13px] text-muted-foreground">готово к установке</p>
+                  </div>
+                </div>
+
+                {/* Description */}
+                <div className="bg-secondary/60 border border-border rounded-2xl px-4 py-3 mb-5 space-y-2">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-7 h-7 rounded-lg bg-green-500/15 flex items-center justify-center shrink-0">
+                      <Download size={14} className="text-green-400" />
+                    </div>
+                    <p className="text-[13px] text-foreground font-medium">Обновление уже скачано</p>
+                  </div>
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-7 h-7 rounded-lg bg-blue-500/15 flex items-center justify-center shrink-0">
+                      <RefreshCw size={14} className="text-blue-400" />
+                    </div>
+                    <p className="text-[13px] text-muted-foreground">Приложение перезапустится автоматически</p>
+                  </div>
+                </div>
+
+                {/* Buttons */}
+                <div className="flex gap-2.5">
+                  <button
+                    onClick={() => setDismissed(true)}
+                    className="flex-1 py-3 rounded-[16px] border border-border text-sm font-semibold text-muted-foreground hover:bg-secondary transition-all"
+                  >
+                    Позже
+                  </button>
+                  <button
+                    onClick={handleUpdate}
+                    disabled={updating}
+                    className="flex-[2] py-3 bg-primary text-primary-foreground rounded-[16px] text-[15px] font-black hover:bg-primary/90 transition-all shadow-[0_4px_14px_rgba(234,88,12,0.4)] hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-70 flex items-center justify-center gap-2"
+                  >
+                    {updating ? (
+                      <><RefreshCw size={15} className="animate-spin" /> Обновляю...</>
+                    ) : (
+                      <>⚡ Обновить сейчас</>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
+  );
 }
 
 function MainAppInner({ onLogout, onSwitchAccount, onRemoveAccount, onOpenAddAccount }: MainAppProps) {

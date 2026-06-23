@@ -240,8 +240,8 @@ router.get("/admin/users/:userId/stats", requireAdmin, async (req, res) => {
   }
 });
 
-// NEW: Send system announcement as bot to all users' bot chats
-router.post("/admin/announcement", requireAdmin, async (req, res) => {
+// Broadcast a message to all users via bot DM
+router.post("/admin/broadcast", requireAdmin, async (req, res) => {
   try {
     const { text } = req.body;
     if (!text || !String(text).trim()) return res.status(400).json({ error: "Укажите текст объявления" });
