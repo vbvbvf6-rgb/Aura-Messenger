@@ -111,10 +111,12 @@ function MobileAccountFooter({
           >
             {me?.avatarUrl ? <img src={me.avatarUrl} alt="" className="w-full h-full object-cover" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }} /> : initial}
           </div>
-          {savedAccounts.length > 1 && (
+          {savedAccounts.length > 1 ? (
             <div className="absolute -top-1 -right-1 w-[18px] h-[18px] rounded-full bg-primary text-white text-[10px] font-bold flex items-center justify-center shadow-sm border-2 border-card">
               {savedAccounts.length}
             </div>
+          ) : (
+            <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-green-500 border-2 border-card shadow-sm" title="В сети" />
           )}
         </div>
         <div className="flex-1 min-w-0 text-left">

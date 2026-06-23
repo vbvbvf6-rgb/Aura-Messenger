@@ -5,6 +5,7 @@ import { Play, Plus, X, Type, Image as ImageIcon, Upload, Eye } from "lucide-rea
 import { motion, AnimatePresence } from "framer-motion";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { useQueryClient } from "@tanstack/react-query";
+import { useAppContext } from "@/contexts/AppContext";
 
 const STORY_DURATION = 5000;
 
@@ -82,7 +83,7 @@ export default function Stories() {
   const [viewingGroup, setViewingGroup] = useState<any>(null);
   const [viewingIndex, setViewingIndex] = useState(0);
   const [viewCount, setViewCount] = useState<number | null>(null);
-  const currentUserId = Number(sessionStorage.getItem("pulse-user-id") || "0");
+  const { currentUserId } = useAppContext();
 
   useEffect(() => {
     if (!viewingGroup) return;

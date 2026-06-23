@@ -377,6 +377,7 @@ export default function Prime() {
         return;
       }
       queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
+      queryClient.invalidateQueries({ queryKey: ["/api/chats"] });
       setShowModal(false);
       toast({
         title: pendingTier === "prime_plus" ? "Aura Prime+ активирован! 💎" : "Aura Prime активирован! ⭐",

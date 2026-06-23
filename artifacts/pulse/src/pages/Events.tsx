@@ -119,9 +119,22 @@ export default function Events() {
   const [apiEvents, setApiEvents] = useState<ApiEvent[]>([]);
   const [eventsLoading, setEventsLoading] = useState(false);
   const [streakDays, setStreakDays] = useState<number>(1);
-  const SPIN_SYMBOLS = ["💎", "⭐", "🍀", "🎰", "💰", "🎁", "🔥", "⚡"];
+  const SPIN_SYMBOLS = [
+    "/stickers/sticker-01.svg",
+    "/stickers/sticker-02.svg",
+    "/stickers/sticker-03.svg",
+    "/stickers/sticker-04.svg",
+    "/stickers/sticker-05.svg",
+    "/stickers/sticker-06.svg",
+    "/stickers/sticker-07.svg",
+    "/stickers/sticker-08.svg",
+  ];
   const [spinning, setSpinning] = useState(false);
-  const [spinSlots, setSpinSlots] = useState(["⭐", "💎", "🎁"]);
+  const [spinSlots, setSpinSlots] = useState([
+    "/stickers/sticker-01.svg",
+    "/stickers/sticker-04.svg",
+    "/stickers/sticker-07.svg",
+  ]);
   const [spinReward, setSpinReward] = useState<number | null>(null);
   const [hasSpunToday, setHasSpunToday] = useState(() => {
     const today = new Date().toISOString().slice(0, 10);
@@ -466,14 +479,14 @@ export default function Events() {
                     </AnimatePresence>
                   </div>
                   <div className="flex gap-2 justify-center">
-                    {spinSlots.map((symbol, i) => (
+                    {spinSlots.map((src, i) => (
                       <motion.div
                         key={i}
                         animate={spinning ? { y: [0, -5, 0] } : {}}
                         transition={{ duration: 0.12, repeat: Infinity, delay: i * 0.04 }}
-                        className="w-[72px] h-[68px] rounded-2xl bg-background border border-border shadow-inner flex items-center justify-center text-3xl select-none"
+                        className="w-[72px] h-[68px] rounded-2xl bg-background border border-border shadow-inner flex items-center justify-center select-none"
                       >
-                        {symbol}
+                        <img src={src} alt="sticker" className="w-10 h-10 object-contain" draggable={false} />
                       </motion.div>
                     ))}
                   </div>

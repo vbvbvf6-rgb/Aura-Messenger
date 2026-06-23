@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Sparkles, MessageSquare, Shield, Zap, Star, Bell, Palette, Bug, Lock } from "lucide-react";
+import { X, Sparkles, Shield, Zap, Palette, Bug, Lock, Users } from "lucide-react";
 
-const APP_VERSION = "2.2.0";
+const APP_VERSION = "2.3.0";
 const STORAGE_KEY = "nova-whats-new-seen-version";
 
 interface ChangelogEntry {
@@ -17,43 +17,43 @@ const CHANGELOG: ChangelogEntry[] = [
     icon: <Sparkles size={18} />,
     color: "text-amber-400 bg-amber-500/15",
     title: "Новые темы оформления",
-    description: "Добавлены 4 новые темы: «Закат», «Аметист», «Полночь» и «Лес». Переключайте в Настройках → Расширенные.",
+    description: "Добавлены 4 новые эксклюзивные темы: «Закат», «Аметист», «Полночь» и «Лес». Доступны в Настройки → Aura Prime.",
   },
   {
     icon: <Bug size={18} />,
     color: "text-rose-400 bg-rose-500/15",
     title: "Исправление ошибок",
-    description: "Устранён вылет приложения при открытии чата, исправлено обновление профиля при смене аккаунта.",
+    description: "Устранён вылет приложения при открытии чата. Исправлена загрузка сообщений при быстрой прокрутке.",
   },
   {
-    icon: <Shield size={18} />,
+    icon: <Lock size={18} />,
     color: "text-green-400 bg-green-500/15",
-    title: "Улучшена безопасность",
-    description: "Усилена защита сессий. Ссылки на Политику конфиденциальности и Соглашение теперь открываются корректно.",
+    title: "Приватность поиска",
+    description: "Закрытые группы больше не отображаются в поиске. Вступить в приватную группу можно только по приглашению.",
   },
   {
-    icon: <MessageSquare size={18} />,
+    icon: <Users size={18} />,
     color: "text-blue-400 bg-blue-500/15",
-    title: "Истории — только свои",
-    description: "Страница Историй теперь показывает только ваши истории. Истории контактов доступны через бар чатов.",
+    title: "Обучение по мессенджеру",
+    description: "Добавлено пошаговое обучение для новых пользователей — все функции под рукой сразу после регистрации.",
   },
   {
     icon: <Zap size={18} />,
     color: "text-orange-400 bg-orange-500/15",
-    title: "Быстрее и стабильнее",
-    description: "Оптимизирована загрузка чатов, ускорен поиск, уменьшено потребление памяти.",
+    title: "Ускорение работы",
+    description: "Оптимизирована загрузка чатов, ускорен поиск, уменьшено потребление памяти браузером.",
   },
   {
-    icon: <Lock size={18} />,
+    icon: <Shield size={18} />,
     color: "text-purple-400 bg-purple-500/15",
-    title: "Приватность поиска",
-    description: "Закрытые группы больше не отображаются в поиске для тех, кто не является их участником.",
+    title: "Улучшена безопасность",
+    description: "Усилена защита сессий. Добавлена дополнительная проверка при входе с новых устройств.",
   },
   {
     icon: <Palette size={18} />,
     color: "text-cyan-400 bg-cyan-500/15",
     title: "Чёрный цвет аватара",
-    description: "В палитру цветов аватара добавлен чёрный цвет. Выбирайте в Настройках → Мой аккаунт.",
+    description: "В палитру цветов аватара добавлен чёрный цвет. Выбирай в Настройки → Мой аккаунт → Цвет аватара.",
   },
 ];
 
@@ -66,6 +66,7 @@ export function WhatsNewModal() {
       const timer = setTimeout(() => setOpen(true), 1200);
       return () => clearTimeout(timer);
     }
+    return undefined;
   }, []);
 
   const dismiss = () => {
@@ -94,7 +95,6 @@ export function WhatsNewModal() {
             className="fixed inset-0 z-[301] flex items-center justify-center p-4 pointer-events-none"
           >
             <div className="pointer-events-auto w-full max-w-md bg-card border border-border rounded-3xl shadow-2xl overflow-hidden">
-              {/* Header */}
               <div className="relative px-6 pt-7 pb-5 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border-b border-border">
                 <div className="flex items-start gap-4">
                   <div className="w-12 h-12 rounded-2xl bg-primary/15 border border-primary/20 flex items-center justify-center shrink-0">
@@ -126,7 +126,6 @@ export function WhatsNewModal() {
                 </button>
               </div>
 
-              {/* Changelog list */}
               <div className="px-5 py-4 space-y-3 max-h-[340px] overflow-y-auto scrollbar-none">
                 {CHANGELOG.map((entry, i) => (
                   <motion.div
@@ -147,7 +146,6 @@ export function WhatsNewModal() {
                 ))}
               </div>
 
-              {/* Footer */}
               <div className="px-5 pb-5 pt-3 border-t border-border">
                 <button
                   onClick={dismiss}

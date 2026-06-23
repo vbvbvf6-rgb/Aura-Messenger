@@ -275,6 +275,11 @@ router.get("/chats/discover", async (req, res) => {
       FROM chats c
       LEFT JOIN chat_members cm ON cm.chat_id = c.id
       WHERE c.type IN ('group','channel')
+        AND (
+          c.type = 'channel'
+          OR c.is_public = true
+          OR EXISTS(SELECT 1 FROM chat_members WHERE chat_id = c.id AND user_id = ${uid})
+        )
         AND (${q} = '' OR c.name ILIKE ${'%' + q + '%'} OR COALESCE(c.description,'') ILIKE ${'%' + q + '%'})
       GROUP BY c.id
       ORDER BY member_count DESC, c.created_at DESC
@@ -677,6 +682,9 @@ router.post("/chats/:chatId/join", async (req, res) => {
     const chat = await db.query.chatsTable.findFirst({ where: eq(chatsTable.id, chatId) });
     if (!chat || (chat.type !== "group" && chat.type !== "channel")) {
       return res.status(404).json({ error: "Чат не найден" });
+    }
+    if (chat.type === "group" && !(chat as any).isPublic) {
+      return res.status(403).json({ error: "Этот чат является приватным. Вступление возможно только по приглашению." });
     }
     const existing = await db.execute(
       sql`SELECT 1 FROM chat_members WHERE chat_id = ${chatId} AND user_id = ${uid} LIMIT 1`

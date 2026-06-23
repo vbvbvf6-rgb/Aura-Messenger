@@ -13,7 +13,7 @@ import {
   Gift, PhoneCall, Monitor, Zap, AlertTriangle, X, Flame, Upload, Camera, Crown,
   ShieldCheck, QrCode, Fingerprint, LogIn, HelpCircle,
   Battery, FolderOpen, ArrowLeft, Mic, Headphones, Bot,
-  SlidersHorizontal, Layers, Calendar, Wand2, Play, FileText, MapPin
+  SlidersHorizontal, Layers, Calendar, Play, FileText, MapPin
 } from "lucide-react";
 import { useLocation } from "wouter";
 import { useGetMe, useUpdateMe } from "@workspace/api-client-react";
@@ -887,102 +887,6 @@ function FaqSection({ lang }: { lang: string }) {
   );
 }
 
-// ─── Features Section ─────────────────────────────────────────────────────────
-
-function FeaturesSection({ lang, navigate }: { lang: string; navigate: (path: string) => void }) {
-  const features = [
-    {
-      emoji: "💬",
-      title: lang === "ru" ? "Чаты" : "Chats",
-      desc: lang === "ru" ? "Личные, групповые чаты и каналы. Ответы, реакции, правка, поиск, пересылка, удаление, закрепление сообщений." : "Direct, group chats and channels. Replies, reactions, edit, search, forward, delete, pin messages.",
-      items: lang === "ru" ? ["Личные и групповые чаты", "Каналы для вещания", "Ответы и цитаты", "Реакции эмодзи", "Поиск в переписке"] : ["Direct & group chats", "Broadcast channels", "Replies & quotes", "Emoji reactions", "In-chat search"],
-      link: "/",
-      color: "bg-blue-500/10 text-blue-500 border-blue-500/20",
-    },
-    {
-      emoji: "📞",
-      title: lang === "ru" ? "Звонки" : "Calls",
-      desc: lang === "ru" ? "Аудио и видеозвонки с красивым экраном принятия, историей звонков и эффектами." : "Audio and video calls with a beautiful accept screen, call history and effects.",
-      items: lang === "ru" ? ["Аудио и видеозвонки", "История звонков", "Экран принятия/отклонения", "Полноэкранный режим"] : ["Audio & video calls", "Call history", "Accept / decline screen", "Full-screen mode"],
-      link: "/calls",
-      color: "bg-green-500/10 text-green-500 border-green-500/20",
-    },
-    {
-      emoji: "🎁",
-      title: lang === "ru" ? "Подарки" : "Gifts",
-      desc: lang === "ru" ? "Отправляйте анимированные подарки четырёх редкостей. Рейтинг дарителей, анонимные подарки, витрина." : "Send animated gifts of four rarities. Sender leaderboard, anonymous gifts, gift showcase.",
-      items: lang === "ru" ? ["4 уровня редкости", "Анонимная отправка", "Рейтинг дарителей", "Ежемесячный подарок (Prime+)"] : ["4 rarity tiers", "Anonymous sending", "Sender leaderboard", "Monthly gift (Prime+)"],
-      link: "/gifts",
-      color: "bg-pink-500/10 text-pink-500 border-pink-500/20",
-    },
-    {
-      emoji: "📖",
-      title: lang === "ru" ? "Истории" : "Stories",
-      desc: lang === "ru" ? "24-часовые истории с полноэкранным просмотром. Бар историй и группировка по пользователям." : "24-hour stories with full-screen viewer. Stories bar and grouping by user.",
-      items: lang === "ru" ? ["Истории 24 часа", "Полноэкранный просмотр", "Бар историй", "Просмотр по порядку"] : ["24-hour stories", "Full-screen viewer", "Stories bar", "Sequential viewing"],
-      link: "/stories",
-      color: "bg-orange-500/10 text-orange-500 border-orange-500/20",
-    },
-    {
-      emoji: "🔒",
-      title: lang === "ru" ? "Безопасность" : "Security",
-      desc: lang === "ru" ? "2FA через TOTP, PIN-блокировка экрана, исчезающие сообщения, управление сессиями." : "TOTP 2FA, screen lock PIN, disappearing messages, session management.",
-      items: lang === "ru" ? ["2FA (Google Auth, Authy)", "PIN-блокировка экрана", "Исчезающие сообщения", "Завершение сессий"] : ["TOTP 2FA", "Screen lock PIN", "Disappearing messages", "Session management"],
-      link: "/settings",
-      color: "bg-slate-500/10 text-slate-500 border-slate-500/20",
-    },
-    {
-      emoji: "⚡",
-      title: "Spark & Wallet",
-      desc: lang === "ru" ? "Внутренняя валюта для подарков и Prime. Ежедневные бонусы, задания, история транзакций, запросы Spark." : "In-app currency for gifts and Prime. Daily bonuses, tasks, transaction history, Spark requests.",
-      items: lang === "ru" ? ["Ежедневный бонус", "История транзакций", "Запросы Spark", "Покупка Spark"] : ["Daily bonus", "Transaction history", "Spark requests", "Buy Spark"],
-      link: "/wallet",
-      color: "bg-yellow-500/10 text-yellow-500 border-yellow-500/20",
-    },
-    {
-      emoji: "⭐",
-      title: "Aura Prime",
-      desc: lang === "ru" ? "Два уровня подписки с золотым и алмазным кольцами, эксклюзивными темами, мультипликаторами Spark и закрытым сообществом." : "Two subscription tiers with gold and diamond rings, exclusive themes, Spark multipliers and a closed community.",
-      items: lang === "ru" ? ["Золотое/алмазное кольцо", "Эксклюзивные темы", "2× или 3× Spark", "Prime+ Lounge"] : ["Gold/diamond ring", "Exclusive themes", "2× or 3× Spark", "Prime+ Lounge"],
-      link: "/prime",
-      color: "bg-amber-500/10 text-amber-500 border-amber-500/20",
-    },
-    {
-      emoji: "🎨",
-      title: lang === "ru" ? "Стикеры и эмодзи" : "Stickers & Emoji",
-      desc: lang === "ru" ? "Уникальные SVG-стикеры, анимированные эмодзи, эффекты отправки (конфетти, снег, огонь)." : "Unique SVG stickers, animated emoji, send effects (confetti, snow, fire).",
-      items: lang === "ru" ? ["SVG стикеры", "Анимированные эмодзи", "Эффект конфетти", "Эффекты снег и огонь"] : ["SVG stickers", "Animated emoji", "Confetti effect", "Snow & fire effects"],
-      link: "/",
-      color: "bg-purple-500/10 text-purple-500 border-purple-500/20",
-    },
-  ];
-
-  return (
-    <div className="max-w-2xl mx-auto space-y-3">
-      {features.map((f, i) => (
-        <div key={i} className={`bg-card border rounded-2xl overflow-hidden ${f.color}`}>
-          <div className="p-4 flex items-start gap-4">
-            <span className="text-3xl shrink-0 mt-0.5">{f.emoji}</span>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-1">
-                <p className="font-bold text-sm text-foreground">{f.title}</p>
-              </div>
-              <p className="text-xs text-muted-foreground leading-relaxed mb-3">{f.desc}</p>
-              <div className="flex flex-wrap gap-1.5">
-                {f.items.map((item, j) => (
-                  <span key={j} className={`text-[10px] font-semibold px-2 py-0.5 rounded-lg border ${f.color}`}>{item}</span>
-                ))}
-              </div>
-            </div>
-            <button onClick={() => navigate(f.link)} className="shrink-0 p-1.5 rounded-lg hover:bg-secondary transition-colors text-muted-foreground">
-              <ChevronRight size={15}/>
-            </button>
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
 
 // ─── Support Section ──────────────────────────────────────────────────────────
 
@@ -1200,7 +1104,6 @@ export default function Settings() {
   const avatarFileRef = useRef<HTMLInputElement>(null);
   const videoAvatarRef = useRef<HTMLInputElement>(null);
   const [cancelPrimeLoading, setCancelPrimeLoading] = useState(false);
-  const [aiAvatarGenerating, setAiAvatarGenerating] = useState(false);
 
   const saveAvatarUrl = (compressed: string) => {
     setAvatarUrl(compressed);
@@ -1265,37 +1168,6 @@ export default function Settings() {
     video.load();
   };
 
-  const handleGenerateAIAvatar = () => {
-    setAiAvatarGenerating(true);
-    try {
-      const name = (user?.displayName || "U").toUpperCase();
-      const initial = name[0];
-      const hue = (name.charCodeAt(0) * 137 + (name.charCodeAt(1) || 0) * 53) % 360;
-      const canvas = document.createElement("canvas");
-      canvas.width = 400; canvas.height = 400;
-      const ctx = canvas.getContext("2d");
-      if (!ctx) { setAiAvatarGenerating(false); return; }
-      const grad = ctx.createRadialGradient(160, 140, 0, 200, 200, 280);
-      grad.addColorStop(0, `hsl(${hue}, 80%, 65%)`);
-      grad.addColorStop(0.5, `hsl(${(hue + 40) % 360}, 75%, 45%)`);
-      grad.addColorStop(1, `hsl(${(hue + 80) % 360}, 70%, 25%)`);
-      ctx.fillStyle = grad;
-      ctx.fillRect(0, 0, 400, 400);
-      ctx.fillStyle = "rgba(255,255,255,0.08)";
-      for (let i = 0; i < 6; i++) {
-        const cx = 50 + i * 65 + (i % 2) * 20, cy = 50 + (i % 3) * 120, r = 30 + i * 15;
-        ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
-      }
-      ctx.fillStyle = "rgba(255,255,255,0.92)";
-      ctx.font = "bold 180px system-ui, -apple-system, sans-serif";
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.fillText(initial, 200, 215);
-      saveAvatarUrl(canvas.toDataURL("image/jpeg", 0.9));
-    } finally {
-      setAiAvatarGenerating(false);
-    }
-  };
 
   const handleCancelPrime = async () => {
     setCancelPrimeLoading(true);
@@ -1418,7 +1290,6 @@ export default function Settings() {
   const [animatedEmoji, setAnimatedEmoji] = useState(() => lsb("pulse-animated-emoji", true));
   const [msgEffects, setMsgEffects] = useState(() => lsb("pulse-msg-effects", true));
   const [msgGroupDate, setMsgGroupDate] = useState(() => lsb("pulse-msg-group-date", true));
-  const [emojiSize, setEmojiSize] = useState(() => ls("pulse-emoji-size", "medium"));
 
   // Advanced
   const [dataSaver, setDataSaver] = useState(() => lsb("pulse-data-saver", false));
@@ -1827,11 +1698,6 @@ export default function Settings() {
                     </div>
                     <input ref={avatarFileRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarFile}/>
                     <input ref={videoAvatarRef} type="file" accept="video/*" className="hidden" onChange={handleVideoAvatarFile}/>
-                    {(user as any)?.hasPrime && (
-                      <p className="text-[11px] text-muted-foreground mt-1.5 flex items-center gap-1">
-                        <Crown size={10} className="text-purple-400"/> {lang==="ru"?"Видео-аватар и AI-генерация доступны с Prime":"Video avatar and AI generation available with Prime"}
-                      </p>
-                    )}
                   </div>
 
                   <div>
