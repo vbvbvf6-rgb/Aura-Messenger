@@ -69,3 +69,11 @@ VAPID_PUBLIC_KEY = "BMYTPQMepM0IUhvdnCp9EEZCX787iklvM032FY1m7vq6PheB6OUr-ZxocSlQ
 VAPID_EMAIL = "mailto:admin@pulse.app"
 PORT = "8080"
 BASE_PATH = "/"
+
+[[ports]]
+localPort = 5000
+externalPort = 5000
+
+[[ports]]
+localPort = 8080
+externalPort = 80
