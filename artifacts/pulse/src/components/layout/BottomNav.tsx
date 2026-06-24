@@ -30,7 +30,7 @@ export function BottomNav({ onOpenPalette, onOpenSidebar }: BottomNavProps) {
 
   return (
     <nav
-      className="flex md:hidden landscape:hidden fixed bottom-0 inset-x-0 z-50 pointer-events-none"
+      className="flex md:hidden fixed bottom-0 inset-x-0 z-50 pointer-events-none"
       style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
     >
       <div
@@ -55,7 +55,7 @@ export function BottomNav({ onOpenPalette, onOpenSidebar }: BottomNavProps) {
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "relative flex flex-col items-center justify-center gap-1 flex-1 py-2.5 min-h-[62px] landscape:py-1 landscape:min-h-[44px] rounded-[20px] my-1 mx-0.5 transition-colors duration-150",
+                  "relative flex flex-col items-center justify-center gap-1 flex-1 py-2.5 min-h-[62px] rounded-[20px] my-1 mx-0.5 transition-colors duration-150",
                   isActive ? "text-primary" : "text-muted-foreground active:opacity-70"
                 )}
               >
@@ -84,7 +84,7 @@ export function BottomNav({ onOpenPalette, onOpenSidebar }: BottomNavProps) {
                 </div>
 
                 <span className={cn(
-                  "text-[10.5px] font-semibold leading-none relative z-10 landscape:hidden tracking-tight",
+                  "text-[10.5px] font-semibold leading-none relative z-10 tracking-tight",
                   isActive ? "text-primary" : "text-muted-foreground/60"
                 )}>
                   {item.label}
@@ -95,10 +95,10 @@ export function BottomNav({ onOpenPalette, onOpenSidebar }: BottomNavProps) {
 
           <button
             onClick={onOpenSidebar}
-            className="relative flex flex-col items-center justify-center gap-1 flex-1 py-2.5 min-h-[62px] landscape:py-1 landscape:min-h-[44px] rounded-[20px] my-1 mx-0.5 text-muted-foreground active:opacity-70 transition-colors duration-150"
+            className="relative flex flex-col items-center justify-center gap-1 flex-1 py-2.5 min-h-[62px] rounded-[20px] my-1 mx-0.5 text-muted-foreground active:opacity-70 transition-colors duration-150"
           >
             <Menu size={23} strokeWidth={1.75} />
-            <span className="text-[10.5px] font-semibold leading-none text-muted-foreground/60 landscape:hidden tracking-tight">Ещё</span>
+            <span className="text-[10.5px] font-semibold leading-none text-muted-foreground/60 tracking-tight">Ещё</span>
           </button>
         </div>
       </div>

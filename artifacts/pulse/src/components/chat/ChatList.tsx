@@ -540,7 +540,7 @@ export function ChatList() {
         <StoriesBar />
       </div>
 
-      <div className="chat-list-scroll flex-1 overflow-y-auto overflow-x-hidden scrollbar-none mt-2 px-2 pb-28 landscape:pb-4 md:pb-4">
+      <div className="chat-list-scroll flex-1 overflow-y-auto overflow-x-hidden scrollbar-none mt-2 px-2 pb-28 md:pb-4">
         {folder === "all" && (
           <div className="space-y-1 mb-2">
             <SavedMessagesEntry onOpen={(id) => setSelectedChatId(id)} />

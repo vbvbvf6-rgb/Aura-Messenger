@@ -66,11 +66,30 @@ function LandscapeBlock() {
     const isTouchDevice = navigator.maxTouchPoints > 0;
     if (!isTouchDevice) return;
 
-    const mq = window.matchMedia("(orientation: landscape) and (max-width: 1280px)");
-    const update = () => setOn(mq.matches);
-    update();
-    mq.addEventListener("change", update);
-    return () => mq.removeEventListener("change", update);
+    // Use screen.orientation.type (physical orientation) instead of CSS media query.
+    // The CSS `(orientation: landscape)` fires when viewport width > height, which happens
+    // when the virtual keyboard opens on mobile — even though the device is portrait.
+    // screen.orientation.type reflects the actual physical screen rotation and is unaffected by the keyboard.
+    const checkOrientation = () => {
+      if (screen.orientation) {
+        const isLandscape = screen.orientation.type.startsWith("landscape");
+        const isSmall = Math.min(screen.width, screen.height) <= 900;
+        setOn(isLandscape && isSmall);
+      } else {
+        // Safari fallback: use screen.width vs screen.height (physical dims, keyboard-safe)
+        const isLandscape = screen.width > screen.height;
+        const isSmall = Math.min(screen.width, screen.height) <= 900;
+        setOn(isLandscape && isSmall);
+      }
+    };
+
+    checkOrientation();
+    screen.orientation?.addEventListener?.("change", checkOrientation);
+    window.addEventListener("orientationchange", checkOrientation);
+    return () => {
+      screen.orientation?.removeEventListener?.("change", checkOrientation);
+      window.removeEventListener("orientationchange", checkOrientation);
+    };
   }, []);
 
   if (!on) return null;

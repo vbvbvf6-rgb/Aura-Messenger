@@ -32,7 +32,7 @@ export function IncomingCall() {
         animate={{ opacity: 1, y: 0, scale: 1 }}
         exit={{ opacity: 0, y: 60, scale: 0.95 }}
         transition={{ type: "spring", stiffness: 380, damping: 32 }}
-        className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[70] w-[92%] max-w-sm"
+        className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[99998] w-[92%] max-w-sm"
       >
         <div className="relative rounded-[28px] overflow-hidden bg-card border border-border shadow-[0_20px_60px_rgba(0,0,0,0.25)]">
           {/* Colored accent strip at top */}
