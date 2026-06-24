@@ -57,9 +57,9 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       <main className="flex-1 flex overflow-hidden relative">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-primary/5 via-background to-background pointer-events-none" />
         {children}
-        <ActiveCall />
-        <IncomingCall />
       </main>
+      <ActiveCall />
+      <IncomingCall />
       <BottomNav
         onOpenPalette={() => setPaletteOpen(true)}
         onOpenSidebar={() => setMobileSidebarOpen(true)}

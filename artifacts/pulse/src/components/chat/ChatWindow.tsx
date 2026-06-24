@@ -1026,7 +1026,7 @@ export function ChatWindow({ chatId }: ChatWindowProps) {
               <button
                 onClick={() => handleStartCall("audio")}
                 disabled={calling}
-                className="hidden md:flex w-10 h-10 items-center justify-center hover:bg-secondary rounded-xl transition-all hover:text-foreground disabled:opacity-50"
+                className="flex w-10 h-10 items-center justify-center hover:bg-secondary rounded-xl transition-all hover:text-foreground disabled:opacity-50"
                 title="Аудиозвонок"
               >
                 <Phone size={20} />
@@ -1034,7 +1034,7 @@ export function ChatWindow({ chatId }: ChatWindowProps) {
               <button
                 onClick={() => handleStartCall("video")}
                 disabled={calling}
-                className="hidden md:flex w-10 h-10 items-center justify-center hover:bg-secondary rounded-xl transition-all hover:text-foreground disabled:opacity-50"
+                className="flex w-10 h-10 items-center justify-center hover:bg-secondary rounded-xl transition-all hover:text-foreground disabled:opacity-50"
                 title="Видеозвонок"
               >
                 <Video size={22} />
@@ -1046,7 +1046,7 @@ export function ChatWindow({ chatId }: ChatWindowProps) {
               <button
                 onClick={() => handleOpenGroupCall("audio")}
                 disabled={calling}
-                className="hidden md:flex w-10 h-10 items-center justify-center hover:bg-secondary rounded-xl transition-all hover:text-foreground disabled:opacity-50"
+                className="flex w-10 h-10 items-center justify-center hover:bg-secondary rounded-xl transition-all hover:text-foreground disabled:opacity-50"
                 title="Групповой аудиозвонок"
               >
                 <Phone size={20} />
@@ -1054,7 +1054,7 @@ export function ChatWindow({ chatId }: ChatWindowProps) {
               <button
                 onClick={() => handleOpenGroupCall("video")}
                 disabled={calling}
-                className="hidden md:flex w-10 h-10 items-center justify-center hover:bg-secondary rounded-xl transition-all hover:text-foreground disabled:opacity-50"
+                className="flex w-10 h-10 items-center justify-center hover:bg-secondary rounded-xl transition-all hover:text-foreground disabled:opacity-50"
                 title="Групповой видеозвонок"
               >
                 <Video size={22} />
