@@ -18,20 +18,11 @@ declare global {
   }
 }
 
-// ── JWT Secret — MUST be set via environment variable in production ─────────
-export const JWT_SECRET = process.env.JWT_SECRET || "";
-const FALLBACK_JWT_SECRET = "pulse-messenger-dev-fallback-secret-not-for-production";
-
-if (!JWT_SECRET) {
-  if (process.env.NODE_ENV === "production") {
-    logger.error("FATAL: JWT_SECRET is not set in production. Set the JWT_SECRET environment variable.");
-    process.exit(1);
-  } else {
-    logger.warn("[SECURITY] JWT_SECRET not set — using insecure dev fallback. Set JWT_SECRET in production!");
-  }
-}
-
-export const EFFECTIVE_JWT_SECRET = JWT_SECRET || FALLBACK_JWT_SECRET;
+// ── JWT Secret ───────────────────────────────────────────────────────────────
+// Embedded secret — can be overridden via JWT_SECRET env var if needed.
+const EMBEDDED_JWT_SECRET = "2d59306a26c4fe258c0018ef1bb5b7ee9e61520bcdb8974f6cf9cf9cc3ecfd5dabc350bd67f1df491a0599c67e39c0f3";
+export const JWT_SECRET = process.env.JWT_SECRET || EMBEDDED_JWT_SECRET;
+export const EFFECTIVE_JWT_SECRET = JWT_SECRET;
 
 const app: Express = express();
 
