@@ -221,15 +221,21 @@ export async function runSeed() {
     }
   }
 
-  // ── 3. Ensure the official Nova channel exists ────────────────────────────
+  // ── 3. Ensure the official Aura channel exists ───────────────────────────
   const adminRow = await db.execute(sql`SELECT id FROM users WHERE username = 'creater_messenger' LIMIT 1`);
   const adminId = (adminRow.rows as any[])[0]?.id;
   if (adminId) {
-    const existingChannel = await db.execute(sql`SELECT id FROM chats WHERE type = 'channel' AND name = 'Nova' LIMIT 1`);
+    // Rename any stale 'Nova' channel to 'Aura'
+    await db.execute(sql`
+      UPDATE chats SET name = 'Aura', description = 'Официальный канал Aura Messenger'
+      WHERE type = 'channel' AND name = 'Nova'
+    `);
+
+    const existingChannel = await db.execute(sql`SELECT id FROM chats WHERE type = 'channel' AND name = 'Aura' LIMIT 1`);
     if ((existingChannel.rows as any[]).length === 0) {
       const channelResult = await db.execute(sql`
         INSERT INTO chats (type, name, description, avatar_color)
-        VALUES ('channel', 'Nova', 'Официальный канал Nova Messenger', '#8B5CF6')
+        VALUES ('channel', 'Aura', 'Официальный канал Aura Messenger', '#f97316')
         RETURNING id
       `);
       const channelId = (channelResult.rows as any[])[0]?.id;
@@ -245,7 +251,7 @@ export async function runSeed() {
           WHERE id != ${adminId} AND is_bot = false
           ON CONFLICT DO NOTHING
         `);
-        console.log(`[seed] Created official Nova channel (id=${channelId})`);
+        console.log(`[seed] Created official Aura channel (id=${channelId})`);
       }
     } else {
       const channelId = (existingChannel.rows as any[])[0]?.id;

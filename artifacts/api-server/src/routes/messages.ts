@@ -2,7 +2,7 @@ import { Router } from "express";
 import { db, messagesTable, reactionsTable, usersTable, chatMembersTable, chatsTable } from "@workspace/db";
 import { eq, and, lt, desc, sql, lte, gt, ne, inArray } from "drizzle-orm";
 import { getBanwords, findBanword } from "../lib/banwords";
-import { localModerationCheck, moderateContent } from "../lib/moderation";
+import { localModerationCheck } from "../lib/moderation";
 import { spawn } from "node:child_process";
 import { broadcastToChat, broadcastToUser } from "../lib/sse";
 import { sendPushToUser } from "./push";
@@ -466,29 +466,6 @@ router.post("/messages", async (req, res) => {
 
     broadcastToChat(body.chatId, "new-message", { messageId: msg.id, chatId: body.chatId });
 
-    // Async AI moderation — runs after response, auto-deletes if flagged
-    if (body.text && body.text.trim().length >= 5) {
-      setImmediate(async () => {
-        try {
-          const aiResult = await moderateContent(body.text!);
-          if (aiResult.flagged && aiResult.confidence >= 70) {
-            // Soft-delete the message
-            await db.update(messagesTable)
-              .set({ isDeleted: true })
-              .where(eq(messagesTable.id, msg.id));
-            // Broadcast deletion to all chat participants
-            broadcastToChat(body.chatId, "message-deleted", { messageId: msg.id, chatId: body.chatId });
-            // Notify the sender why their message was removed
-            broadcastToUser(uid, "moderation-removed", {
-              messageId: msg.id,
-              chatId: body.chatId,
-              reason: aiResult.reason || "Нарушение правил платформы",
-              categories: aiResult.categories,
-            });
-          }
-        } catch {}
-      });
-    }
 
     // Log spark activity for sending a message
     setImmediate(async () => {

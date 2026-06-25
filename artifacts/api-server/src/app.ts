@@ -120,6 +120,9 @@ app.use("/api/upload", express.urlencoded({ extended: true, limit: "25mb" }));
 app.use("/api/stories", express.json({ limit: "15mb" }));
 app.use("/api/stories", express.urlencoded({ extended: true, limit: "15mb" }));
 app.use("/api/users/me", express.json({ limit: "5mb" })); // avatar upload via base64
+// Voice messages are base64-encoded audio blobs — allow up to 25mb
+app.use("/api/messages", express.json({ limit: "25mb" }));
+app.use("/api/messages", express.urlencoded({ extended: true, limit: "25mb" }));
 app.use(express.json({ limit: "2mb" }));
 app.use(express.urlencoded({ extended: true, limit: "2mb" }));
 

@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState, useMemo } from "react";
-import { useGetChatById, useGetMessages, getGetMessagesQueryKey, useMarkChatAsRead, useUpdateChat, getGetChatsQueryKey, getGetChatByIdQueryKey, Message } from "@workspace/api-client-react";
+import { useGetChatById, useGetMessages, getGetMessagesQueryKey, useMarkChatAsRead, useUpdateChat, getGetChatsQueryKey, getGetChatByIdQueryKey, Message, useGetMe } from "@workspace/api-client-react";
 import { useP2PChannel } from "@/hooks/useP2PChannel";
 import { useNotifications } from "@/hooks/useNotifications";
 import { useLastSeen } from "@/hooks/useLastSeen";
@@ -295,6 +295,7 @@ export function ChatWindow({ chatId }: ChatWindowProps) {
   const { toast } = useToast();
   const { data: chat, isLoading: isChatLoading } = useGetChatById(chatId, { query: { enabled: !!chatId } as any });
   const { data: messages, isLoading: isMessagesLoading } = useGetMessages({ chatId }, { query: { enabled: !!chatId } as any });
+  const { data: me } = useGetMe();
   const [calling, setCalling] = useState(false);
   const markAsRead = useMarkChatAsRead();
   const updateChat = useUpdateChat();
@@ -343,7 +344,26 @@ export function ChatWindow({ chatId }: ChatWindowProps) {
   const [summaryText, setSummaryText] = useState("");
   const [summaryLoading, setSummaryLoading] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [showThemePicker, setShowThemePicker] = useState(false);
+  const [activeThemeId, setActiveThemeId] = useState<string | null>(() => {
+    if (!chatId) return null;
+    return localStorage.getItem(`aura-theme-${chatId}`) ?? null;
+  });
   const [showGroupCallModal, setShowGroupCallModal] = useState<"audio" | "video" | null>(null);
+
+  const hasPrimeUser = !!(me as any)?.hasPrime;
+  const isPrimePlusUser = (me as any)?.primeTier === "prime_plus";
+  const activeTheme = CHAT_THEMES.find(t => t.id === activeThemeId) ?? null;
+
+  const handleThemeSelect = (themeId: string | null) => {
+    setActiveThemeId(themeId);
+    if (themeId && chatId) {
+      localStorage.setItem(`aura-theme-${chatId}`, themeId);
+    } else if (chatId) {
+      localStorage.removeItem(`aura-theme-${chatId}`);
+    }
+    setShowThemePicker(false);
+  };
   const [groupCallMembers, setGroupCallMembers] = useState<any[]>([]);
   const [groupCallLoading, setGroupCallLoading] = useState(false);
   const [groupCallSelected, setGroupCallSelected] = useState<Set<number>>(new Set());
@@ -1108,6 +1128,11 @@ export function ChatWindow({ chatId }: ChatWindowProps) {
                   <Search size={18} className="mr-3 text-muted-foreground" />
                   <span className="font-semibold">{t("chat.searchMessages")}</span>
                 </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setShowThemePicker(true)} className="rounded-xl cursor-pointer py-2.5">
+                  <Palette size={18} className="mr-3 text-purple-400" />
+                  <span className="font-semibold">Фон чата</span>
+                  {activeThemeId && <div className="ml-auto w-3.5 h-3.5 rounded-full border border-white/30 shadow-sm" style={{ background: activeTheme?.preview ?? "transparent" }} />}
+                </DropdownMenuItem>
                 {chat.type === "direct" && messages && messages.length > 3 && (
                   <DropdownMenuItem onClick={handleSummarize} className="rounded-xl cursor-pointer py-2.5">
                     <Sparkles size={18} className="mr-3 text-amber-400" />
@@ -1427,8 +1452,8 @@ export function ChatWindow({ chatId }: ChatWindowProps) {
       {/* Messages */}
       <div
         ref={scrollRef}
-        className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6 scrollbar-none chat-bg"
-        style={{ touchAction: "pan-y", WebkitOverflowScrolling: "touch" } as React.CSSProperties}
+        className={`flex-1 overflow-y-auto p-4 md:p-6 space-y-6 scrollbar-none ${!activeTheme ? "chat-bg" : ""}`}
+        style={{ ...(activeTheme?.bg ?? {}), touchAction: "pan-y", WebkitOverflowScrolling: "touch" } as React.CSSProperties}
       >
         {isMessagesLoading ? (
           <div className="space-y-6 max-w-2xl mx-auto w-full">
@@ -2108,6 +2133,20 @@ export function ChatWindow({ chatId }: ChatWindowProps) {
               </div>
             </motion.div>
           </>
+        )}
+      </AnimatePresence>
+
+      {/* Chat Theme Picker */}
+      <AnimatePresence>
+        {showThemePicker && (
+          <ChatThemePicker
+            chatId={chatId!}
+            currentThemeId={activeThemeId}
+            hasPrime={hasPrimeUser}
+            isPrimePlus={isPrimePlusUser}
+            onSelect={handleThemeSelect}
+            onClose={() => setShowThemePicker(false)}
+          />
         )}
       </AnimatePresence>
     </div>

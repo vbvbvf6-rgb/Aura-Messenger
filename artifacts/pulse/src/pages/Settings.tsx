@@ -931,7 +931,7 @@ function SupportSection({ lang, user, t, currentStatusOpt, onNavigate }: { lang:
     { label: "Platform", value: navigator.platform || "—" },
     { label: lang === "ru" ? "Разрешение" : "Resolution", value: `${window.screen.width}×${window.screen.height}` },
     { label: lang === "ru" ? "Язык" : "Language", value: navigator.language },
-    { label: "User ID", value: String(user?.id ?? "—") },
+    { label: "User ID", value: user?.id ? String(100000 + ((user.id * 137761 + 573482) % 900000)) : "—" },
     { label: "@username", value: `@${user?.username ?? "—"}` },
   ];
 
@@ -974,7 +974,7 @@ function SupportSection({ lang, user, t, currentStatusOpt, onNavigate }: { lang:
         {[
           { icon: <MessageSquare size={14} className="text-primary"/>, bg: "bg-primary/15", title: lang === "ru" ? "Служба поддержки" : "Support Team", desc: lang === "ru" ? "Задать вопрос или сообщить о проблеме" : "Ask a question or report an issue", href: "/support" },
           { icon: <AlertTriangle size={14} className="text-red-400"/>, bg: "bg-red-500/15", title: lang === "ru" ? "Сообщить об ошибке" : "Report a Bug", desc: lang === "ru" ? "Помогите нам улучшить Aura" : "Help us improve Aura", href: "/support" },
-          { icon: <Shield size={14} className="text-green-400"/>, bg: "bg-green-500/15", title: lang === "ru" ? "Конфиденциальность" : "Privacy Policy", desc: lang === "ru" ? "Политика конфиденциальности (152-ФЗ)" : "Privacy policy and data handling", href: "/privacy" },
+          { icon: <Shield size={14} className="text-green-400"/>, bg: "bg-green-500/15", title: lang === "ru" ? "Конфиденциальность" : "Privacy Policy", desc: lang === "ru" ? "Политика конфиденциальности (152-ФЗ)" : "Privacy policy and data handling", onClick: "privacy_page" },
           { icon: <HelpCircle size={14} className="text-blue-400"/>, bg: "bg-blue-500/15", title: lang === "ru" ? "Часто задаваемые вопросы" : "FAQ", desc: lang === "ru" ? "Ответы на популярные вопросы" : "Answers to common questions", onClick: "faq" },
         ].map((item, i) => (
           item.onClick ? (
@@ -1285,7 +1285,7 @@ export default function Settings() {
     if (!res.ok) { toast({ title: lang === "ru" ? "Ошибка экспорта" : "Export failed", variant: "destructive" }); return; }
     const blob = await res.blob();
     const url = URL.createObjectURL(blob);
-    const a = document.createElement("a"); a.href = url; a.download = `nova-export-${Date.now()}.json`; a.click();
+    const a = document.createElement("a"); a.href = url; a.download = `aura-export-${Date.now()}.json`; a.click();
     URL.revokeObjectURL(url);
     toast({ title: lang === "ru" ? "Данные скачаны" : "Data downloaded" });
   };
@@ -2466,7 +2466,7 @@ export default function Settings() {
           {/* ─── PULSE FEATURES ────────────────────────────── */}
 
           {/* ─── SUPPORT ───────────────────────────────────── */}
-          {displaySection === "support" && <SupportSection lang={lang} user={user} t={t} currentStatusOpt={currentStatusOpt} onNavigate={setActiveSection} />}
+          {displaySection === "support" && <SupportSection lang={lang} user={user} t={t} currentStatusOpt={currentStatusOpt} onNavigate={(s) => { if (s === "privacy_page") { setLocation("/privacy"); } else { setActiveSection(s); } }} />}
 
         </div>
       </div>
