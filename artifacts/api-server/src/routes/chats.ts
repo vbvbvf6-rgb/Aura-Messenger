@@ -353,7 +353,9 @@ router.delete("/chats/:chatId", async (req, res) => {
       where: and(eq(chatMembersTable.chatId, chatId), eq(chatMembersTable.userId, uid)),
     });
     if (!membership) return res.status(403).json({ error: "Forbidden" });
-    if (membership.role !== "owner" && membership.role !== "admin") return res.status(403).json({ error: "Only chat owners can delete chats" });
+    const chatRow = await db.query.chatsTable.findFirst({ where: eq(chatsTable.id, chatId) });
+    const isDirect = chatRow?.type === "direct";
+    if (!isDirect && membership.role !== "owner" && membership.role !== "admin") return res.status(403).json({ error: "Only chat owners can delete chats" });
     // Clean up pinned messages first
     await db.execute(sql`DELETE FROM pinned_messages WHERE chat_id = ${chatId}`).catch(() => {});
     await db.delete(messagesTable).where(eq(messagesTable.chatId, chatId));
@@ -701,6 +703,50 @@ router.post("/chats/:chatId/join", async (req, res) => {
       sql`SELECT 1 FROM chat_members WHERE chat_id = ${chatId} AND user_id = ${uid} LIMIT 1`
     );
     if (existing.rows.length > 0) return res.status(409).json({ error: "Вы уже участник" });
+    await db.insert(chatMembersTable).values({ chatId, userId: uid, role: "member" } as any);
+    res.json({ success: true, chatId });
+  } catch (err) {
+    req.log.error(err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// Public invite link routes — GET/POST /api/invite/:token
+router.get("/invite/:token", async (req, res) => {
+  try {
+    const { token } = req.params;
+    const row = await db.execute(sql`SELECT id, name, type, avatar_url, avatar_color, description,
+      (SELECT COUNT(*) FROM chat_members WHERE chat_id = chats.id) as member_count
+      FROM chats WHERE invite_token = ${token} LIMIT 1`);
+    if (!row.rows.length) return res.status(404).json({ error: "Ссылка-приглашение недействительна или устарела" });
+    const chat = row.rows[0] as any;
+    res.json({
+      id: chat.id,
+      name: chat.name,
+      type: chat.type,
+      avatarUrl: chat.avatar_url,
+      avatarColor: chat.avatar_color,
+      description: chat.description,
+      memberCount: Number(chat.member_count),
+    });
+  } catch (err) {
+    req.log.error(err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.post("/invite/:token/join", async (req, res) => {
+  try {
+    const uid = req.currentUserId;
+    const { token } = req.params;
+    const row = await db.execute(sql`SELECT id, type FROM chats WHERE invite_token = ${token} LIMIT 1`);
+    if (!row.rows.length) return res.status(404).json({ error: "Ссылка-приглашение недействительна" });
+    const chat = row.rows[0] as any;
+    const chatId = Number(chat.id);
+    const existing = await db.execute(
+      sql`SELECT 1 FROM chat_members WHERE chat_id = ${chatId} AND user_id = ${uid} LIMIT 1`
+    );
+    if (existing.rows.length > 0) return res.json({ success: true, chatId, alreadyMember: true });
     await db.insert(chatMembersTable).values({ chatId, userId: uid, role: "member" } as any);
     res.json({ success: true, chatId });
   } catch (err) {

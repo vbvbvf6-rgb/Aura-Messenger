@@ -219,6 +219,7 @@ const PUBLIC_API_PATHS = [
   "/auth/reset-password",
   "/auth/qr",
   "/health",
+  "/invite",
 ];
 
 app.use((req: Request, _res: Response, next: NextFunction) => {

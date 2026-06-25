@@ -515,7 +515,7 @@ bot = pulse_bot.Bot("${token || 'ВАШ_ТОКЕН'}")
 MENU = inline_keyboard(
     row(btn("🎮 Игры", data="games"), btn("📰 Новости", data="news")),
     row(btn("⚙️ Настройки", data="settings")),
-    row(btn("🌐 Наш сайт", url="https://nova.app")),
+    row(btn("🌐 Наш сайт", url="https://aura.app")),
 )
 
 @bot.command("/start")

@@ -1,4 +1,4 @@
-const CACHE_NAME = "nova-v1";
+const CACHE_NAME = "aura-v1";
 const SHELL_URLS = ["/", "/manifest.json", "/favicon.svg", "/icon-192.png", "/icon-512.png"];
 
 self.addEventListener("install", (e) => {
@@ -67,7 +67,7 @@ self.addEventListener("message", (e) => {
       badge: "/icon-192.png",
       data: { url: url || "/" },
       vibrate: [100, 50, 100],
-      tag: tag || "nova-message",
+      tag: tag || "aura-message",
       renotify: true,
       silent: false,
     });
@@ -94,14 +94,16 @@ self.addEventListener("push", (e) => {
   if (!e.data) return;
   const data = e.data.json();
   e.waitUntil(
-    self.registration.showNotification(data.title || "Nova", {
+    self.registration.showNotification(data.title || "Aura", {
       body: data.body || "",
-      icon: "/icon-192.png",
+      icon: data.icon || "/icon-192.png",
       badge: "/icon-192.png",
+      image: data.image,
       data: { url: data.url || "/" },
-      vibrate: [100, 50, 100],
-      tag: data.tag || "nova-message",
+      vibrate: [200, 100, 200],
+      tag: data.tag || "aura-message",
       renotify: true,
+      requireInteraction: false,
     })
   );
 });

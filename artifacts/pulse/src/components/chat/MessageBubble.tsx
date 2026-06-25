@@ -455,6 +455,7 @@ export function MessageBubble({ message, onReply, onEdit, ownBubbleStyle, onPin,
   });
 
   const [showChannelReactionPicker, setShowChannelReactionPicker] = useState(false);
+  const [showEmojiGrid, setShowEmojiGrid] = useState(false);
   const channelReactionPickerRef = useRef<HTMLDivElement>(null);
   const [lightbox, setLightbox] = useState<{ urls: string[]; idx: number } | null>(null);
   const [displayedWords, setDisplayedWords] = useState<number>(typingOut ? 0 : Infinity);
@@ -493,6 +494,7 @@ export function MessageBubble({ message, onReply, onEdit, ownBubbleStyle, onPin,
   const closeMenu = () => {
     setShowMenu(false);
     setMenuPos(null);
+    setShowEmojiGrid(false);
   };
 
   const isDeleted = !!(message as any).isDeleted;
@@ -558,24 +560,27 @@ export function MessageBubble({ message, onReply, onEdit, ownBubbleStyle, onPin,
   const handleReact = async (emoji: string) => {
     closeMenu();
     const reactions = (message as any).reactions || [];
-    const myReactions = reactions.filter((r: any) => r.userId === currentUserId && r.emoji === emoji);
-    const myCount = myReactions.length;
+    const allMyReactions = reactions.filter((r: any) => r.userId === currentUserId);
+    const myReactionsForThis = allMyReactions.filter((r: any) => r.emoji === emoji);
+    const maxReactions = viewerIsPrimePlus ? 2 : 1;
     try {
-      if (myCount === 0) {
+      if (myReactionsForThis.length > 0) {
+        // Toggle off: remove this emoji reaction
+        await fetch(`/api/messages/${message.id}/reactions`, {
+          method: "DELETE", headers, body: JSON.stringify({ emoji }),
+        });
+      } else {
+        // Need to add this emoji — remove oldest if at limit
+        if (allMyReactions.length >= maxReactions) {
+          const oldestEmoji = allMyReactions[0].emoji;
+          await fetch(`/api/messages/${message.id}/reactions`, {
+            method: "DELETE", headers, body: JSON.stringify({ emoji: oldestEmoji }),
+          });
+        }
         await fetch(`/api/messages/${message.id}/reactions`, {
           method: "POST", headers, body: JSON.stringify({ emoji }),
         });
         import("@/utils/questTracker").then(({ trackQuestAction }) => trackQuestAction("reaction_added"));
-      } else if (myCount === 1 && viewerIsPrimePlus) {
-        // Prime+: add second reaction (double reaction ×2)
-        await fetch(`/api/messages/${message.id}/reactions`, {
-          method: "POST", headers, body: JSON.stringify({ emoji }),
-        });
-      } else {
-        // Remove all my reactions for this emoji
-        await fetch(`/api/messages/${message.id}/reactions`, {
-          method: "DELETE", headers, body: JSON.stringify({ emoji }),
-        });
       }
       queryClient.invalidateQueries({ queryKey: getGetMessagesQueryKey({ chatId: message.chatId }) });
     } catch {}
@@ -1217,10 +1222,34 @@ export function MessageBubble({ message, onReply, onEdit, ownBubbleStyle, onPin,
                     {emoji}
                   </button>
                 ))}
-                <button className="w-10 h-10 flex items-center justify-center rounded-xl text-muted-foreground hover:bg-card hover:text-foreground transition-all">
+                <button
+                  onMouseDown={e => e.stopPropagation()}
+                  onTouchStart={e => e.stopPropagation()}
+                  onClick={e => { e.stopPropagation(); setShowEmojiGrid(v => !v); }}
+                  className="w-10 h-10 flex items-center justify-center rounded-xl text-muted-foreground hover:bg-card hover:text-foreground transition-all"
+                >
                   <SmilePlus size={20} />
                 </button>
               </div>
+              {showEmojiGrid && (
+                <div
+                  className="px-2 pb-2 grid grid-cols-8 gap-0.5 max-h-48 overflow-y-auto"
+                  onMouseDown={e => e.stopPropagation()}
+                  onTouchStart={e => e.stopPropagation()}
+                >
+                  {["😀","😃","😄","😁","😆","😅","🤣","😂","🙂","🙃","😉","😊","😇","🥰","😍","🤩","😘","😗","☺️","😚","😙","🥲","😋","😛","😜","🤪","😝","🤑","🤗","🤭","🤫","🤔","🤐","🤨","😐","😑","😶","😏","😒","🙄","😬","🤥","😌","😔","😪","🤤","😴","😷","🤒","🤕","🤢","🤧","🥵","🥶","🥴","😵","🤯","🤠","🥳","🥸","😎","🤓","🧐","😕","😟","🙁","☹️","😮","😯","😲","😳","🥺","😦","😧","😨","😰","😥","😢","😭","😱","😖","😣","😞","😓","😩","😫","🥱","😤","😡","😠","🤬","😈","👿","💀","☠️","💩","🤡","👹","👺","👻","👽","👾","🤖","❤️","🧡","💛","💚","💙","💜","🖤","🤍","🤎","❤️‍🔥","💔","💕","💞","💓","💗","💖","💘","💝","👍","👎","👏","🙌","👐","🤲","🤝","🙏","✌️","🤞","🤟","🤘","🤙","💪","🦾","🖖","✋","🤚","👋","🤏","🖐","👌","🤌","🤏","✊","👊","🤛","🤜","🌟","⭐","🔥","✨","💫","🎉","🎊","🎁","🎈","🎀","🏆","🥇","🎯","💯","🚀","💥","⚡","💎","🌈","🍀","🌸","🌺","🌹","🌻","🌷","🍕","🍔","🍟","🌮","🍣","🍜","🍦","🍰","🎂","🍫","🍬","🍭","🥂","🍾","☕","🧋","🎵","🎶","🎸","🎹","🎤","🎬","📸","🎮","⚽","🏀","🎾","🏈","⚾","🥊","🎳","🏂","🏄","🧘","🚴","🐶","🐱","🐭","🐹","🐰","🦊","🐻","🐼","🐨","🐯","🦁","🐮","🦋","🌞","🌝","🌛","🌚","🌕","🌙","⭐","🌟","💫","✨"].map(e => (
+                    <button
+                      key={e}
+                      onClick={() => { handleReact(e); setShowEmojiGrid(false); }}
+                      onMouseDown={ev => ev.stopPropagation()}
+                      onTouchStart={ev => ev.stopPropagation()}
+                      className="text-lg w-9 h-9 flex items-center justify-center rounded-lg hover:bg-secondary transition-colors"
+                    >
+                      {e}
+                    </button>
+                  ))}
+                </div>
+              )}
               <div className="p-1.5 space-y-0.5">
                 {onReply && (
                   <button

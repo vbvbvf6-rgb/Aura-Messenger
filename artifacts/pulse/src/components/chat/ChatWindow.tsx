@@ -117,7 +117,7 @@ const CHAT_THEMES: ChatTheme[] = [
     preview: "linear-gradient(135deg, #f43f5e, #eab308)",
   },
   {
-    id: "aurora", name: "Аврора", emoji: "🌈", tier: "prime_plus",
+    id: "aurora", name: "Аврора", emoji: "🌌", tier: "prime_plus",
     bg: {
       background: "linear-gradient(160deg, #f0f9ff 0%, #f0fdf4 100%)",
       backgroundImage: "radial-gradient(ellipse at 15% 50%, rgba(16,185,129,0.06) 0%, transparent 45%), radial-gradient(ellipse at 85% 30%, rgba(139,92,246,0.06) 0%, transparent 45%), radial-gradient(ellipse at 50% 80%, rgba(14,165,233,0.04) 0%, transparent 40%)",

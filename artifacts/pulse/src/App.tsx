@@ -42,6 +42,7 @@ import QrConfirm from "@/pages/QrConfirm";
 import NotFound from "@/pages/not-found";
 import Privacy from "@/pages/Privacy";
 import Terms from "@/pages/Terms";
+import JoinInvite from "@/pages/JoinInvite";
 
 let queryClient = new QueryClient();
 
@@ -456,6 +457,7 @@ function MainAppInner({ onLogout, onSwitchAccount, onRemoveAccount, onOpenAddAcc
               <Route path="/qr/:tokenId" component={QrConfirm} />
               <Route path="/privacy" component={Privacy} />
               <Route path="/terms" component={Terms} />
+              <Route path="/invite/:token" component={JoinInvite} />
               <Route component={NotFound} />
             </Switch>
           </AppLayout>

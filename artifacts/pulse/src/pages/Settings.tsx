@@ -857,7 +857,6 @@ function FaqSection({ lang }: { lang: string }) {
     { q: "Как работают исчезающие сообщения?", a: "В чате → ⋯ меню → «Исчезающие сообщения». Выберите таймер (5с, 1м, 1ч, 1д, 1нед). Сообщения автоматически удаляются после прочтения по истечении времени." },
     { q: "Что такое Spark ⚡?", a: "Spark — внутренняя валюта Aura. Её можно заработать через ежедневные бонусы и задания, или купить в Кошельке. Spark тратится на подарки и подписку Prime." },
     { q: "Как установить PIN-блокировку экрана?", a: "Настройки → Конфиденциальность и безопасность → Блокировка экрана. Задайте 4–8 значный PIN-код. Приложение заблокируется через 1 минуту бездействия." },
-    { q: "Как отправить подарок?", a: "Откройте любой чат → нажмите иконку 🎁 в поле ввода. Выберите подарок по редкости и стоимости, добавьте сообщение. Подарок можно отправить анонимно." },
     { q: "Как работают истории?", a: "Истории видны 24 часа. Нажмите на аватар в верхней панели, чтобы посмотреть. Создать историю: значок камеры в истории друга или из профиля." },
     { q: "Как найти человека?", a: "Поиск по нику в глобальном поиске (лупа) — введите @username. В разделе «Контакты» можно добавить пользователей и управлять списком." },
     { q: "Как сменить тему оформления?", a: "Настройки → Мой аккаунт → Темы. Тёмная/светлая тема — иконка луны вверху. Aura Prime открывает 8+ эксклюзивных тем (Obsidian, Midnight, Forest и др.)." },
@@ -870,7 +869,6 @@ function FaqSection({ lang }: { lang: string }) {
     { q: "How do disappearing messages work?", a: "In any chat → ⋯ menu → 'Disappearing Messages'. Choose a timer (5s, 1m, 1h, 1d, 1wk). Messages delete automatically after being read when the timer expires." },
     { q: "What is Spark ⚡?", a: "Spark is Aura's in-app currency. Earn it through daily bonuses and tasks, or buy it in the Wallet. Spend Spark on gifts and Prime subscriptions." },
     { q: "How to set a screen lock PIN?", a: "Settings → Privacy & Security → Screen Lock. Set a 4–8 digit PIN. The app locks after 1 minute of inactivity." },
-    { q: "How to send a gift?", a: "Open any chat → tap the 🎁 icon in the input area. Choose a gift by rarity and cost, add a message. Gifts can be sent anonymously." },
     { q: "How do stories work?", a: "Stories are visible for 24 hours. Tap an avatar in the top bar to view. Create a story from your profile or the stories bar." },
     { q: "How to find someone?", a: "Use global search (magnifier) and type @username. In 'Contacts' you can add users and manage your contact list." },
     { q: "How to change the theme?", a: "Settings → My Account → Themes. Toggle dark/light with the moon icon at the top. Aura Prime unlocks 8+ exclusive themes (Obsidian, Midnight, Forest, etc.)." },
@@ -958,7 +956,7 @@ function SupportSection({ lang, user, t, currentStatusOpt, onNavigate }: { lang:
           <div className="grid grid-cols-2 gap-2">
             {[
               { label: lang === "ru" ? "Аккаунт" : "Account", value: `@${user?.username}` },
-              { label: "ID", value: String(user?.id ?? "—") },
+              { label: "ID", value: user?.id ? String(100000 + ((user.id * 137761 + 573482) % 900000)) : "—" },
               { label: lang === "ru" ? "Статус" : "Status", value: currentStatusOpt?.label ?? "—" },
               { label: lang === "ru" ? "Верификация" : "Verified", value: user?.isVerified ? (lang === "ru" ? "✓ Да" : "✓ Yes") : (lang === "ru" ? "Нет" : "No") },
             ].map((stat, i) => (
