@@ -9,9 +9,11 @@ const router = Router();
 // ── ICE server config (served from backend so TURN creds stay server-side) ──
 
 // Metered.ca: generates per-request time-limited credentials (recommended, free tier available)
-// Register at https://dashboard.metered.ca/signup → API Keys → copy key → set METERED_API_KEY secret
+// Embedded key works out of the box; override via METERED_API_KEY env var if needed
+const EMBEDDED_METERED_KEY = "83b0160103e6a4d931eb32dee124b7329923";
+
 async function fetchMeteredIce(): Promise<RTCIceServer[]> {
-  const apiKey = process.env.METERED_API_KEY;
+  const apiKey = process.env.METERED_API_KEY || EMBEDDED_METERED_KEY;
   if (!apiKey) return [];
   try {
     const resp = await fetch(
