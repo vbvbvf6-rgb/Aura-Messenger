@@ -222,9 +222,6 @@ export function ActiveCall() {
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
   const remoteAudioRef = useRef<HTMLAudioElement>(null);
-  // Web Audio API refs — used as primary audio routing (more compatible than <audio> autoplay)
-  const audioCtxRef = useRef<AudioContext | null>(null);
-  const audioSourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
 
   useEffect(() => {
     const handler = (e: Event) => {
@@ -268,73 +265,23 @@ export function ActiveCall() {
     }
   }, [localStream]);
 
-  // ── Remote audio via Web Audio API (primary) + <audio> element (fallback) ──
-  // Web Audio API bypasses autoplay restrictions in Yandex Browser, Safari, etc.
-  const connectRemoteAudio = React.useCallback((stream: MediaStream) => {
-    // Always update the <audio> fallback element
-    const audio = remoteAudioRef.current;
-    if (audio) {
-      audio.srcObject = stream;
-      audio.volume = 1;
-      audio.play().catch(() => {});
-    }
-
-    try {
-      const ACtx = (window.AudioContext ?? (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext);
-      if (!ACtx) throw new Error("No AudioContext");
-
-      // Reuse existing context if open, otherwise create new
-      if (!audioCtxRef.current || audioCtxRef.current.state === "closed") {
-        audioCtxRef.current = new ACtx();
-      }
-      const ac = audioCtxRef.current;
-
-      // Disconnect previous source node to avoid duplicates
-      if (audioSourceRef.current) {
-        try { audioSourceRef.current.disconnect(); } catch {}
-        audioSourceRef.current = null;
-      }
-
-      const source = ac.createMediaStreamSource(stream);
-      audioSourceRef.current = source;
-      source.connect(ac.destination);
-
-      if (ac.state === "suspended") {
-        // Context suspended — needs user gesture; show unlock overlay
-        setAudioUnlocked(false);
-        ac.resume().then(() => setAudioUnlocked(true)).catch(() => {});
-      } else {
-        setAudioUnlocked(true);
-      }
-    } catch {
-      // AudioContext not supported — rely solely on <audio> element
-      if (remoteAudioRef.current) {
-        remoteAudioRef.current.play()
-          .then(() => setAudioUnlocked(true))
-          .catch(() => setAudioUnlocked(false));
-      }
-    }
-  }, []);
-
+  // ── Remote audio — simple <audio> element approach ──
+  // Assign stream and attempt play; if blocked show the unlock overlay
   useEffect(() => {
+    const audio = remoteAudioRef.current;
+    if (!audio) return;
     if (remoteStream) {
-      connectRemoteAudio(remoteStream);
+      audio.srcObject = remoteStream;
+      audio.volume = 1;
+      audio.muted = false;
+      audio.play()
+        .then(() => setAudioUnlocked(true))
+        .catch(() => setAudioUnlocked(false));
     } else {
-      // Clean up audio context source when call ends
-      if (audioSourceRef.current) {
-        try { audioSourceRef.current.disconnect(); } catch {}
-        audioSourceRef.current = null;
-      }
-      if (remoteAudioRef.current) remoteAudioRef.current.srcObject = null;
+      audio.srcObject = null;
       setAudioUnlocked(false);
     }
-    return () => {
-      if (audioSourceRef.current) {
-        try { audioSourceRef.current.disconnect(); } catch {}
-        audioSourceRef.current = null;
-      }
-    };
-  }, [remoteStream, connectRemoteAudio]);
+  }, [remoteStream]);
 
   // Remote video — always mounted, hidden when no video tracks
   useEffect(() => {
@@ -351,39 +298,20 @@ export function ActiveCall() {
     }
   }, [remoteStream]);
 
-  // Speaker toggle — mute both AudioContext gain and <audio> element
+  // Speaker toggle
   useEffect(() => {
     if (remoteAudioRef.current) remoteAudioRef.current.muted = isSpeakerOff;
-    // AudioContext: disconnect/reconnect source to mute
-    if (audioSourceRef.current && audioCtxRef.current) {
-      try {
-        if (isSpeakerOff) {
-          audioSourceRef.current.disconnect();
-        } else {
-          audioSourceRef.current.connect(audioCtxRef.current.destination);
-        }
-      } catch {}
-    }
   }, [isSpeakerOff]);
 
-  // Unlock audio on any user interaction with the call screen
+  // Unlock audio on tap — re-assigns stream and retries play()
   const handleUnlockAudio = React.useCallback(() => {
-    // Resume AudioContext (primary path)
-    if (audioCtxRef.current && audioCtxRef.current.state === "suspended") {
-      audioCtxRef.current.resume().then(() => setAudioUnlocked(true)).catch(() => {});
-    }
-    // Also retry <audio> element
     const audio = remoteAudioRef.current;
-    if (audio) {
-      if (remoteStream && !audio.srcObject) audio.srcObject = remoteStream;
-      audio.volume = 1;
-      audio.play().then(() => setAudioUnlocked(true)).catch(() => {});
-    }
-    // Re-connect audio source in case it got disconnected
-    if (audioCtxRef.current && remoteStream) {
-      connectRemoteAudio(remoteStream);
-    }
-  }, [remoteStream, connectRemoteAudio]);
+    if (!audio) return;
+    if (remoteStream) audio.srcObject = remoteStream;
+    audio.volume = 1;
+    audio.muted = false;
+    audio.play().then(() => setAudioUnlocked(true)).catch(() => {});
+  }, [remoteStream]);
 
   const handleToggleMute = () => {
     if (localStream) localStream.getAudioTracks().forEach((t) => { t.enabled = isMuted; });

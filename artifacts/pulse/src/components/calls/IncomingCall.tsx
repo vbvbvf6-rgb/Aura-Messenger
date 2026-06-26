@@ -104,7 +104,24 @@ export function IncomingCall() {
 
             <motion.button
               whileTap={{ scale: 0.9 }}
-              onClick={() => acceptCall()}
+              onClick={() => {
+                // Pre-unlock browser audio DURING this user gesture so that
+                // <audio>.play() will succeed when the remote stream arrives
+                try {
+                  const AudioCtx = window.AudioContext ?? (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+                  if (AudioCtx) {
+                    const ctx = new AudioCtx();
+                    ctx.resume().catch(() => {});
+                    // Play a silent buffer to fully unlock the audio output
+                    const buf = ctx.createBuffer(1, 1, 22050);
+                    const src = ctx.createBufferSource();
+                    src.buffer = buf;
+                    src.connect(ctx.destination);
+                    src.start(0);
+                  }
+                } catch {}
+                acceptCall();
+              }}
               className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-green-500 text-white hover:bg-green-400 transition-colors font-semibold text-sm shadow-[0_0_20px_rgba(34,197,94,0.35)]"
             >
               {isVideo ? <Video size={18} /> : <Phone size={18} />}

@@ -221,14 +221,24 @@ export function AppProvider({ children, onLogout, onSwitchAccount, onRemoveAccou
     };
 
     pc.ontrack = (e) => {
-      // e.streams[0] can be undefined in Firefox and some bundlePolicy configs —
-      // fall back to wrapping the individual track in a fresh MediaStream
-      const stream = e.streams?.[0] ?? new MediaStream([e.track]);
-      setRemoteStreams((prev) => {
-        const next = new Map(prev);
-        next.set(targetUserId, stream);
-        return next;
-      });
+      if (e.streams?.[0]) {
+        // Browser provides the full combined stream — use it directly
+        setRemoteStreams((prev) => {
+          const next = new Map(prev);
+          next.set(targetUserId, e.streams[0]);
+          return next;
+        });
+      } else {
+        // Firefox / some bundlePolicy configs: tracks arrive one at a time
+        // Build stream incrementally so audio track isn't overwritten by video
+        setRemoteStreams((prev) => {
+          const next = new Map(prev);
+          const existing = prev.get(targetUserId);
+          const newStream = new MediaStream([...(existing?.getTracks() ?? []), e.track]);
+          next.set(targetUserId, newStream);
+          return next;
+        });
+      }
     };
 
     // ICE restart on disconnection — aggressive recovery for cross-network calls
