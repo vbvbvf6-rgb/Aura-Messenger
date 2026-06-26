@@ -5,10 +5,25 @@ import { getSavedAccounts, SavedAccount, MAX_ACCOUNTS } from "@/lib/accounts";
 
 // ICE servers are fetched from the API at call-start time so that TURN
 // credentials live only on the server and are never baked into the JS bundle.
-// Falls back to Google STUN if the fetch fails.
+// Falls back to a comprehensive set of public STUN + TURN servers if the fetch fails.
 const FALLBACK_ICE: RTCIceServer[] = [
+  // STUN — Google (very reliable) + Cloudflare
   { urls: "stun:stun.l.google.com:19302" },
   { urls: "stun:stun1.l.google.com:19302" },
+  { urls: "stun:stun2.l.google.com:19302" },
+  { urls: "stun:stun3.l.google.com:19302" },
+  { urls: "stun:stun4.l.google.com:19302" },
+  { urls: "stun:stun.cloudflare.com:3478" },
+  { urls: "stun:stun.relay.metered.ca:80" },
+  // TURN — Metered.ca open relay (needed when STUN fails behind symmetric NAT)
+  { urls: "turn:global.relay.metered.ca:80",               username: "openrelayproject", credential: "openrelayproject" },
+  { urls: "turn:global.relay.metered.ca:443",              username: "openrelayproject", credential: "openrelayproject" },
+  { urls: "turn:global.relay.metered.ca:80?transport=tcp", username: "openrelayproject", credential: "openrelayproject" },
+  { urls: "turns:global.relay.metered.ca:443",             username: "openrelayproject", credential: "openrelayproject" },
+  { urls: "turn:a.relay.metered.ca:80",                    username: "openrelayproject", credential: "openrelayproject" },
+  { urls: "turn:a.relay.metered.ca:443",                   username: "openrelayproject", credential: "openrelayproject" },
+  { urls: "turn:a.relay.metered.ca:80?transport=tcp",      username: "openrelayproject", credential: "openrelayproject" },
+  { urls: "turns:a.relay.metered.ca:443",                  username: "openrelayproject", credential: "openrelayproject" },
 ];
 
 async function fetchIceServers(headers: Record<string, string>): Promise<RTCIceServer[]> {

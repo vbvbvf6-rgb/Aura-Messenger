@@ -131,7 +131,17 @@ export default function Register({ onLogin }: RegisterProps) {
       sessionStorage.setItem("pulse-tab-owned", "1");
       onLogin(data.userId);
     } catch {
-      setError("Ошибка подключения к серверу");
+      const isLocalhost =
+        window.location.hostname === "localhost" ||
+        window.location.hostname === "127.0.0.1";
+      const hasApiUrl = !!import.meta.env.VITE_API_URL;
+      if (!isLocalhost && !hasApiUrl) {
+        setError(
+          "Сервер недоступен. В переменных окружения Vercel укажите VITE_API_URL с адресом вашего бэкенда.",
+        );
+      } else {
+        setError("Ошибка подключения к серверу");
+      }
     } finally {
       setLoading(false);
     }

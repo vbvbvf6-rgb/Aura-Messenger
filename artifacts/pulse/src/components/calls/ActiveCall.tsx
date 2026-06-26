@@ -298,9 +298,14 @@ export function ActiveCall() {
     }
   }, [remoteStream]);
 
-  // Speaker toggle
+  // Speaker toggle — also retry play() when unmuting in case autoplay was blocked
   useEffect(() => {
-    if (remoteAudioRef.current) remoteAudioRef.current.muted = isSpeakerOff;
+    const audio = remoteAudioRef.current;
+    if (!audio) return;
+    audio.muted = isSpeakerOff;
+    if (!isSpeakerOff && audio.paused && audio.srcObject) {
+      audio.play().then(() => setAudioUnlocked(true)).catch(() => {});
+    }
   }, [isSpeakerOff]);
 
   // Unlock audio on tap — re-assigns stream and retries play()
