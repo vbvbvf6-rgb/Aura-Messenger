@@ -50,8 +50,8 @@ const STEPS: Step[] = [
     icon: <Zap size={32} />,
     color: "text-yellow-400",
     gradient: "from-yellow-500/20 to-yellow-600/5",
-    title: "Spark и Кошелёк",
-    description: "Spark — внутренняя валюта Aura. Получай ежедневный бонус, выполняй задания в разделе «События».",
+    title: "Gem 💎 и Кошелёк",
+    description: "Gem — внутренняя валюта Aura. Получай ежедневный бонус 💎, выполняй задания в разделе «События».",
     tip: "💡 Заходи ежедневно чтобы не потерять стрик!",
   },
   {
@@ -67,7 +67,7 @@ const STEPS: Step[] = [
     color: "text-amber-400",
     gradient: "from-amber-500/20 to-amber-600/5",
     title: "Aura Prime",
-    description: "Подпишись на Prime чтобы получить золотое кольцо, эксклюзивные темы оформления и множитель Spark × 2.",
+    description: "Подпишись на Prime чтобы получить золотое кольцо, эксклюзивные темы оформления и множитель Gem × 2 💎.",
     tip: "💡 Раздел «Aura Prime» в левом меню",
   },
 ];

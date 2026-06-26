@@ -347,7 +347,10 @@ function PwaUpdateBanner() {
                     {/* Buttons */}
                     <div className="flex gap-2.5">
                       <button
-                        onClick={() => setDismissed(true)}
+                        onClick={() => {
+                          localStorage.setItem("aura-update-pending", "true");
+                          setDismissed(true);
+                        }}
                         className="flex-1 py-3 rounded-[16px] border border-border text-sm font-semibold text-muted-foreground hover:bg-secondary transition-all"
                       >
                         Позже

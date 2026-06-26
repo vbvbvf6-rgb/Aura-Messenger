@@ -11,10 +11,11 @@ import {
   EyeOff, Phone, Globe, Type, Download, Trash2, Copy, Check, ChevronDown,
   ChevronRight, User, Radio, BellOff, Volume2, VolumeX, Clock, MessageSquare,
   Gift, PhoneCall, Monitor, Zap, AlertTriangle, X, Flame, Upload, Camera, Crown,
-  ShieldCheck, QrCode, Fingerprint, LogIn, HelpCircle,
+  ShieldCheck, QrCode, Fingerprint, LogIn, HelpCircle, RefreshCw,
   Battery, FolderOpen, ArrowLeft, Mic, Headphones, Bot,
   SlidersHorizontal, Layers, Calendar, Play, FileText, MapPin
 } from "lucide-react";
+import { APP_VERSION } from "@/lib/version";
 import { useLocation } from "wouter";
 import { useGetMe, useUpdateMe, getGetChatsQueryKey } from "@workspace/api-client-react";
 import { useAppContext } from "@/contexts/AppContext";
@@ -946,7 +947,7 @@ function SupportSection({ lang, user, t, currentStatusOpt, onNavigate }: { lang:
             </div>
             <div>
               <p className="font-black text-base">Aura Messenger</p>
-              <p className="text-xs text-muted-foreground">Version 2.4.0 — Production</p>
+              <p className="text-xs text-muted-foreground">Version {APP_VERSION} — Production</p>
               <div className="flex items-center gap-1.5 mt-1">
                 <span className="w-2 h-2 rounded-full bg-green-500"/>
                 <span className="text-[11px] text-green-500 font-medium">{lang === "ru" ? "Все системы работают" : "All systems operational"}</span>
@@ -966,6 +967,29 @@ function SupportSection({ lang, user, t, currentStatusOpt, onNavigate }: { lang:
               </div>
             ))}
           </div>
+          {/* Check for updates row */}
+          {(() => {
+            const hasDeferredUpdate = typeof window !== "undefined" && localStorage.getItem("aura-update-pending") === "true";
+            return (
+              <button
+                onClick={() => {
+                  localStorage.setItem("aura-pending-changelog", "true");
+                  localStorage.removeItem("aura-update-pending");
+                  window.location.reload();
+                }}
+                className="mt-3 w-full flex items-center gap-3 py-2.5 px-3 rounded-xl border border-border hover:bg-secondary transition-colors text-sm font-medium text-left"
+              >
+                <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${hasDeferredUpdate ? "bg-primary/15 text-primary" : "bg-secondary text-muted-foreground"}`}>
+                  <RefreshCw size={13} className={hasDeferredUpdate ? "text-primary" : ""} />
+                </div>
+                <div className="flex-1">
+                  <span className="text-foreground font-semibold">{lang === "ru" ? "Проверить обновления" : "Check for Updates"}</span>
+                  {hasDeferredUpdate && <span className="ml-2 text-[10px] font-black bg-primary text-primary-foreground px-1.5 py-0.5 rounded-full">НОВОЕ</span>}
+                </div>
+                <span className="text-[11px] text-muted-foreground font-mono">v{APP_VERSION}</span>
+              </button>
+            );
+          })()}
         </div>
       </Section>
 

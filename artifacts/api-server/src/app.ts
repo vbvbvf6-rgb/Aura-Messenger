@@ -255,6 +255,11 @@ app.use((req: Request, _res: Response, next: NextFunction) => {
   next();
 });
 
+// ── Keepalive ping — prevents Render free tier from sleeping ──────────────
+app.get("/api/ping", (_req: Request, res: Response) => {
+  res.json({ ok: true, ts: Date.now() });
+});
+
 app.get("/api/health", async (_req: Request, res: Response) => {
   let dbOk = false;
   let dbError: string | null = null;

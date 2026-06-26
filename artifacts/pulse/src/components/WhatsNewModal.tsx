@@ -1,25 +1,24 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles, X, Zap, Shield, MessageSquare, Users, Bell, RefreshCw } from "lucide-react";
+import { Sparkles, X, Zap, Shield, MessageSquare, Users, Bell, RefreshCw, Diamond, Mic, Star } from "lucide-react";
 import { APP_VERSION } from "@/lib/version";
 const PENDING_KEY = "aura-pending-changelog";
 const SEEN_KEY = "aura-changelog-seen-v";
 
 const CHANGELOG = [
-  { icon: RefreshCw,    color: "text-blue-400",   bg: "bg-blue-500/10",   text: "Медленный режим теперь реально работает в каналах" },
-  { icon: MessageSquare,color: "text-orange-400",  bg: "bg-orange-500/10", text: "Пересланные сообщения — метка «Переслано» вместо стикера ⤵️" },
-  { icon: Shield,       color: "text-red-400",     bg: "bg-red-500/10",    text: "Удалённые сообщения больше не выглядят как оранжевый пузырь" },
-  { icon: Users,        color: "text-green-400",   bg: "bg-green-500/10",  text: "Поиск контактов — работает с первой буквы" },
-  { icon: Zap,          color: "text-yellow-400",  bg: "bg-yellow-500/10", text: "Истории переименованы в «Статус» (как в WhatsApp)" },
-  { icon: Bell,         color: "text-purple-400",  bg: "bg-purple-500/10", text: "Исправлена прокрутка на странице входа и регистрации" },
-  { icon: Shield,       color: "text-primary",     bg: "bg-primary/10",    text: "Нельзя написать администратору напрямую" },
+  { icon: Diamond,      color: "text-cyan-400",   bg: "bg-cyan-500/10",   text: "Валюта переименована: Spark → Gem 💎 — красиво и премиально" },
+  { icon: RefreshCw,    color: "text-blue-400",   bg: "bg-blue-500/10",   text: "Обновление находится в Настройках → «О приложении» после нажатия «Позже»" },
+  { icon: Bell,         color: "text-orange-400", bg: "bg-orange-500/10", text: "Автодеплой из GitHub — новая версия устанавливается без ручного вмешательства" },
+  { icon: Mic,          color: "text-green-400",  bg: "bg-green-500/10",  text: "Транскрипция голосовых сообщений теперь работает через реальный Whisper AI" },
+  { icon: Shield,       color: "text-red-400",    bg: "bg-red-500/10",    text: "Фоновый пинг — сервер больше не засыпает на Render" },
+  { icon: MessageSquare,color: "text-purple-400", bg: "bg-purple-500/10", text: "Экран регистрации и входа — красивая панель с возможностями справа" },
+  { icon: Star,         color: "text-yellow-400", bg: "bg-yellow-500/10", text: "Иконка валюты обновлена — 💎 вместо ⚡" },
 ];
 
 export function WhatsNewModal() {
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
-    // Show if: update just happened (pending flag) OR version hasn't been seen yet
     const pending = localStorage.getItem(PENDING_KEY) === "true";
     const seen = localStorage.getItem(SEEN_KEY);
     if (pending || seen !== APP_VERSION) {
@@ -56,11 +55,9 @@ export function WhatsNewModal() {
             className="fixed inset-0 z-[301] flex items-center justify-center p-4 pointer-events-none"
           >
             <div className="pointer-events-auto w-full max-w-sm bg-card border border-border rounded-3xl shadow-2xl overflow-hidden">
-              {/* Top gradient stripe */}
               <div className="h-1 bg-gradient-to-r from-primary via-orange-400 to-amber-500" />
 
               <div className="px-6 pt-6 pb-6">
-                {/* Header */}
                 <div className="flex items-start justify-between mb-5">
                   <div className="flex items-center gap-3">
                     <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary to-orange-500 flex items-center justify-center shadow-lg shadow-primary/30 shrink-0">
@@ -79,7 +76,6 @@ export function WhatsNewModal() {
                   </button>
                 </div>
 
-                {/* Changelog list */}
                 <div className="space-y-2.5 mb-5">
                   {CHANGELOG.map((item, i) => (
                     <motion.div
@@ -97,7 +93,6 @@ export function WhatsNewModal() {
                   ))}
                 </div>
 
-                {/* Close button */}
                 <button
                   onClick={handleClose}
                   className="w-full py-3.5 bg-primary text-primary-foreground rounded-2xl text-[15px] font-black hover:bg-primary/90 transition-all shadow-[0_4px_20px_rgba(234,88,12,0.35)] hover:-translate-y-0.5 active:translate-y-0 active:shadow-none"

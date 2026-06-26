@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  CalendarDays, MapPin, Users, Clock, Star, Flame, Zap,
+  CalendarDays, MapPin, Users, Clock, Star, Flame, Zap, Diamond,
   Trophy, CheckCircle2, Target, Swords,
   MessageCircle, Phone, Heart, Send, Crown, ChevronRight,
   TrendingUp, Lock, Sparkles, Medal, UserPlus, Info, Plus, Settings,
@@ -353,16 +353,16 @@ export default function Events() {
                 <p className="text-xs text-muted-foreground">{doneCount}/{QUESTS.length} заданий выполнено</p>
               </div>
             </div>
-            {/* Spark balance */}
+            {/* Gem balance */}
             <motion.div
               key={sparks}
               initial={{ scale: 1 }}
               animate={{ scale: [1, 1.15, 1] }}
               transition={{ duration: 0.35 }}
-              className="flex items-center gap-1.5 bg-amber-500/10 border border-amber-500/20 px-3 py-1.5 rounded-full"
+              className="flex items-center gap-1.5 bg-cyan-500/10 border border-cyan-500/20 px-3 py-1.5 rounded-full"
             >
-              <Zap size={13} className="text-amber-400 fill-amber-400" />
-              <span className="text-sm font-black text-amber-400">{((me as any)?.balance !== undefined ? (me as any).balance : sparks).toLocaleString()}</span>
+              <Diamond size={13} className="text-cyan-400" />
+              <span className="text-sm font-black text-cyan-400">{((me as any)?.balance !== undefined ? (me as any).balance : sparks).toLocaleString()}</span>
             </motion.div>
           </div>
 
