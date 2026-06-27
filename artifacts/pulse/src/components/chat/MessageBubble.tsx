@@ -820,7 +820,7 @@ export function MessageBubble({ message, onReply, onEdit, ownBubbleStyle, onPin,
                 </div>
                 <div className="flex gap-[1px]">
                   {[1, 2].map((i) => (
-                    <div key={i} className="relative flex-1 overflow-hidden bg-secondary" style={{ aspectRatio: "1/1" }}>
+                    <div key={i} className="relative flex-1 overflow-hidden bg-secondary" style={{ aspectRatio: "3/2" }}>
                       <img
                         src={albumUrls[i]}
                         alt={`photo ${i + 1}`}
@@ -838,7 +838,7 @@ export function MessageBubble({ message, onReply, onEdit, ownBubbleStyle, onPin,
                   <div
                     key={i}
                     className="relative overflow-hidden bg-secondary"
-                    style={{ aspectRatio: visibleCount === 1 ? "4/3" : "1/1" }}
+                    style={{ aspectRatio: visibleCount === 1 ? "4/3" : "4/3" }}
                   >
                     <img
                       src={url}
