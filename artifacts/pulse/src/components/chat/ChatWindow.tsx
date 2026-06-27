@@ -447,7 +447,12 @@ export function ChatWindow({ chatId }: ChatWindowProps) {
           const senderColor = last.sender?.avatarColor ?? undefined;
           const chatAvatar = (chatData as any)?.avatarUrl ?? undefined;
           const notifTitle = chatType === "direct" ? senderName : chatName;
-          const notifIcon = chatType === "direct" ? senderAvatar : chatAvatar;
+          const rawIcon = chatType === "direct" ? senderAvatar : chatAvatar;
+          // Service workers need absolute URLs — convert relative paths safely
+          const notifIcon = (() => {
+            if (!rawIcon) return undefined;
+            try { return new URL(rawIcon, window.location.origin).toString(); } catch { return undefined; }
+          })();
           const notifBody = chatType === "direct" ? body : `${senderName}: ${body}`;
 
           notify(notifTitle, {

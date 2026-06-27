@@ -252,7 +252,7 @@ export function Sidebar({ mobileSidebarOpen, onMobileClose, onMobileOpen, onOpen
   );
 
   const DesktopSidebar = (
-    <div className="hidden md:flex flex-col w-[260px] bg-card border-r border-border/50 shrink-0 relative z-20" style={{ height: "var(--app-h, 100dvh)" }}>
+    <div className="hidden md:flex flex-col w-[260px] bg-[#0a0a0d] rounded-r-[28px] shrink-0 relative z-20 shadow-[4px_0_32px_rgba(0,0,0,0.55)] overflow-hidden" style={{ height: "var(--app-h, 100dvh)" }}>
       <div className="flex items-center gap-3 px-5 pt-5 pb-4">
         <div className="relative shrink-0 drop-shadow-[0_4px_12px_rgba(255,100,20,0.45)]">
           <PulseLogo size={38} />
@@ -499,7 +499,7 @@ export function Sidebar({ mobileSidebarOpen, onMobileClose, onMobileOpen, onOpen
         onClick={onMobileClose}
       />
       <div
-        className={`mobile-sidebar-drawer fixed left-0 top-0 bottom-0 z-[91] md:hidden w-[280px] bg-card border-r border-border/50 flex flex-col pt-6 shadow-2xl transition-transform duration-300 overflow-y-auto overscroll-contain`}
+        className={`mobile-sidebar-drawer fixed left-0 top-0 bottom-0 z-[91] md:hidden w-[280px] bg-[#0a0a0d] rounded-r-[28px] flex flex-col pt-6 shadow-[4px_0_32px_rgba(0,0,0,0.6)] transition-transform duration-300 overflow-y-auto overscroll-contain`}
         style={{ transform: mobileSidebarOpen ? "translateX(0)" : "translateX(-100%)", paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
       >
         <div className="flex items-center gap-3 px-5 mb-6">
