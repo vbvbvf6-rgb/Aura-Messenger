@@ -112,8 +112,8 @@ function AppealModal({ post, onClose, onSubmitted }: { post: any; onClose: () =>
         onClick={e => e.stopPropagation()}
       >
         <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 rounded-xl bg-orange-500/10 flex items-center justify-center">
-            <AlertCircle size={20} className="text-orange-400" />
+          <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+            <AlertCircle size={20} className="text-primary" />
           </div>
           <div>
             <h3 className="font-bold">Апелляция</h3>
@@ -146,7 +146,7 @@ function AppealModal({ post, onClose, onSubmitted }: { post: any; onClose: () =>
             <button
               type="submit"
               disabled={loading || text.trim().length < 10}
-              className="flex-1 py-2.5 rounded-xl bg-orange-500 text-white text-sm font-bold hover:bg-orange-600 transition-colors disabled:opacity-50"
+              className="flex-1 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-bold hover:bg-primary/90 transition-colors disabled:opacity-50"
             >
               {loading ? "Отправка..." : "Отправить апелляцию"}
             </button>
@@ -214,7 +214,7 @@ function BlockedPostCard({ post, onAppealSubmitted }: { post: any; onAppealSubmi
               {!appealStatus && (
                 <button
                   onClick={() => setShowAppeal(true)}
-                  className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-orange-500/10 border border-orange-500/30 text-orange-400 hover:bg-orange-500/20 transition-colors"
+                  className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-primary/10 border border-primary/30 text-primary hover:bg-primary/20 transition-colors"
                 >
                   Подать апелляцию
                 </button>
@@ -1160,7 +1160,7 @@ export default function Feed() {
         <div className="absolute inset-0 bg-gradient-to-r from-primary/6 via-transparent to-transparent pointer-events-none" />
         <div className="flex items-center px-5 justify-between relative z-10" style={{ minHeight: "calc(4rem + env(safe-area-inset-top, 0px))", paddingTop: "env(safe-area-inset-top, 0px)" }}>
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: "linear-gradient(135deg, rgba(234,88,12,0.15), rgba(234,88,12,0.05))", border: "1px solid rgba(234,88,12,0.2)" }}>
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: "linear-gradient(135deg, rgba(59,130,246,0.15), rgba(59,130,246,0.05))", border: "1px solid rgba(59,130,246,0.2)" }}>
               <Rss size={17} className="text-primary" />
             </div>
             <h1 className="text-xl font-black text-foreground">Лента</h1>
@@ -1168,7 +1168,7 @@ export default function Feed() {
           <button
             onClick={() => setShowCreatePost(!showCreatePost)}
             className="flex items-center gap-2 px-4 py-2 rounded-2xl text-sm font-bold transition-all active:scale-95"
-            style={{ background: "linear-gradient(135deg, #ea580c, #f97316)", boxShadow: "0 0 14px rgba(234,88,12,0.3)", color: "white" }}
+            style={{ background: "linear-gradient(135deg, #3b82f6, #60a5fa)", boxShadow: "0 0 14px rgba(59,130,246,0.3)", color: "white" }}
           >
             <Plus size={15} /> Новый пост
           </button>

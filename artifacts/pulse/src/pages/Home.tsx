@@ -118,7 +118,7 @@ export default function Home() {
             </div>
             <div className="text-center relative z-10 space-y-8 max-w-sm px-6">
               <div className="space-y-4">
-                <div className="w-20 h-20 mx-auto rounded-[28px] bg-gradient-to-br from-primary to-orange-600 flex items-center justify-center shadow-[0_8px_40px_rgba(234,88,12,0.2)]">
+                <div className="w-20 h-20 mx-auto rounded-[28px] bg-gradient-to-br from-primary to-blue-600 flex items-center justify-center shadow-[0_8px_40px_rgba(59,130,246,0.2)]">
                   <svg width="36" height="36" viewBox="0 0 24 24" fill="none">
                     <path d="M13 2L4.5 13.5H11L10 22L19.5 10.5H13L13 2Z" fill="white" />
                   </svg>

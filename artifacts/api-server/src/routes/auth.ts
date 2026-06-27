@@ -4,7 +4,7 @@ import { sql } from "drizzle-orm";
 import { createHash, randomUUID } from "node:crypto";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import { EFFECTIVE_JWT_SECRET, sanitizeString } from "../app";
+import { EFFECTIVE_JWT_SECRET, sanitizeString, invalidateSessionCache } from "../app";
 import { generateTotpSecret, verifyTotp, buildTotpUri } from "../lib/totp";
 
 const router = Router();
@@ -682,6 +682,7 @@ router.delete("/auth/sessions/:id", async (req, res) => {
     await db.execute(sql`
       DELETE FROM user_sessions WHERE id = ${id} AND user_id = ${uid}
     `);
+    invalidateSessionCache(id);
     res.json({ success: true });
   } catch (err) {
     req.log.error(err);
@@ -701,12 +702,22 @@ router.delete("/auth/sessions", async (req, res) => {
         currentSid = payload.sid || null;
       } catch {}
     }
+    // Find all sessions being deleted so we can purge the cache
+    const toDelete = await db.execute(sql`
+      SELECT id FROM user_sessions
+      WHERE user_id = ${uid}
+      ${currentSid ? sql`AND id != ${currentSid}` : sql``}
+    `);
     if (currentSid) {
       await db.execute(sql`
         DELETE FROM user_sessions WHERE user_id = ${uid} AND id != ${currentSid}
       `);
     } else {
       await db.execute(sql`DELETE FROM user_sessions WHERE user_id = ${uid}`);
+    }
+    // Purge cache for each deleted session
+    for (const row of (toDelete as any).rows ?? toDelete) {
+      invalidateSessionCache(row.id);
     }
     res.json({ success: true });
   } catch (err) {

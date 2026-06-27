@@ -233,7 +233,7 @@ export default function Login({ onLogin }: LoginProps) {
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ type: "spring", stiffness: 200, damping: 20, delay: 0.1 }}
-            className="w-24 h-24 rounded-3xl bg-gradient-to-br from-primary via-orange-500 to-amber-500 flex items-center justify-center shadow-2xl shadow-primary/40 mb-6 relative overflow-hidden"
+            className="w-24 h-24 rounded-3xl bg-gradient-to-br from-primary via-blue-500 to-blue-400 flex items-center justify-center shadow-2xl shadow-primary/40 mb-6 relative overflow-hidden"
           >
             <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-white/10 pointer-events-none" />
             <PulseLogo size={48} />

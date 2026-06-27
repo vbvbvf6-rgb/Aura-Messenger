@@ -31,7 +31,7 @@ function statusBadge(status: string) {
     resolved:    { label: "Решён",         cls: "bg-emerald-500/10 text-emerald-400 border-emerald-500/30" },
     closed:      { label: "Закрыт",        cls: "bg-muted/50 text-muted-foreground border-border" },
     open:        { label: "Открыт",        cls: "bg-blue-500/10 text-blue-400 border-blue-500/30" },
-    pending:     { label: "Ожидает ответа",cls: "bg-orange-500/10 text-orange-400 border-orange-500/30" },
+    pending:     { label: "Ожидает ответа",cls: "bg-primary/10 text-primary border-primary/30" },
     answered:    { label: "Отвечен",       cls: "bg-emerald-500/10 text-emerald-400 border-emerald-500/30" },
   };
   const s = map[status] || { label: status, cls: "bg-secondary text-muted-foreground border-border" };
@@ -381,7 +381,7 @@ function TicketThread({ ticketId, onBack }: { ticketId: number; onBack: () => vo
           {!showAppeal ? (
             <button
               onClick={() => setShowAppeal(true)}
-              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-orange-500/30 bg-orange-500/5 text-orange-400 hover:bg-orange-500/10 text-sm font-semibold transition-colors"
+              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-primary/30 bg-primary/5 text-primary hover:bg-primary/10 text-sm font-semibold transition-colors"
             >
               <Flag size={14} /> Подать апелляцию
             </button>
@@ -392,13 +392,13 @@ function TicketThread({ ticketId, onBack }: { ticketId: number; onBack: () => vo
                 onChange={e => setAppealText(e.target.value)}
                 placeholder="Опишите причину апелляции..."
                 rows={3}
-                className="w-full bg-background border border-orange-500/30 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-orange-500/50 transition-colors resize-none"
+                className="w-full bg-background border border-primary/30 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-primary/50 transition-colors resize-none"
               />
               <div className="flex gap-2">
                 <button type="button" onClick={() => { setShowAppeal(false); setAppealText(""); }} className="flex-1 py-2 rounded-xl border border-border text-muted-foreground text-sm font-semibold hover:bg-secondary transition-colors">
                   Отмена
                 </button>
-                <button type="submit" disabled={!appealText.trim() || appealSending} className="flex-1 py-2 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-sm font-bold disabled:opacity-50 transition-colors">
+                <button type="submit" disabled={!appealText.trim() || appealSending} className="flex-1 py-2 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground text-sm font-bold disabled:opacity-50 transition-colors">
                   {appealSending ? "Отправка..." : "Отправить"}
                 </button>
               </div>
@@ -630,7 +630,7 @@ export default function Support() {
 
           {/* Info banner */}
           {tab === "tickets" && hasPrime && (
-            <div className="bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/30 rounded-2xl p-4 flex items-start gap-3">
+            <div className="bg-gradient-to-r from-primary/10 to-primary/5 border border-primary/30 rounded-2xl p-4 flex items-start gap-3">
               <Crown size={18} className="text-amber-400 shrink-0 mt-0.5" />
               <div>
                 <p className="text-sm font-semibold text-amber-400 flex items-center gap-1.5">Приоритетная поддержка 24/7 <Zap size={12} /></p>

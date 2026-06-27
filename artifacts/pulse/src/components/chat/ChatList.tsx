@@ -213,8 +213,8 @@ function SavedMessagesEntry({ onOpen }: { onOpen: (id: number) => void }) {
       disabled={loading}
       className="w-full flex items-center gap-4 px-3 py-3 rounded-2xl transition-all text-left hover:bg-secondary border border-transparent hover:border-border/50"
     >
-      <div className="w-12 h-12 rounded-[16px] bg-amber-500/15 flex items-center justify-center shrink-0 border border-amber-500/30">
-        <Bookmark size={22} className="text-amber-500" />
+      <div className="w-12 h-12 rounded-[16px] bg-primary/15 flex items-center justify-center shrink-0 border border-primary/30">
+        <Bookmark size={22} className="text-primary" />
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex justify-between items-baseline mb-0.5">

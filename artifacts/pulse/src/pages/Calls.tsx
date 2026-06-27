@@ -50,7 +50,7 @@ export default function Calls() {
       <header className="border-b border-border flex items-center px-5 justify-between bg-card/90 backdrop-blur-xl z-10 shrink-0 relative overflow-hidden" style={{ minHeight: "calc(4rem + env(safe-area-inset-top, 0px))", paddingTop: "env(safe-area-inset-top, 0px)" }}>
         <div className="absolute inset-0 bg-gradient-to-r from-primary/6 via-transparent to-transparent pointer-events-none" />
         <div className="flex items-center gap-3 relative z-10">
-          <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: "linear-gradient(135deg, rgba(234,88,12,0.15), rgba(234,88,12,0.05))", border: "1px solid rgba(234,88,12,0.2)" }}>
+          <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: "linear-gradient(135deg, rgba(59,130,246,0.15), rgba(59,130,246,0.05))", border: "1px solid rgba(59,130,246,0.2)" }}>
             <PhoneCall size={17} className="text-primary" />
           </div>
           <h1 className="text-xl font-black text-foreground tracking-tight">Звонки</h1>
@@ -58,7 +58,7 @@ export default function Calls() {
         <button
           onClick={() => setShowNewCall(true)}
           className="flex items-center gap-2 px-4 py-2 rounded-2xl text-sm font-bold transition-all active:scale-95 relative z-10"
-          style={{ background: "linear-gradient(135deg, #ea580c, #f97316)", boxShadow: "0 0 16px rgba(234,88,12,0.35)", color: "white" }}
+          style={{ background: "linear-gradient(135deg, #3b82f6, #60a5fa)", boxShadow: "0 0 16px rgba(59,130,246,0.35)", color: "white" }}
         >
           <PhoneCall size={14} />
           Новый звонок

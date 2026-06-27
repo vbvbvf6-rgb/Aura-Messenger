@@ -1128,7 +1128,7 @@ export function ChatWindow({ chatId }: ChatWindowProps) {
                       onClick={() => { setCreateGroupName(""); setShowCreateGroupDialog(true); }}
                       className="rounded-xl cursor-pointer py-2.5"
                     >
-                      <Users size={18} className="mr-3 text-orange-500" />
+                      <Users size={18} className="mr-3 text-primary" />
                       <span className="font-semibold">Создать группу</span>
                     </DropdownMenuItem>
                   </>
@@ -1144,14 +1144,14 @@ export function ChatWindow({ chatId }: ChatWindowProps) {
                 </DropdownMenuItem>
                 {chat.type === "direct" && messages && messages.length > 3 && (
                   <DropdownMenuItem onClick={handleSummarize} className="rounded-xl cursor-pointer py-2.5">
-                    <Sparkles size={18} className="mr-3 text-amber-400" />
+                    <Sparkles size={18} className="mr-3 text-primary" />
                     <span className="font-semibold">Резюме чата</span>
                   </DropdownMenuItem>
                 )}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleToggleMute} className="rounded-xl cursor-pointer py-2.5">
                   {chat.isMuted ? (
-                    <><Bell size={18} className="mr-3 text-orange-500" /><span className="font-semibold">{t("chat.muteOff")}</span></>
+                    <><Bell size={18} className="mr-3 text-primary" /><span className="font-semibold">{t("chat.muteOff")}</span></>
                   ) : (
                     <><BellOff size={18} className="mr-3 text-violet-400" /><span className="font-semibold">{t("chat.muteOn")}</span></>
                   )}
@@ -1738,8 +1738,8 @@ export function ChatWindow({ chatId }: ChatWindowProps) {
               className="w-full max-w-sm bg-card border border-border rounded-[24px] shadow-2xl overflow-hidden"
             >
               <div className="p-6">
-                <div className="w-14 h-14 rounded-2xl bg-orange-500/10 border border-orange-500/20 flex items-center justify-center mx-auto mb-4">
-                  <Users size={28} className="text-orange-500" />
+                <div className="w-14 h-14 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center mx-auto mb-4">
+                  <Users size={28} className="text-primary" />
                 </div>
                 <h2 className="text-center font-black text-xl mb-1">Создать группу</h2>
                 <p className="text-center text-sm text-muted-foreground mb-5">
@@ -1807,8 +1807,8 @@ export function ChatWindow({ chatId }: ChatWindowProps) {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm" onClick={() => setSummaryOpen(false)}>
           <div className="relative w-full max-w-md bg-card border border-border rounded-3xl shadow-2xl p-6" onClick={e => e.stopPropagation()}>
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center">
-                <Sparkles size={20} className="text-amber-400" />
+              <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center">
+                <Sparkles size={20} className="text-primary" />
               </div>
               <div>
                 <p className="font-bold text-base">Резюме чата</p>
@@ -1820,7 +1820,7 @@ export function ChatWindow({ chatId }: ChatWindowProps) {
             </div>
             {summaryLoading ? (
               <div className="flex items-center gap-3 py-4">
-                <div className="w-4 h-4 rounded-full border-2 border-amber-400 border-t-transparent animate-spin" />
+                <div className="w-4 h-4 rounded-full border-2 border-primary border-t-transparent animate-spin" />
                 <span className="text-sm text-muted-foreground">AI анализирует переписку…</span>
               </div>
             ) : (
@@ -2016,8 +2016,8 @@ export function ChatWindow({ chatId }: ChatWindowProps) {
                       onClick={() => { setShowMobileMenu(false); setCreateGroupName(""); setShowCreateGroupDialog(true); }}
                       className="w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl hover:bg-secondary transition-colors font-semibold"
                     >
-                      <div className="w-9 h-9 rounded-xl bg-orange-500/10 flex items-center justify-center shrink-0">
-                        <Users size={18} className="text-orange-500" />
+                      <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                        <Users size={18} className="text-primary" />
                       </div>
                       Создать группу
                     </button>
@@ -2041,8 +2041,8 @@ export function ChatWindow({ chatId }: ChatWindowProps) {
                     onClick={() => { setShowMobileMenu(false); handleSummarize(); }}
                     className="w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl hover:bg-secondary transition-colors font-semibold"
                   >
-                    <div className="w-9 h-9 rounded-xl bg-amber-500/10 flex items-center justify-center shrink-0">
-                      <Sparkles size={18} className="text-amber-400" />
+                    <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                      <Sparkles size={18} className="text-primary" />
                     </div>
                     Резюме чата
                   </button>
@@ -2057,7 +2057,7 @@ export function ChatWindow({ chatId }: ChatWindowProps) {
                 >
                   <div className="w-9 h-9 rounded-xl bg-secondary flex items-center justify-center shrink-0">
                     {chat.isMuted
-                      ? <Bell size={18} className="text-orange-500" />
+                      ? <Bell size={18} className="text-primary" />
                       : <BellOff size={18} className="text-violet-400" />}
                   </div>
                   {chat.isMuted ? t("chat.muteOff") : t("chat.muteOn")}
