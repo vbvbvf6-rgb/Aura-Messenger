@@ -225,7 +225,7 @@ function BugReportsList() {
           {reports.map(r => (
             <div key={r.id} className="bg-card border border-border rounded-2xl p-4">
               <div className="flex items-start justify-between gap-2 mb-2">
-                <p className="font-semibold text-sm flex-1">{r.title}</p>
+                <p className="font-semibold text-sm flex-1 break-words min-w-0">{r.title}</p>
                 <div className="flex items-center gap-1.5 shrink-0">
                   {statusBadge(r.status)}
                   <button
@@ -358,7 +358,7 @@ function TicketThread({ ticketId, onBack }: { ticketId: number; onBack: () => vo
           <ChevronLeft size={18} />
         </button>
         <div className="flex-1 min-w-0">
-          <h3 className="font-semibold text-sm truncate">{ticket.subject}</h3>
+          <h3 className="font-semibold text-sm break-words">{ticket.subject}</h3>
           <div className="flex items-center gap-2 mt-0.5">
             {statusBadge(ticket.status)}
             <span className="text-[10px] text-muted-foreground">#{ticket.id}</span>

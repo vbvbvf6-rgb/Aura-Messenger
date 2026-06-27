@@ -323,6 +323,7 @@ export function ChatInput({ chatId, onMessageSent, replyTo, editMessage, onCance
       toast({ title: "Файл слишком большой", description: `Максимальный размер — ${MAX_FILE_MB} МБ`, variant: "destructive" });
       return;
     }
+    const MAX_IMAGES_PER_ALBUM = 20;
     const images: File[] = [];
     const docs: File[] = [];
     for (const f of files) {
@@ -332,7 +333,14 @@ export function ChatInput({ chatId, onMessageSent, replyTo, editMessage, onCance
     try {
       if (images.length > 0) {
         const results = await Promise.all(images.map(f => compressImage(f)));
-        setImagePreviews(prev => [...prev, ...results]);
+        setImagePreviews(prev => {
+          const combined = [...prev, ...results];
+          if (combined.length > MAX_IMAGES_PER_ALBUM) {
+            toast({ title: "Максимум 20 фото", description: `Можно прикрепить до ${MAX_IMAGES_PER_ALBUM} фото за раз`, variant: "destructive" });
+            return combined.slice(0, MAX_IMAGES_PER_ALBUM);
+          }
+          return combined;
+        });
         sendTypingEvent("photo");
       }
       if (docs.length > 0) {

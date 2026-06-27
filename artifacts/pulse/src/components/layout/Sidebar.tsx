@@ -252,7 +252,7 @@ export function Sidebar({ mobileSidebarOpen, onMobileClose, onMobileOpen, onOpen
   );
 
   const DesktopSidebar = (
-    <div className="hidden md:flex flex-col w-[260px] bg-[#0a0a0d] rounded-r-[28px] shrink-0 relative z-20 shadow-[4px_0_32px_rgba(0,0,0,0.55)] overflow-hidden" style={{ height: "var(--app-h, 100dvh)" }}>
+    <div className="hidden md:flex flex-col w-[260px] bg-card dark:bg-[#0a0a0d] rounded-r-[28px] shrink-0 relative z-20 shadow-[4px_0_32px_rgba(0,0,0,0.18)] dark:shadow-[4px_0_32px_rgba(0,0,0,0.55)] overflow-hidden border-r border-border/40" style={{ height: "var(--app-h, 100dvh)" }}>
       <div className="flex items-center gap-3 px-5 pt-5 pb-4">
         <div className="relative shrink-0 drop-shadow-[0_4px_12px_rgba(255,100,20,0.45)]">
           <PulseLogo size={38} />
