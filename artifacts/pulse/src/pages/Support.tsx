@@ -644,15 +644,6 @@ export default function Support() {
           </div>
 
           {/* Info banner */}
-          {tab === "tickets" && hasPrime && (
-            <div className="bg-gradient-to-r from-primary/10 to-primary/5 border border-primary/30 rounded-2xl p-4 flex items-start gap-3">
-              <Crown size={18} className="text-amber-400 shrink-0 mt-0.5" />
-              <div>
-                <p className="text-sm font-semibold text-amber-400 flex items-center gap-1.5">Приоритетная поддержка 24/7 <Zap size={12} /></p>
-                <p className="text-xs text-muted-foreground mt-0.5">Как Prime-участник вы получаете ответ в приоритетном порядке. Среднее время ответа: до 30 минут.</p>
-              </div>
-            </div>
-          )}
           {tab === "tickets" && !hasPrime && (
             <div className="bg-primary/5 border border-primary/20 rounded-2xl p-4 flex items-start gap-3">
               <Clock size={18} className="text-primary shrink-0 mt-0.5" />

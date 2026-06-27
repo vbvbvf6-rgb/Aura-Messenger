@@ -86,14 +86,17 @@ app.use(cors({
   maxAge: 86400, // Cache preflight for 24h
 }));
 
-// ── Request timeout (60s) — prevents hanging connections ──────────────────
+// ── Request timeout — prevents hanging connections ─────────────────────────
+// Large file uploads (/api/messages) get 5min; all other routes get 60s
 app.use((req: Request, res: Response, next: NextFunction) => {
   if (req.path.endsWith("/events")) return next();
+  const isUpload = req.path.startsWith("/api/messages") || req.path.startsWith("/api/upload");
+  const timeoutMs = isUpload ? 5 * 60_000 : 60_000;
   const timer = setTimeout(() => {
     if (!res.headersSent) {
       res.status(503).json({ error: "Request timeout" });
     }
-  }, 60_000);
+  }, timeoutMs);
   res.on("finish", () => clearTimeout(timer));
   res.on("close", () => clearTimeout(timer));
   next();
@@ -120,9 +123,9 @@ app.use("/api/upload", express.urlencoded({ extended: true, limit: "25mb" }));
 app.use("/api/stories", express.json({ limit: "15mb" }));
 app.use("/api/stories", express.urlencoded({ extended: true, limit: "15mb" }));
 app.use("/api/users/me", express.json({ limit: "5mb" })); // avatar upload via base64
-// Voice messages are base64-encoded audio blobs — allow up to 25mb
-app.use("/api/messages", express.json({ limit: "25mb" }));
-app.use("/api/messages", express.urlencoded({ extended: true, limit: "25mb" }));
+// Messages can carry base64-encoded files (docs, video, audio) — allow up to 150mb
+app.use("/api/messages", express.json({ limit: "150mb" }));
+app.use("/api/messages", express.urlencoded({ extended: true, limit: "150mb" }));
 // Support messages can contain base64 photos
 app.use("/api/support", express.json({ limit: "10mb" }));
 app.use("/api/support", express.urlencoded({ extended: true, limit: "10mb" }));

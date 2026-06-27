@@ -483,10 +483,12 @@ router.get("/chats/:chatId/invite", async (req, res) => {
       token = Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2);
       await db.execute(sql`UPDATE chats SET invite_token = ${token} WHERE id = ${chatId}`);
     }
+    const proto = (req.headers["x-forwarded-proto"] as string | undefined)?.split(",")[0]?.trim() || (req.secure ? "https" : "http");
+    const host = (req.headers["x-forwarded-host"] as string | undefined) || req.headers["host"] || "localhost:5000";
     const baseUrl = process.env.RENDER_EXTERNAL_URL
       || (process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : null)
       || process.env.SELF_URL
-      || "http://localhost:5000";
+      || `${proto}://${host}`;
     res.json({ link: `${baseUrl}/invite/${token}`, token });
   } catch (err) {
     req.log.error(err);
@@ -506,10 +508,12 @@ router.post("/chats/:chatId/invite/reset", async (req, res) => {
     }
     const token = Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2);
     await db.execute(sql`UPDATE chats SET invite_token = ${token} WHERE id = ${chatId}`);
+    const proto = (req.headers["x-forwarded-proto"] as string | undefined)?.split(",")[0]?.trim() || (req.secure ? "https" : "http");
+    const host = (req.headers["x-forwarded-host"] as string | undefined) || req.headers["host"] || "localhost:5000";
     const baseUrl = process.env.RENDER_EXTERNAL_URL
       || (process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : null)
       || process.env.SELF_URL
-      || "http://localhost:5000";
+      || `${proto}://${host}`;
     res.json({ link: `${baseUrl}/invite/${token}`, token });
   } catch (err) {
     req.log.error(err);

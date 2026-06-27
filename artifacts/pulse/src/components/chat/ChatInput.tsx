@@ -293,7 +293,7 @@ export function ChatInput({ chatId, onMessageSent, replyTo, editMessage, onCance
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (!files.length) return;
-    const MAX_FILE_MB = 6;
+    const MAX_FILE_MB = 100;
     const oversized = files.filter(f => f.size > MAX_FILE_MB * 1024 * 1024);
     if (oversized.length > 0) {
       toast({ title: "Файл слишком большой", description: `Максимальный размер — ${MAX_FILE_MB} МБ`, variant: "destructive" });
