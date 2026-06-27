@@ -415,11 +415,12 @@ export function ChatInput({ chatId, onMessageSent, replyTo, editMessage, onCance
         for (let i = 0; i < docPreviews.length; i++) {
           const doc = docPreviews[i];
           const isVideo = doc.mime.startsWith("video/");
+          const isAudio = doc.mime.startsWith("audio/");
           setUploadProgress(0);
           try {
             const m = await xhrPost("/api/messages", {
               chatId,
-              type: isVideo ? "video" : "document",
+              type: isVideo ? "video" : isAudio ? "audio" : "document",
               mediaUrl: doc.data,
               text: JSON.stringify({ name: doc.name, size: doc.size, mime: doc.mime }),
               replyToId: replyTo?.id,

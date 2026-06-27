@@ -1284,7 +1284,16 @@ export const SendMessageBody = zod.object({
   chatId: zod.number(),
   text: zod.string().optional(),
   type: zod
-    .enum(["text", "image", "video", "audio", "file", "sticker"])
+    .enum([
+      "text",
+      "image",
+      "video",
+      "audio",
+      "file",
+      "sticker",
+      "album",
+      "document",
+    ])
     .default(sendMessageBodyTypeDefault),
   mediaUrl: zod.string().optional(),
   replyToId: zod.number().optional(),

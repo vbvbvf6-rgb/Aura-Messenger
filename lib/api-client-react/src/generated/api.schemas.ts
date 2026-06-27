@@ -239,6 +239,8 @@ export const SendMessageBodyType = {
   audio: "audio",
   file: "file",
   sticker: "sticker",
+  album: "album",
+  document: "document",
 } as const;
 
 export interface SendMessageBody {
