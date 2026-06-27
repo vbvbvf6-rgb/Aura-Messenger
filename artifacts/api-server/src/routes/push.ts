@@ -13,9 +13,21 @@ if (VAPID_PUBLIC && VAPID_PRIVATE) {
   webpush.setVapidDetails(VAPID_EMAIL, VAPID_PUBLIC, VAPID_PRIVATE);
 }
 
+export interface PushPayload {
+  title: string;
+  body: string;
+  url?: string;
+  tag?: string;
+  icon?: string;
+  senderAvatar?: string;
+  senderColor?: string;
+  chatType?: string;
+  image?: string;
+}
+
 export async function sendPushToUser(
   userId: number,
-  payload: { title: string; body: string; url?: string; tag?: string }
+  payload: PushPayload
 ) {
   if (!VAPID_PUBLIC || !VAPID_PRIVATE) return;
   try {

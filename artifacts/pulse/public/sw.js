@@ -60,16 +60,25 @@ self.addEventListener("message", (e) => {
   }
 
   if (e.data?.type === "show-notification") {
-    const { title, body, icon, url, tag } = e.data;
+    const { title, body, icon, image, url, tag, senderAvatar, senderColor, chatType } = e.data;
+
+    const notifIcon = senderAvatar || icon || "/icon-192.png";
+    const badge = "/icon-192.png";
+
     self.registration.showNotification(title, {
       body,
-      icon: icon || "/icon-192.png",
-      badge: "/icon-192.png",
+      icon: notifIcon,
+      badge,
+      image: image || undefined,
       data: { url: url || "/" },
       vibrate: [100, 50, 100],
       tag: tag || "aura-message",
       renotify: true,
       silent: false,
+      actions: [
+        { action: "reply", title: "Ответить" },
+        { action: "open", title: "Открыть" },
+      ],
     });
   }
 });
@@ -90,20 +99,36 @@ self.addEventListener("notificationclick", (e) => {
   );
 });
 
+// ── Beautiful Push Notifications ─────────────────────────────────────────────
 self.addEventListener("push", (e) => {
   if (!e.data) return;
   const data = e.data.json();
+
+  // Build a rich notification
+  const title = data.title || "Aura";
+  const body = data.body || "";
+  const icon = data.senderAvatar || data.icon || "/icon-192.png";
+  const badge = "/icon-192.png";
+  const tag = data.tag || "aura-message";
+  const url = data.url || "/";
+
+  const options = {
+    body,
+    icon,
+    badge,
+    image: data.image || undefined,
+    data: { url },
+    vibrate: [200, 100, 200],
+    tag,
+    renotify: true,
+    requireInteraction: false,
+    actions: [
+      { action: "reply", title: "Ответить" },
+      { action: "open", title: "Открыть" },
+    ],
+  };
+
   e.waitUntil(
-    self.registration.showNotification(data.title || "Aura", {
-      body: data.body || "",
-      icon: data.icon || "/icon-192.png",
-      badge: "/icon-192.png",
-      image: data.image,
-      data: { url: data.url || "/" },
-      vibrate: [200, 100, 200],
-      tag: data.tag || "aura-message",
-      renotify: true,
-      requireInteraction: false,
-    })
+    self.registration.showNotification(title, options)
   );
 });

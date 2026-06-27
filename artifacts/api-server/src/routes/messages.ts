@@ -484,10 +484,29 @@ router.post("/messages", async (req, res) => {
         const chatMembers = await db.execute(
           sql`SELECT u.id, u.display_name FROM chat_members cm JOIN users u ON u.id = cm.user_id WHERE cm.chat_id = ${body.chatId} AND cm.user_id != ${uid}`
         );
-        const senderRow = await db.execute(sql`SELECT display_name FROM users WHERE id = ${uid} LIMIT 1`);
-        const senderName = (senderRow.rows[0] as any)?.display_name || "Pulse";
+        const senderRow = await db.execute(
+          sql`SELECT display_name, avatar_url, avatar_color FROM users WHERE id = ${uid} LIMIT 1`
+        );
+        const senderInfo = senderRow.rows[0] as any;
+        const senderName = senderInfo?.display_name || "Aura";
+        const senderAvatar = senderInfo?.avatar_url || null;
+        const senderColor = senderInfo?.avatar_color || "#6366f1";
+
+        const chatRow = await db.execute(
+          sql`SELECT name, type, avatar_url FROM chats WHERE id = ${body.chatId} LIMIT 1`
+        );
+        const chatInfo = chatRow.rows[0] as any;
+        const chatType = chatInfo?.type || "direct";
+        const chatAvatar = chatInfo?.avatar_url || null;
+
         const effectLabel = allowedEffect === "confetti" ? " 🎊" : allowedEffect === "snow" ? " ❄️" : allowedEffect === "fire" ? " 🔥" : "";
         const msgBody = body.type === "image" ? "📷 Фото" : body.type === "audio" ? "🎤 Голосовое" : (body.text || "") + effectLabel;
+
+        // For group/channel: title = chatName, icon = chatAvatar; for direct: title = senderName, icon = senderAvatar
+        const notifTitle = chatType === "direct" ? senderName : (chatInfo?.name || senderName);
+        const notifIcon = chatType === "direct" ? senderAvatar : chatAvatar;
+        const notifBody = chatType === "direct" ? msgBody : `${senderName}: ${msgBody}`;
+
         for (const member of chatMembers.rows as any[]) {
           broadcastToUser(member.id, "new-message", {
             messageId: msg.id,
@@ -496,10 +515,13 @@ router.post("/messages", async (req, res) => {
             body: msgBody,
           });
           sendPushToUser(member.id, {
-            title: senderName,
-            body: msgBody,
+            title: notifTitle,
+            body: notifBody,
             url: "/",
             tag: `chat-${body.chatId}`,
+            senderAvatar: notifIcon || undefined,
+            senderColor,
+            chatType,
           });
         }
       } catch {}

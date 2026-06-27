@@ -437,10 +437,27 @@ export function ChatWindow({ chatId }: ChatWindowProps) {
         const last = msgs?.[msgs.length - 1];
         if (last && last.senderId !== Number(sessionStorage.getItem("pulse-user-id") || "1")) {
           const chatData = queryClient.getQueryData<any>([`/api/chats/${chatId}`]) ?? null;
+          const chatType = (chatData as any)?.type ?? "direct";
           const chatName = (chatData as any)?.otherUser?.displayName ?? (chatData as any)?.name ?? "Aura";
           const senderName = last.sender?.displayName || chatName;
           const body = last.type === "image" ? "📷 Фото" : last.type === "audio" ? "🎤 Голосовое" : last.type === "sticker" ? "🎨 Стикер" : last.text || "";
-          notify(`${senderName}`, { body, url: `/`, tag: `chat-${chatId}` });
+
+          // Pick the best avatar: for direct chats use sender avatar, for groups use chat avatar
+          const senderAvatar = last.sender?.avatarUrl ?? undefined;
+          const senderColor = last.sender?.avatarColor ?? undefined;
+          const chatAvatar = (chatData as any)?.avatarUrl ?? undefined;
+          const notifTitle = chatType === "direct" ? senderName : chatName;
+          const notifIcon = chatType === "direct" ? senderAvatar : chatAvatar;
+          const notifBody = chatType === "direct" ? body : `${senderName}: ${body}`;
+
+          notify(notifTitle, {
+            body: notifBody,
+            senderAvatar: notifIcon,
+            senderColor,
+            chatType,
+            url: `/`,
+            tag: `chat-${chatId}`,
+          });
         }
       });
       markAsRead.mutate({ chatId }, {

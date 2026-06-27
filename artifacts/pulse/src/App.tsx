@@ -13,6 +13,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Clock, LogOut, ShieldCheck, Megaphone, X, Download, RefreshCw, RotateCcw } from "lucide-react";
 
 import { useNotifications } from "@/hooks/useNotifications";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import { PwaInstallPrompt } from "@/components/PwaInstallPrompt";
 import { useServiceWorkerUpdate } from "@/hooks/useServiceWorkerUpdate";
 import { useToast } from "@/hooks/use-toast";
@@ -322,6 +323,8 @@ function PwaUpdateBanner() {
 }
 
 function MainAppInner({ onLogout, onSwitchAccount, onRemoveAccount, onOpenAddAccount }: MainAppProps) {
+  useDocumentTitle();
+
   useEffect(() => {
     const checkScheduled = async () => {
       const token = sessionStorage.getItem("pulse-token");

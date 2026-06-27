@@ -80,7 +80,20 @@ export function useNotifications() {
   }, []);
 
   const notify = useCallback(
-    (title: string, options: { body?: string; icon?: string; url?: string; tag?: string; type?: "message" | "call" | "gift" } = {}) => {
+    (
+      title: string,
+      options: {
+        body?: string;
+        icon?: string;
+        senderAvatar?: string;
+        senderColor?: string;
+        chatType?: string;
+        image?: string;
+        url?: string;
+        tag?: string;
+        type?: "message" | "call" | "gift";
+      } = {}
+    ) => {
       if (typeof Notification === "undefined") return;
       if (Notification.permission !== "granted") return;
       if (document.visibilityState === "visible" && document.hasFocus()) return;
@@ -93,10 +106,13 @@ export function useNotifications() {
       const showPreview = localStorage.getItem("pulse-notify-preview") !== "false";
       const body = showPreview ? (options.body || "") : "";
 
+      // Pick the best icon: senderAvatar > icon > fallback
+      const notifIcon = options.senderAvatar || options.icon || "/icon-192.png";
+
       const notifOpts: NotificationOptions = {
         body,
-        icon: options.icon || "/favicon.svg",
-        badge: "/favicon.svg",
+        icon: notifIcon,
+        badge: "/icon-192.png",
         tag: options.tag || "pulse-message",
         silent: localStorage.getItem("pulse-notify-sounds") === "false",
         data: { url: options.url || "/" },
@@ -107,6 +123,11 @@ export function useNotifications() {
           type: "show-notification",
           title,
           ...notifOpts,
+          icon: notifIcon,
+          senderAvatar: options.senderAvatar,
+          senderColor: options.senderColor,
+          chatType: options.chatType,
+          image: options.image,
           url: options.url || "/",
         });
       } else {
