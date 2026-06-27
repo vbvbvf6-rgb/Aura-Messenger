@@ -25,15 +25,27 @@ export function StoriesBar() {
 
   return (
     <div className="flex gap-4 p-4 overflow-x-auto scrollbar-none">
-      {/* Add story button */}
+      {/* Add story button — shows user avatar with + badge */}
       <div
         onClick={() => setLocation("/stories")}
         className="flex flex-col items-center gap-1 shrink-0 cursor-pointer group"
       >
-        <div className="w-14 h-14 rounded-full bg-secondary flex items-center justify-center border-2 border-dashed border-muted-foreground group-hover:border-primary transition-colors text-muted-foreground group-hover:text-primary">
-          <span className="text-2xl mb-1">+</span>
+        <div className="relative w-14 h-14">
+          <div
+            className="w-14 h-14 rounded-full border-2 border-dashed border-muted-foreground group-hover:border-primary transition-colors overflow-hidden flex items-center justify-center font-bold text-lg text-white"
+            style={{ backgroundColor: (me as any)?.avatarColor || "#3B82F6" }}
+          >
+            {(me as any)?.avatarUrl ? (
+              <img src={(me as any).avatarUrl} alt="Мой статус" className="w-full h-full object-cover" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }} />
+            ) : (
+              <span>{((me as any)?.displayName || (me as any)?.username || "?")[0]?.toUpperCase()}</span>
+            )}
+          </div>
+          <div className="absolute bottom-0 right-0 w-5 h-5 rounded-full bg-primary border-2 border-background flex items-center justify-center shadow-sm">
+            <span className="text-white font-bold" style={{ fontSize: 13, lineHeight: 1 }}>+</span>
+          </div>
         </div>
-        <span className="text-xs text-muted-foreground font-medium">Мой статус</span>
+        <span className="text-xs text-muted-foreground font-medium group-hover:text-foreground transition-colors">Мой статус</span>
       </div>
 
       {stories?.map((storyGroup: StoryGroup) => {
