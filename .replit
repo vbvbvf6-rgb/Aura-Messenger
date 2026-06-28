@@ -65,7 +65,7 @@ channel = "stable-25_05"
 [userenv]
 
 [userenv.shared]
-VAPID_PUBLIC_KEY = "BMYTPQMepM0IUhvdnCp9EEZCX787iklvM032FY1m7vq6PheB6OUr-ZxocSlQE2tdmUBNULyvc_vfA5kyu9vVf7I"
+VAPID_PUBLIC_KEY = "BBCIADEVLnLWMFtkNKmPxDOCN_aCjCJiHvUsvFQmhfFn9izvHXroyD2VTfRDIcHkwY1K5codTmxBAwhYiUk3vVU"
 VAPID_EMAIL = "mailto:admin@pulse.app"
 PORT = "5000"
 BASE_PATH = "/"
