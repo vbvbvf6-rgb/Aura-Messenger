@@ -8,6 +8,20 @@ import { broadcastToChat, broadcastToUser } from "../lib/sse";
 import { sendPushToUser } from "./push";
 import { SendMessageBody, EditMessageBody, AddReactionBody } from "@workspace/api-zod";
 
+// Global Pollinations rate limiter — max 1 concurrent request per server process
+let _pollinationsLocked = false;
+const _pollinationsQueue: Array<() => void> = [];
+function acquirePollinationsLock(): Promise<void> {
+  return new Promise(resolve => {
+    if (!_pollinationsLocked) { _pollinationsLocked = true; resolve(); }
+    else _pollinationsQueue.push(resolve);
+  });
+}
+function releasePollinationsLock() {
+  const next = _pollinationsQueue.shift();
+  if (next) next(); else _pollinationsLocked = false;
+}
+
 async function isAdmin(userId: number): Promise<boolean> {
   try {
     const rows = await db.execute(sql`SELECT is_admin FROM users WHERE id = ${userId}`);
@@ -718,7 +732,7 @@ ${inline_code}
             } catch { return undefined; }
           };
 
-          // Pollinations: sequential with retry on 429 to avoid "queue full" per-IP limit
+          // Pollinations: uses global mutex so only 1 request runs at a time server-wide
           const callPollinations = async (model: string): Promise<string | undefined> => {
             if (isImageMessage) return undefined;
             const conversationText = historyMessages
@@ -728,22 +742,27 @@ ${inline_code}
               ? `${conversationText}\nUser: ${body.text}\nAssistant:`
               : body.text;
             const url = `https://text.pollinations.ai/${encodeURIComponent(fullPrompt || "")}?model=${model}&seed=${Math.floor(Math.random() * 99999)}&system=${encodeURIComponent(systemPrompt)}`;
-            for (let attempt = 0; attempt < 3; attempt++) {
-              try {
-                if (attempt > 0) await new Promise(r => setTimeout(r, 3000 * attempt));
-                const r = await fetch(url, {
-                  method: "GET",
-                  headers: { "User-Agent": "Mozilla/5.0 (compatible; Pulse-AI/1.0)" },
-                  signal: AbortSignal.timeout(TIMEOUT_MS),
-                });
-                if (r.status === 429) continue;
-                if (!r.ok) return undefined;
-                const text = await r.text();
-                const trimmed = text?.trim();
-                if (trimmed) return trimmed;
-              } catch { continue; }
+            await acquirePollinationsLock();
+            try {
+              for (let attempt = 0; attempt < 3; attempt++) {
+                try {
+                  if (attempt > 0) await new Promise(r => setTimeout(r, 3000 * attempt));
+                  const r = await fetch(url, {
+                    method: "GET",
+                    headers: { "User-Agent": "Mozilla/5.0 (compatible; Pulse-AI/1.0)" },
+                    signal: AbortSignal.timeout(TIMEOUT_MS),
+                  });
+                  if (r.status === 429) continue;
+                  if (!r.ok) return undefined;
+                  const text = await r.text();
+                  const trimmed = text?.trim();
+                  if (trimmed) return trimmed;
+                } catch { continue; }
+              }
+              return undefined;
+            } finally {
+              releasePollinationsLock();
             }
-            return undefined;
           };
 
           let reply: string | undefined;
