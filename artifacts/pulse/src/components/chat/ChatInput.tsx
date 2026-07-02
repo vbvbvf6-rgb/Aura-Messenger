@@ -665,8 +665,54 @@ export function ChatInput({ chatId, onMessageSent, replyTo, editMessage, onCance
     }
   }
 
+  const [isDragOver, setIsDragOver] = useState(false);
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    if (e.dataTransfer.types.some(t => t === "Files")) setIsDragOver(true);
+  };
+  const handleDragLeave = (e: React.DragEvent) => {
+    if (!e.currentTarget.contains(e.relatedTarget as Node)) setIsDragOver(false);
+  };
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(false);
+    const MAX_FILE_MB = 100;
+    const files = Array.from(e.dataTransfer.files);
+    if (!files.length) return;
+    const oversized = files.filter(f => f.size > MAX_FILE_MB * 1024 * 1024);
+    if (oversized.length) {
+      toast({ title: "Файл слишком большой", description: `Максимальный размер — ${MAX_FILE_MB} МБ`, variant: "destructive" });
+      return;
+    }
+    const images = files.filter(f => f.type.startsWith("image/") && !f.type.includes("svg"));
+    const docs = files.filter(f => !f.type.startsWith("image/") || f.type.includes("svg"));
+    if (images.length) {
+      const compressed = await Promise.all(images.map(f => compressImage(f)));
+      setImagePreviews(prev => [...prev, ...compressed]);
+    }
+    for (const file of docs) {
+      const data = await readFileAsDataUrl(file);
+      setDocPreviews(prev => [...prev, { name: file.name, size: file.size, mime: file.type || "application/octet-stream", data }]);
+    }
+  };
+
   return (
-    <div className="relative px-4 md:px-6 z-30" style={{ paddingBottom: "max(1rem, env(safe-area-inset-bottom, 0px))" }}>
+    <div
+      className={`relative px-4 md:px-6 z-30 transition-all ${isDragOver ? "after:content-[''] after:absolute after:inset-0 after:rounded-2xl after:border-2 after:border-dashed after:border-primary after:pointer-events-none" : ""}`}
+      style={{ paddingBottom: "max(1rem, env(safe-area-inset-bottom, 0px))" }}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+    >
+      {isDragOver && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center rounded-2xl bg-primary/10 border-2 border-dashed border-primary pointer-events-none">
+          <div className="flex flex-col items-center gap-2 text-primary">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            <span className="text-sm font-bold">Перетащите файлы сюда</span>
+          </div>
+        </div>
+      )}
       <div className="max-w-3xl mx-auto w-full relative">
         <AnimatePresence>
           {showScheduler && (
@@ -879,27 +925,18 @@ export function ChatInput({ chatId, onMessageSent, replyTo, editMessage, onCance
                   {EMOJI_CATEGORIES[emojiCategory].emojis.map((emoji, i) => (
                     <button key={i} onClick={() => insertEmoji(emoji)}
                       className="hover:bg-secondary rounded-xl p-1.5 transition-colors flex items-center justify-center hover:scale-110 active:scale-95">
-                      {emojiCategory === FLAGS_CATEGORY ? (
-                        <img
-                          src={emojiToTwemojiUrl(emoji)}
-                          alt={emoji}
-                          width={20}
-                          height={20}
-                          draggable={false}
-                          onError={e => {
-                            const el = e.currentTarget as HTMLImageElement;
-                            el.style.display = "none";
-                            el.insertAdjacentText("afterend", emoji);
-                          }}
-                        />
-                      ) : (
-                        <span
-                          style={{ fontFamily: '"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji","Twemoji Mozilla",sans-serif', fontSize: '20px', lineHeight: 1, userSelect: 'none' }}
-                          aria-label={emoji}
-                        >
-                          {emoji}
-                        </span>
-                      )}
+                      <img
+                        src={emojiToTwemojiUrl(emoji)}
+                        alt={emoji}
+                        width={22}
+                        height={22}
+                        draggable={false}
+                        onError={e => {
+                          const el = e.currentTarget as HTMLImageElement;
+                          el.style.display = "none";
+                          el.insertAdjacentHTML("afterend", `<span style="font-family:'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji',sans-serif;font-size:20px;line-height:1">${emoji}</span>`);
+                        }}
+                      />
                     </button>
                   ))}
                 </div>

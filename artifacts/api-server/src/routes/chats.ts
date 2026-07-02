@@ -247,6 +247,15 @@ router.post("/chats", async (req, res) => {
   try {
     const uid = req.currentUserId;
     const body = CreateChatBody.parse(req.body);
+
+    // Only verified users can create channels
+    if (body.type === "channel") {
+      const creator = await db.query.usersTable.findFirst({ where: eq(usersTable.id, uid) });
+      if (!creator?.isVerified && !creator?.isAdmin) {
+        return res.status(403).json({ error: "Только верифицированные пользователи могут создавать каналы" });
+      }
+    }
+
     const [chat] = await db.insert(chatsTable).values({
       type: body.type,
       name: body.name,

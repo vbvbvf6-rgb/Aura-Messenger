@@ -16,6 +16,7 @@ import { useLocation } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
+import { ru as ruLocale } from "date-fns/locale";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -1545,25 +1546,49 @@ export function ChatWindow({ chatId }: ChatWindowProps) {
           </div>
         ) : (
           <div className="max-w-3xl mx-auto w-full space-y-6 flex flex-col justify-end min-h-full">
-            {(filteredMessages as Message[])?.map((message: Message) => {
+            {(filteredMessages as Message[])?.map((message: Message, idx: number) => {
               const isMatch = searchQuery.trim() ? matchingMessageIds.includes(message.id) : false;
               const isActive = isMatch && matchingMessageIds[searchMatchIndex] === message.id;
+              // Date separator logic
+              const msgDate = message.createdAt ? new Date(message.createdAt) : null;
+              const prevMsg = idx > 0 ? (filteredMessages as Message[])[idx - 1] : null;
+              const prevDate = prevMsg?.createdAt ? new Date(prevMsg.createdAt) : null;
+              const showDateSep = msgDate && (!prevDate || format(msgDate, "yyyy-MM-dd") !== format(prevDate, "yyyy-MM-dd"));
+              const today = new Date();
+              const yesterday = new Date(today); yesterday.setDate(today.getDate() - 1);
+              const dateLabel = msgDate
+                ? (format(msgDate, "yyyy-MM-dd") === format(today, "yyyy-MM-dd") ? "Сегодня"
+                  : format(msgDate, "yyyy-MM-dd") === format(yesterday, "yyyy-MM-dd") ? "Вчера"
+                  : msgDate.getFullYear() === today.getFullYear()
+                    ? format(msgDate, "d MMMM", { locale: ruLocale })
+                    : format(msgDate, "d MMMM yyyy", { locale: ruLocale }))
+                : null;
               return (
-                <MessageBubble
-                  key={message.id}
-                  message={message}
-                  onReply={(msg) => { setEditMessage(null); setReplyTo(msg); }}
-                  onEdit={(msg) => { setReplyTo(null); setEditMessage(msg); }}
-                  onPin={handlePinMessage}
-                  typingOut={message.id === typingOutMsgId}
-                  onTypingDone={() => setTypingOutMsgId(null)}
-                  searchHighlight={isMatch ? searchQuery : undefined}
-                  isActiveMatch={isActive}
-                  messageRef={(el) => { messageRefs.current[message.id] = el; }}
-                  isChannel={isChannel}
-                  onComment={(msg) => setThreadMessage(msg)}
-                  isSenderAdmin={adminUserIds.has(message.senderId)}
-                />
+                <React.Fragment key={message.id}>
+                  {showDateSep && dateLabel && (
+                    <div className="flex items-center gap-3 py-1 select-none">
+                      <div className="flex-1 h-px bg-border/50" />
+                      <span className="text-[11px] font-bold text-muted-foreground/70 bg-secondary/60 px-3 py-1 rounded-full border border-border/30 backdrop-blur-sm whitespace-nowrap">
+                        {dateLabel}
+                      </span>
+                      <div className="flex-1 h-px bg-border/50" />
+                    </div>
+                  )}
+                  <MessageBubble
+                    message={message}
+                    onReply={(msg) => { setEditMessage(null); setReplyTo(msg); }}
+                    onEdit={(msg) => { setReplyTo(null); setEditMessage(msg); }}
+                    onPin={handlePinMessage}
+                    typingOut={message.id === typingOutMsgId}
+                    onTypingDone={() => setTypingOutMsgId(null)}
+                    searchHighlight={isMatch ? searchQuery : undefined}
+                    isActiveMatch={isActive}
+                    messageRef={(el) => { messageRefs.current[message.id] = el; }}
+                    isChannel={isChannel}
+                    onComment={(msg) => setThreadMessage(msg)}
+                    isSenderAdmin={adminUserIds.has(message.senderId)}
+                  />
+                </React.Fragment>
               );
             })}
           </div>

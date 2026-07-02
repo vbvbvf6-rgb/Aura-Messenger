@@ -594,7 +594,6 @@ export function ChatList() {
       <div className="chat-list-scroll flex-1 overflow-y-auto overflow-x-hidden scrollbar-none mt-2 px-2 pb-28 md:pb-4">
         {folder === "all" && (
           <div className="space-y-1 mb-2">
-            <AiChatEntry onOpen={(id) => setSelectedChatId(id)} />
             <SavedMessagesEntry onOpen={(id) => setSelectedChatId(id)} />
             <button
               onClick={() => navigate("/support")}

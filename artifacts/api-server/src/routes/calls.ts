@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db, callsTable, usersTable } from "@workspace/db";
-import { eq, or, desc } from "drizzle-orm";
+import { eq, or, desc, sql } from "drizzle-orm";
 import { InitiateCallBody, UpdateCallStatusBody } from "@workspace/api-zod";
 import { broadcastToUser } from "../lib/sse";
 import { sendPushToUser } from "./push.js";
@@ -127,11 +127,19 @@ async function buildCall(call: typeof callsTable.$inferSelect) {
 router.get("/calls", async (req, res) => {
   try {
     const uid = req.currentUserId;
-    const calls = await db.select().from(callsTable)
-      .where(or(eq(callsTable.callerId, uid), eq(callsTable.calleeId, uid)))
-      .orderBy(desc(callsTable.createdAt))
-      .limit(50);
-    const built = await Promise.all(calls.map(buildCall));
+    // Exclude rows the requesting user has individually cleared (soft-delete)
+    const rows = await db.execute(sql`
+      SELECT * FROM calls
+      WHERE (caller_id = ${uid} AND hidden_for_caller = FALSE)
+         OR (callee_id = ${uid} AND hidden_for_callee = FALSE)
+      ORDER BY created_at DESC
+      LIMIT 50
+    `);
+    const built = await Promise.all((rows.rows as any[]).map(row => buildCall({
+      id: row.id, chatId: row.chat_id, callerId: row.caller_id, calleeId: row.callee_id,
+      type: row.type, status: row.status, startedAt: row.started_at, endedAt: row.ended_at,
+      durationSeconds: row.duration_seconds, createdAt: row.created_at,
+    })));
     res.json(built);
   } catch (err) {
     req.log.error(err);
@@ -263,6 +271,24 @@ router.post("/calls/:callId/signal", async (req, res) => {
       broadcastToUser(targetId, "webrtc-signal", { type, payload, callId });
     }
 
+    res.json({ ok: true });
+  } catch (err) {
+    req.log.error(err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// Clear call history for the current user (per-user soft-delete — other participant keeps their history)
+router.delete("/calls", async (req, res) => {
+  try {
+    const uid = req.currentUserId;
+    // Mark rows hidden for this user only — does not affect the other participant
+    await db.execute(sql`
+      UPDATE calls SET hidden_for_caller = TRUE WHERE caller_id = ${uid} AND hidden_for_caller = FALSE
+    `);
+    await db.execute(sql`
+      UPDATE calls SET hidden_for_callee = TRUE WHERE callee_id = ${uid} AND hidden_for_callee = FALSE
+    `);
     res.json({ ok: true });
   } catch (err) {
     req.log.error(err);

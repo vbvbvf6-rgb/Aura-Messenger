@@ -254,7 +254,7 @@ export function Sidebar({ mobileSidebarOpen, onMobileClose, onMobileOpen, onOpen
   const DesktopSidebar = (
     <div className="hidden md:flex flex-col w-[260px] bg-[#f2f3f5] dark:bg-[#0a0a0d] rounded-r-[28px] shrink-0 relative z-20 shadow-[4px_0_32px_rgba(0,0,0,0.08)] dark:shadow-[4px_0_32px_rgba(0,0,0,0.55)] overflow-hidden border-r border-border/40" style={{ height: "var(--app-h, 100dvh)" }}>
       <div className="flex items-center gap-3 px-5 pt-5 pb-4">
-        <div className="relative shrink-0 drop-shadow-[0_4px_12px_rgba(255,100,20,0.45)]">
+        <div className="relative shrink-0 drop-shadow-[0_4px_12px_rgba(59,130,246,0.45)]">
           <PulseLogo size={38} />
         </div>
         <span
@@ -340,9 +340,9 @@ export function Sidebar({ mobileSidebarOpen, onMobileClose, onMobileOpen, onOpen
             )}
           >
             {location.startsWith("/prime") && (
-              <div className="absolute inset-0 bg-gradient-to-r from-orange-500 to-red-500" />
+              <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-blue-600" />
             )}
-            <Crown size={20} strokeWidth={2.5} className={cn("shrink-0 relative z-10", location.startsWith("/prime") ? "text-white" : "text-orange-500")} />
+            <Crown size={20} strokeWidth={2.5} className={cn("shrink-0 relative z-10", location.startsWith("/prime") ? "text-white" : "text-blue-500")} />
             <span className={cn("text-[14px] truncate relative z-10", location.startsWith("/prime") ? "font-bold" : "font-semibold")}>
               {t("nav.prime")}
             </span>
@@ -503,7 +503,7 @@ export function Sidebar({ mobileSidebarOpen, onMobileClose, onMobileOpen, onOpen
         style={{ transform: mobileSidebarOpen ? "translateX(0)" : "translateX(-100%)", paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
       >
         <div className="flex items-center gap-3 px-5 mb-6">
-          <div className="relative shrink-0 drop-shadow-[0_3px_10px_rgba(255,100,20,0.4)]">
+          <div className="relative shrink-0 drop-shadow-[0_3px_10px_rgba(59,130,246,0.4)]">
             <PulseLogo size={36} />
           </div>
           <span
@@ -568,9 +568,9 @@ export function Sidebar({ mobileSidebarOpen, onMobileClose, onMobileOpen, onOpen
               )}
             >
               {location.startsWith("/prime") && (
-                <div className="absolute inset-0 bg-gradient-to-r from-orange-500 to-red-500" />
+                <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-blue-600" />
               )}
-              <Crown size={20} strokeWidth={2.5} className={cn("shrink-0 relative z-10", location.startsWith("/prime") ? "text-white" : "text-orange-500")} />
+              <Crown size={20} strokeWidth={2.5} className={cn("shrink-0 relative z-10", location.startsWith("/prime") ? "text-white" : "text-blue-500")} />
               <span className={cn("text-[14px] truncate relative z-10", location.startsWith("/prime") ? "font-bold" : "font-semibold")}>
                 {t("nav.prime")}
               </span>

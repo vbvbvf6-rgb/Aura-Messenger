@@ -393,10 +393,10 @@ export default function Prime() {
   return (
     <div className="flex-1 flex flex-col h-full bg-background overflow-y-auto">
       {/* Header */}
-      <header className="sticky top-0 z-10 border-b border-border px-5 flex items-center gap-3 relative overflow-hidden" style={{ minHeight: "calc(4rem + env(safe-area-inset-top, 0px))", paddingTop: "env(safe-area-inset-top, 0px)", background: "linear-gradient(135deg, rgba(234,179,8,0.08), rgba(249,115,22,0.04))", backdropFilter: "blur(20px)" }}>
-        <div className="absolute inset-0 bg-gradient-to-r from-yellow-500/8 via-orange-500/4 to-transparent pointer-events-none" />
-        <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 relative z-10" style={{ background: "linear-gradient(135deg, rgba(234,179,8,0.25), rgba(249,115,22,0.12))", border: "1px solid rgba(234,179,8,0.35)", boxShadow: "0 0 12px rgba(234,179,8,0.2)" }}>
-          <Crown size={18} className="text-yellow-400" />
+      <header className="sticky top-0 z-10 border-b border-border px-5 flex items-center gap-3 relative overflow-hidden" style={{ minHeight: "calc(4rem + env(safe-area-inset-top, 0px))", paddingTop: "env(safe-area-inset-top, 0px)", background: "linear-gradient(135deg, rgba(59,130,246,0.08), rgba(37,99,235,0.04))", backdropFilter: "blur(20px)" }}>
+        <div className="absolute inset-0 bg-gradient-to-r from-blue-500/8 via-blue-400/4 to-transparent pointer-events-none" />
+        <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 relative z-10" style={{ background: "linear-gradient(135deg, rgba(59,130,246,0.25), rgba(37,99,235,0.12))", border: "1px solid rgba(59,130,246,0.35)", boxShadow: "0 0 12px rgba(59,130,246,0.2)" }}>
+          <Crown size={18} className="text-blue-400" />
         </div>
         <div className="relative z-10">
           <h1 className="font-black text-foreground text-xl leading-none tracking-tight">Aura Prime</h1>

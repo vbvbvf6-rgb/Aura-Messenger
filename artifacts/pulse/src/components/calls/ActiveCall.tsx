@@ -308,6 +308,28 @@ export function ActiveCall() {
     return () => clearInterval(interval);
   }, [activeCall?.id, activeCall?.status]);
 
+  // Proximity sensor — dim screen during audio calls when phone is near ear
+  useEffect(() => {
+    if (!activeCall || activeCall.status !== "active" || activeCall.type !== "audio") return;
+    const handleProximity = (e: any) => {
+      if (e.near || e.value < 5) {
+        document.body.style.filter = "brightness(0)";
+        document.body.style.pointerEvents = "none";
+      } else {
+        document.body.style.filter = "";
+        document.body.style.pointerEvents = "";
+      }
+    };
+    window.addEventListener("deviceproximity", handleProximity as any);
+    window.addEventListener("userproximity", handleProximity as any);
+    return () => {
+      window.removeEventListener("deviceproximity", handleProximity as any);
+      window.removeEventListener("userproximity", handleProximity as any);
+      document.body.style.filter = "";
+      document.body.style.pointerEvents = "";
+    };
+  }, [activeCall?.id, activeCall?.status, activeCall?.type]);
+
   // Local video — always attach when stream changes; video element is always mounted
   useEffect(() => {
     const video = localVideoRef.current;
@@ -379,6 +401,7 @@ export function ActiveCall() {
     } else {
       video.srcObject = null;
       setHasRemoteVideo(false);
+      return;
     }
   }, [remoteStream]);
 
@@ -438,14 +461,17 @@ export function ActiveCall() {
     return (
       <>
         <motion.div
+          drag
+          dragMomentum={false}
+          dragElastic={0.05}
           initial={{ y: -80, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: -80, opacity: 0 }}
-          className="fixed top-0 left-0 right-0 z-[99999] flex justify-center pointer-events-none"
-          style={{ paddingTop: "max(0.5rem, env(safe-area-inset-top, 0px))" }}
+          className="fixed z-[99999] pointer-events-auto"
+          style={{ top: "max(0.5rem, env(safe-area-inset-top, 0px))", left: 0, right: 0, display: "flex", justifyContent: "center", cursor: "grab" }}
         >
           <div
-            className="pointer-events-auto flex items-center gap-3 px-4 py-2.5 rounded-full bg-card/95 backdrop-blur-md border border-border shadow-[0_4px_32px_rgba(0,0,0,0.18)] cursor-pointer"
+            className="flex items-center gap-3 px-4 py-2.5 rounded-full bg-card/95 backdrop-blur-md border border-border shadow-[0_4px_32px_rgba(0,0,0,0.18)] cursor-pointer active:cursor-grabbing"
             onClick={expandCall}
           >
             <div className="flex items-center gap-1.5">
@@ -494,6 +520,15 @@ export function ActiveCall() {
           exit={{ opacity: 0 }}
           className="fixed inset-0 z-[99999] flex flex-col items-center justify-center overflow-hidden bg-background"
         >
+          {/* Minimize button during ringing */}
+          <button
+            onClick={minimizeCall}
+            className="absolute w-9 h-9 rounded-full bg-secondary/80 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors z-20"
+            style={{ top: "max(1rem, env(safe-area-inset-top, 0px))", right: "1rem" }}
+            title="Свернуть"
+          >
+            <Minimize2 size={16} />
+          </button>
           <div
             className="absolute inset-0 pointer-events-none"
             style={{ background: `radial-gradient(ellipse at 50% 30%, ${avatarBg}30 0%, transparent 65%)` }}

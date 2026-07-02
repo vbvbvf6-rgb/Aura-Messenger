@@ -1,7 +1,7 @@
 import React, { useState } from "react";
-import { useGetCallHistory } from "@workspace/api-client-react";
+import { useGetCallHistory, getGetCallHistoryQueryKey } from "@workspace/api-client-react";
 import type { Call } from "@workspace/api-client-react";
-import { Phone, Video, PhoneMissed, PhoneForwarded, PhoneIncoming, PhoneCall, Search, X } from "lucide-react";
+import { Phone, Video, PhoneMissed, PhoneForwarded, PhoneIncoming, PhoneCall, Search, X, Trash2 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ru } from "date-fns/locale";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -9,6 +9,7 @@ import { useAppContext } from "@/contexts/AppContext";
 import { useToast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
 import { useGetContacts } from "@workspace/api-client-react";
+import { useQueryClient } from "@tanstack/react-query";
 
 type Filter = "all" | "missed" | "incoming" | "outgoing";
 
@@ -17,9 +18,33 @@ export default function Calls() {
   const { data: contacts } = useGetContacts();
   const { currentUserId, startCall } = useAppContext();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [filter, setFilter] = useState<Filter>("all");
   const [showNewCall, setShowNewCall] = useState(false);
   const [search, setSearch] = useState("");
+  const [clearing, setClearing] = useState(false);
+
+  const handleClearHistory = async () => {
+    if (!window.confirm("Очистить всю историю звонков?")) return;
+    setClearing(true);
+    try {
+      const token = sessionStorage.getItem("pulse-token");
+      const res = await fetch("/api/calls", {
+        method: "DELETE",
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (res.ok) {
+        queryClient.invalidateQueries({ queryKey: getGetCallHistoryQueryKey() });
+        toast({ title: "История звонков очищена" });
+      } else {
+        toast({ title: "Ошибка", variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Ошибка соединения", variant: "destructive" });
+    } finally {
+      setClearing(false);
+    }
+  };
 
   const filtered = calls?.filter((call: Call) => {
     const isOutgoing = call.callerId === currentUserId;
@@ -55,14 +80,26 @@ export default function Calls() {
           </div>
           <h1 className="text-xl font-black text-foreground tracking-tight">Звонки</h1>
         </div>
-        <button
-          onClick={() => setShowNewCall(true)}
-          className="flex items-center gap-2 px-4 py-2 rounded-2xl text-sm font-bold transition-all active:scale-95 relative z-10"
-          style={{ background: "linear-gradient(135deg, #3b82f6, #60a5fa)", boxShadow: "0 0 16px rgba(59,130,246,0.35)", color: "white" }}
-        >
-          <PhoneCall size={14} />
-          Новый звонок
-        </button>
+        <div className="flex items-center gap-2 relative z-10">
+          {calls && calls.length > 0 && (
+            <button
+              onClick={handleClearHistory}
+              disabled={clearing}
+              title="Очистить историю"
+              className="w-9 h-9 flex items-center justify-center rounded-xl text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all active:scale-95"
+            >
+              <Trash2 size={16} />
+            </button>
+          )}
+          <button
+            onClick={() => setShowNewCall(true)}
+            className="flex items-center gap-2 px-4 py-2 rounded-2xl text-sm font-bold transition-all active:scale-95"
+            style={{ background: "linear-gradient(135deg, #3b82f6, #60a5fa)", boxShadow: "0 0 16px rgba(59,130,246,0.35)", color: "white" }}
+          >
+            <PhoneCall size={14} />
+            Новый звонок
+          </button>
+        </div>
       </header>
 
       {/* Tabs */}

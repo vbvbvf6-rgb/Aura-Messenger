@@ -72,6 +72,12 @@ process.on("SIGINT", () => shutdown("SIGINT"));
 
 runSeed().catch((err) => logger.error({ err }, "Seed failed"));
 
+// ── Add per-user soft-delete columns to calls table ───────────────────────
+db.execute(sql`ALTER TABLE calls ADD COLUMN IF NOT EXISTS hidden_for_caller BOOLEAN NOT NULL DEFAULT FALSE`)
+  .catch(() => {/* table may not exist yet in fresh envs */});
+db.execute(sql`ALTER TABLE calls ADD COLUMN IF NOT EXISTS hidden_for_callee BOOLEAN NOT NULL DEFAULT FALSE`)
+  .catch(() => {/* table may not exist yet in fresh envs */});
+
 // ── Create user_sessions table if it doesn't exist ────────────────────────
 db.execute(sql`
   CREATE TABLE IF NOT EXISTS user_sessions (
